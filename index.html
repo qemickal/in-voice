@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Recibos &amp; Cotizaciones — Mono Cromat &amp; Co.</title>
+  <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
+  <meta name="theme-color" content="#2B5EAB">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="tab-datos">
+
+  <!-- ===== Barra superior ===== -->
+  <header id="topbar">
+    <div class="brand">
+      <img src="assets/img/logo-blue.png" alt="logo" class="brand-logo">
+      <div class="brand-text">
+        <strong>Recibos &amp; Cotizaciones</strong>
+        <span>Mono Cromat &amp; Co.</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar app</button>
+      <button class="btn small outline" data-action="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Navegación principal ===== -->
+    <nav id="main-nav" class="main-nav">
+      <button class="nav-btn active" data-view="docs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg> Documentos</button>
+      <button class="nav-btn" data-view="cxc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.2c-.5-1-1.5-1.5-3-1.5-1.7 0-3 .8-3 2.3 0 3 6 1.5 6 4.5 0 1.5-1.3 2.3-3 2.3-1.7 0-2.7-.7-3.2-1.8"/><line x1="12" y1="5.5" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="18.5"/></svg> Cuentas por Cobrar</button>
+      <button class="nav-btn" data-view="cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg> Cuentas por Pagar</button>
+    </nav>
+
+    <!-- ===== Vista: lista ===== -->
+    <section id="view-list">
+      <div class="list-head">
+        <h1>Documentos</h1>
+        <div class="list-head-actions">
+          <button class="btn primary" data-action="new-recibo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
+          <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search" type="search" placeholder="Buscar por número, proyecto, cliente…">
+        <div class="chips">
+          <button class="chip active" data-filter="todos">Todos</button>
+          <button class="chip" data-filter="recibo">Recibos</button>
+          <button class="chip" data-filter="cotizacion">Cotizaciones</button>
+        </div>
+      </div>
+      <div id="doc-list" class="doc-list"></div>
+    </section>
+
+    <!-- ===== Vista: Cuentas por Cobrar ===== -->
+    <section id="view-cxc" hidden>
+      <div class="list-head">
+        <h1>Cuentas por Cobrar</h1>
+        <div class="list-head-actions">
+          <div class="cxc-summary">
+            <div class="summary-card">
+              <span class="summary-label">Total por cobrar</span>
+              <strong id="cxc-total" class="summary-value">$0.00</strong>
+            </div>
+            <div class="summary-card summary-warning">
+              <span class="summary-label">Clientes con saldo</span>
+              <strong id="cxc-clientes" class="summary-value">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search-cxc" type="search" placeholder="Buscar por cliente, proyecto, folio…">
+      </div>
+      <div id="cxc-list" class="doc-list"></div>
+    </section>
+
+    <!-- ===== Vista: Cuentas por Pagar ===== -->
+    <section id="view-cxp" hidden>
+      <div class="list-head">
+        <h1>Cuentas por Pagar</h1>
+        <div class="list-head-actions">
+          <div class="cxp-summary">
+            <div class="summary-card summary-danger">
+              <span class="summary-label">Total por pagar</span>
+              <strong id="cxp-total" class="summary-value">$0.00</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Pagadas</span>
+              <strong id="cxp-pagadas" class="summary-value">0</strong>
+            </div>
+            <div class="summary-card summary-warning">
+              <span class="summary-label">Pendientes</span>
+              <strong id="cxp-pendientes" class="summary-value">0</strong>
+            </div>
+          </div>
+          <button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search-cxp" type="search" placeholder="Buscar por proveedor, concepto…">
+        <div class="chips">
+          <button class="chip active" data-cxp-filter="todas">Todas</button>
+          <button class="chip" data-cxp-filter="pendiente">Pendientes</button>
+          <button class="chip" data-cxp-filter="pagada">Pagadas</button>
+          <button class="chip" data-cxp-filter="parcial">Pago parcial</button>
+        </div>
+      </div>
+      <div id="cxp-list" class="doc-list"></div>
+    </section>
+
+    <!-- ===== Vista: editor ===== -->
+    <section id="view-editor" hidden>
+      <div class="editor-bar">
+        <button class="btn small outline" data-action="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Volver</button>
+        <div class="editor-bar-title">
+          <span id="editor-mode-label">Documento</span>
+        </div>
+        <div class="editor-bar-actions">
+          <button class="btn small" data-action="save"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
+          <button class="btn small" data-action="print"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> PDF / Imprimir</button>
+          <button class="btn small" data-action="email"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg> Enviar</button>
+          <button class="btn small" data-action="share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>
+          <button class="btn small danger" data-action="delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 3h4a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1Z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="editor-tabs">
+        <button class="on" data-tab="datos" data-action="tab">Datos</button>
+        <button data-tab="preview" data-action="tab">Vista previa</button>
+      </div>
+
+      <div class="editor-layout">
+        <div class="editor-form" id="editor-form"></div>
+        <div class="editor-preview">
+          <div class="preview-frame" id="preview-frame">
+            <div id="preview-inner"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Modal de ajustes ===== -->
+  <div id="modal-settings" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</h2>
+        <button class="icon-btn" data-action="close-settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div id="settings-body" class="modal-body"></div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-settings">Cancelar</button>
+        <button class="btn primary" data-action="save-settings">Guardar ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal: Cuentas por Pagar (agregar/editar) ===== -->
+  <div id="modal-cxp" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-cxp-title">Nueva cuenta por pagar</h2>
+        <button class="icon-btn" data-action="close-cxp-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="sgrid">
+          <label>Proveedor
+            <input id="cxp-proveedor" type="text" placeholder="Nombre del proveedor">
+          </label>
+          <label>Folio / Factura
+            <input id="cxp-folio" type="text" placeholder="Ej. FAC-001">
+          </label>
+        </div>
+        <label>Concepto
+          <input id="cxp-concepto" type="text" placeholder="Descripción del gasto o servicio">
+        </label>
+        <div class="sgrid">
+          <label>Monto total
+            <input id="cxp-monto" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>Fecha de vencimiento
+            <input id="cxp-vencimiento" type="date">
+          </label>
+        </div>
+        <div class="sgrid">
+          <label>Fecha de emisión
+            <input id="cxp-fecha-emision" type="date">
+          </label>
+          <label>Categoría
+            <select id="cxp-categoria">
+              <option value="material">Material</option>
+              <option value="servicio">Servicio</option>
+              <option value="renta">Renta</option>
+              <option value="servicios">Servicios (luz, agua, etc.)</option>
+              <option value="nomina">Nómina</option>
+              <option value="impuestos">Impuestos</option>
+              <option value="otro">Otro</option>
+            </select>
+          </label>
+        </div>
+        <label>Notas
+          <textarea id="cxp-notas" rows="2" placeholder="Observaciones opcionales"></textarea>
+        </label>
+        <h3>Abonos de pago</h3>
+        <div id="cxp-abonos-list" class="cxp-abonos-list"></div>
+        <button class="btn outline small" data-action="add-cxp-abono"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agregar abono</button>
+        <div class="abono-foot"><span>Saldo pendiente</span><b id="cxp-saldo">—</b></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-cxp-modal">Cancelar</button>
+        <button class="btn primary" data-action="save-cxp">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal: Detalle CxC (ver documento asociado) ===== -->
+  <div id="modal-cxc-detail" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>Detalle de cuenta por cobrar</h2>
+        <button class="icon-btn" data-action="close-cxc-detail"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div id="cxc-detail-body" class="modal-body"></div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-cxc-detail">Cerrar</button>
+        <button class="btn primary" data-action="go-edit-cxc">Editar documento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Área de impresión ===== -->
+  <div id="print-area"></div>
+
+  <div id="toast"></div>
+
+  <script src="assets/js/jspdf.umd.min.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
