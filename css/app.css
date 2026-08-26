@@ -455,3 +455,41 @@ main { max-width: 1280px; margin: 0 auto; padding: 24px 20px 80px; }
     page-break-inside: avoid;
   }
 }
+
+/* ============================================================
+   SYNC — indicador y panel de sincronización
+   ============================================================ */
+.sync-ind { display: inline-flex; align-items: center; gap: 7px; }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background .25s, box-shadow .25s;
+}
+.sync-ind.st-ok .sync-dot,
+.sync-status.st-ok .sync-dot { background: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,.18); }
+.sync-ind.st-syncing .sync-dot,
+.sync-status.st-syncing .sync-dot,
+.sync-ind.st-pending .sync-dot,
+.sync-status.st-pending .sync-dot { background: #f39c12; box-shadow: 0 0 0 3px rgba(243,156,18,.18); animation: sync-pulse 1.1s ease-in-out infinite; }
+.sync-ind.st-offline .sync-dot,
+.sync-ind.st-unlinked .sync-dot,
+.sync-status.st-offline .sync-dot,
+.sync-status.st-unlinked .sync-dot { background: var(--muted); }
+.sync-ind.st-bad-code .sync-dot,
+.sync-ind.st-error .sync-dot,
+.sync-status.st-bad-code .sync-dot,
+.sync-status.st-error .sync-dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.18); }
+@keyframes sync-pulse { 50% { opacity: .35; } }
+
+.sync-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; margin-bottom: 12px;
+  background: var(--brand-soft); border-radius: 10px;
+  font-size: .85rem; color: var(--ink);
+}
+.sync-actions { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.sync-help { font-size: .78rem; line-height: 1.5; margin-top: 10px; }
+
+@media (max-width: 640px) {
+  .sync-ind .sync-txt { display: none; } /* en celu solo el punto */
+}

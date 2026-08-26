@@ -16,6 +16,7 @@
   function storeSet(k, v) {
     _memStore[k] = v;
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento no disponible */ }
+    if (window.MCSync) window.MCSync.onLocalWrite(k); // sync multi-dispositivo
   }
 
   /* ---------------- Ajustes ---------------- */
@@ -886,8 +887,11 @@
               </div>`).join('')
           : '<p class="hint">Aún no hay clientes guardados. Guárdalos desde el editor de un documento (botón Guardar).</p>'}
       </div>
+      <h3>Sincronización entre dispositivos</h3>
+      <div id="sync-settings"></div>
     `;
     $('#modal-settings').classList.add('open');
+    if (window.MCSync) window.MCSync.renderSettings();
   }
 
   function saveSettings() {
@@ -1149,12 +1153,40 @@
   });
 
   /* ---------------- Init ---------------- */
+  /* Puente para el módulo de sincronización (js/sync.js) */
+  window.MC_APP = {
+    snapshot() {
+      return { settings, docs, clientes, cxp: cuentasXPagar };
+    },
+    hasLocalData() {
+      return docs.length > 0 || clientes.length > 0 || cuentasXPagar.length > 0;
+    },
+    applyRemoteState(remote) {
+      if (!remote || typeof remote !== 'object') return;
+      // MCSync ya pausó el hook de escrituras para no re-disparar el push
+      settings = Object.assign({}, DEFAULT_SETTINGS, remote.settings || {});
+      settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+      docs = Array.isArray(remote.docs) ? remote.docs : [];
+      clientes = Array.isArray(remote.clientes) ? remote.clientes : [];
+      cuentasXPagar = Array.isArray(remote.cxp) ? remote.cxp : [];
+      storeSet('mc_settings', settings);
+      storeSet('mc_docs', docs);
+      storeSet('mc_clientes', clientes);
+      storeSet('mc_cxp', cuentasXPagar);
+      selectedClientId = null;
+      // refrescar la vista activa (sin molestar si el editor está abierto)
+      if ($('#view-editor').hidden) switchMainView(mainView);
+    },
+    toast,
+  };
+
   async function init() {
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
     }
     showList();
+    if (window.MCSync) window.MCSync.start();
   }
   init();
 })();

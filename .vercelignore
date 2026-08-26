@@ -1,0 +1,6 @@
+# Carpetas/archívos que NO se suben al deploy de Vercel
+in-voice
+uploads
+ejemplo-cotizacion.pdf
+ejemplo-recibo.pdf
+ejemplo-recibo-sin-iva.pdf

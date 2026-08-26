@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v5';
+const CACHE = 'mc-pwa-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',
+  './js/sync.js',
   './js/app.js',
   './assets/js/jspdf.umd.min.js',
   './assets/fonts/spacegrotesk-latin.woff2',
@@ -38,6 +39,8 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // la API de sincronización nunca se sirve de caché
+  try { if (new URL(e.request.url).pathname.indexOf('/api/') === 0) return; } catch (err) {}
   e.respondWith(
     caches.match(e.request).then((hit) => {
       if (hit) return hit;
