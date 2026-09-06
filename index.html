@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Recibos &amp; Cotizaciones — Mono Cromat &amp; Co.</title>
   <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
-  <meta name="theme-color" content="#2B5EAB">
+  <meta name="theme-color" content="#173588">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -13,33 +13,32 @@
 </head>
 <body class="tab-datos">
 
-  <!-- ===== Barra superior ===== -->
+  <!-- ===== Masthead ===== -->
   <header id="topbar">
     <div class="brand">
       <img src="assets/img/logo-blue.png" alt="logo" class="brand-logo">
       <div class="brand-text">
         <strong>Recibos &amp; Cotizaciones</strong>
-        <span>Mono Cromat &amp; Co.</span>
+        <span>Archivo · Mono Cromat &amp; Co.</span>
       </div>
     </div>
-    <div class="topbar-actions">
-      <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar app</button>
-      <button class="btn small outline" data-action="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</button>
+    <div class="topbar-right">
+      <div class="barcode topbar-bc" id="topbar-barcode" aria-hidden="true"></div>
+      <div class="topbar-actions">
+        <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar app</button>
+        <button class="btn small outline" data-action="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</button>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- ===== Navegación principal ===== -->
-    <nav id="main-nav" class="main-nav">
-      <button class="nav-btn active" data-view="docs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg> Documentos</button>
-      <button class="nav-btn" data-view="cxc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.2c-.5-1-1.5-1.5-3-1.5-1.7 0-3 .8-3 2.3 0 3 6 1.5 6 4.5 0 1.5-1.3 2.3-3 2.3-1.7 0-2.7-.7-3.2-1.8"/><line x1="12" y1="5.5" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="18.5"/></svg> Cuentas por Cobrar</button>
-      <button class="nav-btn" data-view="cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg> Cuentas por Pagar</button>
-    </nav>
-
     <!-- ===== Vista: lista ===== -->
     <section id="view-list">
       <div class="list-head">
-        <h1>Documentos</h1>
+        <div>
+          <p class="kicker">01 · Archivo general</p>
+          <h1>Documentos</h1>
+        </div>
         <div class="list-head-actions">
           <button class="btn primary" data-action="new-recibo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
           <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
@@ -59,7 +58,10 @@
     <!-- ===== Vista: Cuentas por Cobrar ===== -->
     <section id="view-cxc" hidden>
       <div class="list-head">
-        <h1>Cuentas por Cobrar</h1>
+        <div>
+          <p class="kicker">02 · Cuentas por cobrar</p>
+          <h1>Por Cobrar</h1>
+        </div>
         <div class="list-head-actions">
           <div class="cxc-summary">
             <div class="summary-card">
@@ -82,7 +84,10 @@
     <!-- ===== Vista: Cuentas por Pagar ===== -->
     <section id="view-cxp" hidden>
       <div class="list-head">
-        <h1>Cuentas por Pagar</h1>
+        <div>
+          <p class="kicker">03 · Cuentas por pagar</p>
+          <h1>Por Pagar</h1>
+        </div>
         <div class="list-head-actions">
           <div class="cxp-summary">
             <div class="summary-card summary-danger">
@@ -137,6 +142,7 @@
       <div class="editor-layout">
         <div class="editor-form" id="editor-form"></div>
         <div class="editor-preview">
+          <div class="preview-caption"><span>Vista previa</span><span>Letter 8.5 × 11</span></div>
           <div class="preview-frame" id="preview-frame">
             <div id="preview-inner"></div>
           </div>
@@ -144,6 +150,50 @@
       </div>
     </section>
   </main>
+
+  <!-- ===== Menú inferior: Índice general (pantalla completa) ===== -->
+  <button id="menu-fab" class="menu-fab" data-action="toggle-menu" aria-label="Abrir índice general" aria-expanded="false">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
+    <span>Menú</span>
+  </button>
+
+  <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-label="Índice general">
+    <div class="menu-head">
+      <span class="menu-head-kicker">Índice general · 2026</span>
+      <button class="icon-btn" data-action="close-menu" aria-label="Cerrar menú"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <nav class="menu-items">
+      <button class="menu-item" data-view="docs">
+        <span class="menu-idx">01</span>
+        <span class="menu-body">
+          <span class="menu-name">Documentos</span>
+          <span class="menu-kicker">Archivo general</span>
+        </span>
+        <span class="menu-meta" id="menu-count-docs">0 EXP.</span>
+      </button>
+      <button class="menu-item" data-view="cxc">
+        <span class="menu-idx">02</span>
+        <span class="menu-body">
+          <span class="menu-name">Por cobrar</span>
+          <span class="menu-kicker">Cuentas por cobrar</span>
+        </span>
+        <span class="menu-meta" id="menu-count-cxc">0 CLT</span>
+      </button>
+      <button class="menu-item" data-view="cxp">
+        <span class="menu-idx">03</span>
+        <span class="menu-body">
+          <span class="menu-name">Por pagar</span>
+          <span class="menu-kicker">Cuentas por pagar</span>
+        </span>
+        <span class="menu-meta" id="menu-count-cxp">0 PEN</span>
+      </button>
+    </nav>
+    <div class="menu-foot">
+      <img src="assets/img/logo-blue.png" alt="Mono Cromat &amp; Co." class="menu-logo">
+      <div class="barcode menu-bc" id="menu-barcode" aria-hidden="true"></div>
+      <span class="menu-foot-label">Mono Cromat &amp; Co. · Estudio Creativo · CDMX</span>
+    </div>
+  </div>
 
   <!-- ===== Modal de ajustes ===== -->
   <div id="modal-settings" class="modal">

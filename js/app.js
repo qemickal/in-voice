@@ -126,6 +126,8 @@
     $('#view-list').hidden = false;
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
+    document.body.classList.remove('in-editor');
+    closeMenu();
     renderList();
   }
 
@@ -143,7 +145,7 @@
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty">
-          <div class="empty-icon">${window.ICONS.receipt('ic-lg')}</div>
+          <span class="stamp empty-stamp">${docs.length ? 'Sin coincidencias' : 'Sin registros'}</span>
           <h3>${docs.length ? 'No hay documentos que coincidan' : 'Aún no hay documentos'}</h3>
           <p>${docs.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primer recibo o cotización y guárdalo en este dispositivo.'}</p>
           <div class="empty-actions">
@@ -151,50 +153,95 @@
             <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
           </div>
         </div>`;
+      refreshMenuCounts();
       return;
     }
 
     wrap.innerHTML = filtered.map((d) => {
       const t = computeTotals(d);
-      const badge = d.tipo === 'cotizacion'
-        ? '<span class="badge cot">COTIZACIÓN</span>'
-        : '<span class="badge rec">RECIBO</span>';
+      const stamp = d.tipo === 'cotizacion'
+        ? '<span class="stamp">Cotización</span>'
+        : '<span class="stamp solid">Recibo</span>';
       return `
       <div class="card">
         <div class="card-top">
-          ${badge}
-          <span class="card-num">Nro. ${esc(d.numero)}</span>
+          ${stamp}
+          <span class="card-num">Nº ${esc(d.numero)}</span>
           <span class="card-date">${window.fmtDate(d.fecha)}</span>
         </div>
         <div class="card-title">${esc(d.proyecto || 'Sin proyecto')}</div>
         <div class="card-sub">${esc(d.representante || '')}${d.representante ? ' · ' : ''}${esc(d.email || '')}</div>
+        <div class="perf"></div>
         <div class="card-foot">
           <strong>${window.fmtMoney(t.total)}</strong>
-          <span class="muted">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
+          <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
+          <span class="barcode card-bc">${window.barcodeSVG(d.numero, 92, 20)}</span>
         </div>
         <div class="card-actions">
-          <button class="btn small" data-action="edit" data-id="${d.id}">Editar</button>
-          <button class="btn small" data-action="duplicate" data-id="${d.id}">Duplicar</button>
+          <button class="btn small outline" data-action="edit" data-id="${d.id}">Editar</button>
+          <button class="btn small outline" data-action="duplicate" data-id="${d.id}">Duplicar</button>
           <button class="btn small danger" data-action="delete-list" data-id="${d.id}">Eliminar</button>
         </div>
       </div>`;
     }).join('');
+    refreshMenuCounts();
   }
 
-  /* ================= NAVEGACIÓN PRINCIPAL ================= */
+  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
   function switchMainView(view) {
     mainView = view;
-    $$('#main-nav .nav-btn').forEach(function(b) {
+    $$('#menu-overlay .menu-item').forEach(function(b) {
       b.classList.toggle('active', b.dataset.view === view);
     });
     $('#view-list').hidden = view !== 'docs';
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
     $('#view-editor').hidden = true;
-    $('#topbar').classList.toggle('hidden', view !== 'docs');
+    $('#topbar').classList.remove('hidden');
+    document.body.classList.remove('in-editor');
+    closeMenu();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
     if (view === 'cxp') renderCxP();
+    window.scrollTo(0, 0);
+  }
+
+  function refreshMenuCounts() {
+    var d = $('#menu-count-docs');
+    if (d) d.textContent = docs.length + ' EXP.';
+    var c = $('#menu-count-cxc');
+    if (c) c.textContent = getCxCData().length + ' CLT';
+    var pen = 0;
+    cuentasXPagar.forEach(function(x) {
+      var ab = (x.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
+      if (x.monto - ab > 0.005) pen++;
+    });
+    var p = $('#menu-count-cxp');
+    if (p) p.textContent = pen + ' PEN';
+  }
+
+  function openMenu() {
+    refreshMenuCounts();
+    $('#menu-overlay').classList.add('open');
+    var fab = $('#menu-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMenu() {
+    var o = $('#menu-overlay');
+    if (!o || !o.classList.contains('open')) return;
+    o.classList.remove('open');
+    var fab = $('#menu-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  function paintBarcodes() {
+    var tb = $('#topbar-barcode');
+    if (tb) tb.innerHTML = window.barcodeSVG('MONO CROMAT & CO. · ARCHIVO', 128, 22);
+    var mb = $('#menu-barcode');
+    if (mb) mb.innerHTML = window.barcodeSVG('MC-ARCHIVO-2026', 220, 34);
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -248,20 +295,21 @@
 
     var wrap = $('#cxc-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-icon">' + window.ICONS.coin('ic-lg') + '</div>'
+      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (data.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
         + '<h3>' + (data.length ? 'No hay coincidencias' : 'No hay cuentas por cobrar') + '</h3>'
         + '<p>' + (data.length ? 'Prueba con otra búsqueda.' : 'Los saldos pendientes de tus recibos y cotizaciones aparecerán aquí automáticamente.') + '</p></div>';
+      refreshMenuCounts();
       return;
     }
 
     wrap.innerHTML = filtered.map(function(c) {
       var docsHtml = c.docs.map(function(d) {
         var badge = d.tipo === 'cotizacion'
-          ? '<span class="badge cot">COT</span>'
-          : '<span class="badge rec">REC</span>';
+          ? '<span class="stamp mini">COT</span>'
+          : '<span class="stamp mini solid">REC</span>';
         var pct = d.total > 0 ? Math.min(100, (d.abonado / d.total) * 100) : 0;
         return '<div class="card-doc-item">'
-          + '<div>' + badge + ' <span>Nro. ' + esc(d.numero) + '</span>'
+          + '<div>' + badge + ' <span>Nº ' + esc(d.numero) + '</span>'
           + (d.proyecto ? ' <span class="muted">— ' + esc(d.proyecto) + '</span>' : '')
           + '</div>'
           + '<div><strong>' + window.fmtMoney(d.saldo) + '</strong> <span class="muted">de ' + window.fmtMoney(d.total) + '</span></div>'
@@ -274,22 +322,25 @@
 
       return '<div class="card-cxc" data-cliente="' + esc(c.cliente) + '">'
         + '<div class="card-top">'
+        + '<span class="stamp mini">Pendiente</span>'
         + '<span style="width:20px;height:20px;display:inline-flex">' + window.ICONS.user() + '</span>'
-        + '<div><div style="font-weight:700;font-size:15px">' + esc(c.cliente) + '</div>'
+        + '<div><div style="font-weight:700;font-size:16px">' + esc(c.cliente) + '</div>'
         + (c.email ? '<div class="muted">' + esc(c.email) + '</div>' : '')
         + '</div>'
         + '<div style="margin-left:auto;text-align:right">'
         + '<div class="card-cxc-saldo">' + window.fmtMoney(c.saldoTotal) + '</div>'
-        + '<div class="card-total-orig muted">de ' + window.fmtMoney(pctTotal) + '</div>'
+        + '<div class="card-total-orig">DE ' + window.fmtMoney(pctTotal) + '</div>'
         + '</div>'
         + '</div>'
+        + '<div class="perf"></div>'
         + '<div class="card-progress"><div class="card-progress-bar" style="width:' + pct.toFixed(1) + '%"></div></div>'
         + '<div class="card-docs">' + docsHtml + '</div>'
         + '<div class="card-actions">'
-        + '<button class="btn small" data-action="view-cxc-doc" data-docid="' + c.docs[0].id + '">' + window.ICONS.docs() + ' Ver documento</button>'
+        + '<button class="btn small outline" data-action="view-cxc-doc" data-docid="' + c.docs[0].id + '">' + window.ICONS.docs() + ' Ver documento</button>'
         + '</div>'
         + '</div>';
     }).join('');
+    refreshMenuCounts();
   }
 
   /* ================= CUENTAS POR PAGAR ================= */
@@ -337,10 +388,11 @@
 
     var wrap = $('#cxp-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-icon">' + window.ICONS.clipboard('ic-lg') + '</div>'
+      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (cuentasXPagar.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
         + '<h3>' + (cuentasXPagar.length ? 'No hay coincidencias' : 'No hay cuentas por pagar') + '</h3>'
         + '<p>' + (cuentasXPagar.length ? 'Prueba con otra búsqueda o filtro.' : 'Registra tus gastos y facturas pendientes de pago.') + '</p>'
         + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
+      refreshMenuCounts();
       return;
     }
 
@@ -382,6 +434,7 @@
         + '</div>'
         + '</div>';
     }).join('');
+    refreshMenuCounts();
   }
 
   function openCxpModal(cxp) {
@@ -492,6 +545,8 @@
     $('#view-cxp').hidden = true;
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
+    document.body.classList.add('in-editor');
+    closeMenu();
     renderEditor();
     renderPreview();
     window.scrollTo(0, 0);
@@ -992,10 +1047,17 @@
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
         $$('[data-tab]').forEach((t) => t.classList.toggle('on', t === btn));
+        document.body.classList.toggle('tab-datos', btn.dataset.tab === 'datos');
         document.body.classList.toggle('tab-preview', btn.dataset.tab === 'preview');
         break;
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
+
+      /* --- Menú inferior (índice general) --- */
+      case 'toggle-menu':
+        if ($('#menu-overlay').classList.contains('open')) closeMenu(); else openMenu();
+        break;
+      case 'close-menu': closeMenu(); break;
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -1110,9 +1172,12 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Navegación principal
-  $$('#main-nav .nav-btn').forEach(function(b) {
-    b.addEventListener('click', function() { switchMainView(b.dataset.view); });
+  // Menú inferior: índice general (pantalla completa)
+  $$('#menu-overlay .menu-item').forEach(function(b) {
+    b.addEventListener('click', function() { closeMenu(); switchMainView(b.dataset.view); });
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
   });
 
   // Búsqueda CxC
@@ -1150,11 +1215,15 @@
 
   /* ---------------- Init ---------------- */
   async function init() {
+    paintBarcodes();
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
     }
     showList();
+    $$('#menu-overlay .menu-item').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.view === mainView);
+    });
   }
   init();
 })();
