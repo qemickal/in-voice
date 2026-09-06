@@ -167,8 +167,13 @@
     const titulo = doc.tipo === 'cotizacion' ? 'COTIZACIÓN NRO. ' : 'RECIBO NRO. ';
     F('light'); pdf.setFontSize(LAY.title.size);
     pdf.text(titulo, LAY.title.x, LAY.title.y);
-    pdf.setFont('courier', 'bold'); pdf.setFontSize(16);
-    pdf.text(doc.numero || '', LAY.title.x + pdf.getTextWidth(titulo) + 2, LAY.title.y);
+    const numW = pdf.getTextWidth(titulo);
+    const numStr = doc.numero || '';
+    const numMaxW = LAY.date.x - 6 - (LAY.title.x + numW + 2);
+    let numSize = 16;
+    if (numStr.length * 0.6 * numSize > numMaxW) numSize = Math.max(9, numMaxW / (0.6 * numStr.length));
+    pdf.setFont('courier', 'bold'); pdf.setFontSize(numSize);
+    pdf.text(numStr, LAY.title.x + numW + 2, LAY.title.y);
 
     pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.date.size);
     pdf.text('FECHA: ' + window.fmtDate(doc.fecha), LAY.date.x, LAY.date.y);
@@ -178,9 +183,9 @@
 
     /* ---------- Sellos: RECIBO / COTIZACIÓN (+ PAGADO si está saldado) ---------- */
     if (doc.tipo === 'cotizacion') {
-      drawStamp(pdf, 511, 176, 'COTIZACIÓN', 80, 18, -4, 11);
+      drawStamp(pdf, 511, 258, 'COTIZACIÓN', 80, 18, -4, 11);
     } else {
-      drawStamp(pdf, 524, 176, 'RECIBO', 54, 18, -4, 11);
+      drawStamp(pdf, 524, 258, 'RECIBO', 54, 18, -4, 11);
     }
     const abonosSum = (doc.abonos || []).reduce((s2, a) => s2 + (Number(a.monto) || 0), 0);
     const preTotal = (doc.items || []).reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0)
@@ -204,10 +209,10 @@
       pdf.text(fitText(pdf, val || '', maxW), LAY.clientValueX, y);
     });
 
-    /* ---------- Código de barras + folio (banda superior derecha) ---------- */
-    drawBarcode(pdf, 457, 250, 96, 16, doc.numero || 'MC');
+    /* ---------- Código de barras + folio (banda bajo el cliente, a la izquierda) ---------- */
+    drawBarcode(pdf, 61, 250, 96, 16, doc.numero || 'MC');
     pdf.setFont('courier', 'normal'); pdf.setFontSize(7.5);
-    pdf.text('Nº ' + (doc.numero || ''), LAY.contentR, 273, { align: 'right' });
+    pdf.text('Nº ' + (doc.numero || ''), 61, 273);
 
     /* ---------- Encabezado de la tabla (mono, doble regla) ---------- */
     pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.tableHeaderSize);

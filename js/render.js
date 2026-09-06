@@ -79,15 +79,15 @@
     return `<div style="position:absolute;left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt;color:#2B5EAB;">${window.barcodeSVG(text, w, h)}</div>`;
   }
 
-  // Mide un texto en pt con una fuente CSS (canvas; con respaldo estimado)
+  // Mide un texto en pt (Space Grotesk, peso w). Convierte pt->px para el canvas.
   let _ctx = null;
-  function measurePt(str, css) {
+  function measurePt(str, sizePt, weight) {
     try {
       if (!_ctx) _ctx = document.createElement('canvas').getContext('2d');
-      _ctx.font = css;
+      _ctx.font = (weight || 300) + ' ' + (sizePt * 96 / 72) + 'px "Space Grotesk"';
       return _ctx.measureText(str).width * 72 / 96;
     } catch (e) {
-      return str.length * 10;
+      return str.length * sizePt * 0.58;
     }
   }
 
@@ -131,21 +131,25 @@
       if (i < L.contact.ys.length) h += txt(L.contact.right, L.contact.ys[i], L.contact.size, 400, t, { align: 'right', w: 150, ellipsis: true, mono: true });
     });
 
-    /* título (SG light) + número (Courier bold) */
+    /* título (SG light) + número (Courier bold, tamaño adaptable) */
     const titulo = (isCot ? 'COTIZACIÓN NRO. ' : 'RECIBO NRO. ');
     h += txt(L.title.x, L.title.y, L.title.size, 300, titulo);
-    const wT = measurePt(titulo, '300 20px "Space Grotesk"');
-    h += txt(L.title.x + wT + 2, L.title.y, 16, 700, doc.numero || '', { mono: true });
+    const wT = measurePt(titulo, L.title.size, 300);
+    const numStr = doc.numero || '';
+    const numMaxW = L.date.x - 6 - (L.title.x + wT + 2);
+    let numSize = 16;
+    if (numStr && numStr.length * 0.6 * numSize > numMaxW) numSize = Math.max(9, numMaxW / (0.6 * numStr.length));
+    h += txt(L.title.x + wT + 2, L.title.y, numSize, 700, numStr, { mono: true });
 
     /* fecha / vigencia (tipografía archivo) */
     h += txt(L.date.x, L.date.y, L.date.size, 400, 'FECHA: ' + window.fmtDate(doc.fecha), { mono: true });
     if (isCot && doc.vigencia) h += txt(L.vigencia.x, L.vigencia.y, L.vigencia.size, 400, 'VIGENCIA: ' + window.fmtDate(doc.vigencia), { mono: true });
 
-    /* sello principal: RECIBO / COTIZACIÓN */
+    /* sello principal: RECIBO / COTIZACIÓN (banda del código de barras) */
     if (isCot) {
-      h += stamp(505, 176, 'Cotización', 92, 18, -4, 10);
+      h += stamp(505, 258, 'Cotización', 92, 18, -4, 10);
     } else {
-      h += stamp(522, 176, 'Recibo', 58, 18, -4, 10);
+      h += stamp(522, 258, 'Recibo', 58, 18, -4, 10);
     }
     /* sello secundario: PAGADO (solo si quedó saldado) */
     if (isPaid) h += stamp(468, 207, 'Pagado', 58, 16.5, 3, 9.5);
@@ -162,9 +166,9 @@
       h += txt(L.clientValueX, y, L.clientSize, 400, val, { ellipsis: true, w: L.contentR - L.clientValueX - 4 });
     });
 
-    /* código de barras + folio (banda superior derecha) */
-    h += barcodeAbs(457, 250, 96, 16, doc.numero || 'MC');
-    h += txt(L.contentR, 273, 7.5, 400, 'Nº ' + (doc.numero || ''), { align: 'right', mono: true });
+    /* código de barras + folio (banda bajo el cliente, a la izquierda) */
+    h += barcodeAbs(61, 250, 96, 16, doc.numero || 'MC');
+    h += txt(61, 273, 7.5, 400, 'Nº ' + (doc.numero || ''), { mono: true });
 
     /* tabla (encabezado mono, doble regla) */
     h += txt(L.colDesc, L.tableHeaderY, L.tableHeaderSize, 400, 'DESCRIPCIÓN DEL SERVICIO', { mono: true });
