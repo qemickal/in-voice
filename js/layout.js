@@ -195,16 +195,17 @@ window.wrapText = function (text, maxW, size) {
 
 /* ================== Código de barras decorativo ================== */
 /* Determinista: el mismo texto siempre genera el mismo código.
-   Estilo EAN simplificado con guardas de inicio/fin. */
-window.barcodeSVG = function (text, width, height) {
+   Estilo EAN simplificado con guardas de inicio/fin.
+   barcodeBars() devuelve las barras en pt (para el PDF);
+   barcodeSVG() genera el SVG (para la app y la vista previa). */
+window.barcodeBars = function (text, width) {
   var t = String(text == null || text === '' ? 'MC' : text).toUpperCase();
   var w = width || 140;
-  var h = height || 24;
   var s = 7;
   for (var i = 0; i < t.length; i++) s = (s * 31 + t.charCodeAt(i)) >>> 0;
   function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 8) / 16777216; }
-  var rects = [];
-  function put(x, bw) { if (x + bw <= w) { rects.push(x + ',' + bw); x += bw; } return x; }
+  var bars = [];
+  function put(x, bw) { if (x + bw <= w) { bars.push({ x: x, w: bw }); x += bw; } return x; }
   var x = 2;
   [2, 1, 1, 2].forEach(function (bw) { x = put(x, bw) + 1; });       // guarda de inicio
   while (x < w - 10) {
@@ -213,9 +214,15 @@ window.barcodeSVG = function (text, width, height) {
     x = put(x, bw2) + 1 + Math.floor(rnd() * 2);                     // hueco 1..2
   }
   [2, 1, 1, 2].forEach(function (bw) { x = put(x, bw) + 1; });       // guarda de fin
-  var inner = '<g fill="currentColor">' + rects.map(function (r) {
-    var p = r.split(',');
-    return '<rect x="' + p[0] + '" y="0" width="' + p[1] + '" height="' + h + '"/>';
+  return { bars: bars, w: w };
+};
+
+window.barcodeSVG = function (text, width, height) {
+  var d = window.barcodeBars(text, width);
+  var h = height || 24;
+  var w = d.w;
+  var inner = '<g fill="currentColor">' + d.bars.map(function (b) {
+    return '<rect x="' + b.x + '" y="0" width="' + b.w + '" height="' + h + '"/>';
   }).join('') + '</g>';
   return '<svg class="barcode-svg" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
 };
