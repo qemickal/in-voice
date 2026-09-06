@@ -779,6 +779,9 @@
     const frame = $('#preview-frame');
     const rec = $('#preview-inner > div');
     if (!frame || !rec) return;
+    // si el frame está oculto (tabs en móvil) no hay que escalar a 0:
+    // se recalcula al volver a mostrarlo
+    if (!frame.clientWidth) return;
     const scale = Math.min(1, frame.clientWidth / 816);
     rec.style.transform = `scale(${scale})`;
     rec.style.transformOrigin = 'top left';
@@ -1049,6 +1052,8 @@
         $$('[data-tab]').forEach((t) => t.classList.toggle('on', t === btn));
         document.body.classList.toggle('tab-datos', btn.dataset.tab === 'datos');
         document.body.classList.toggle('tab-preview', btn.dataset.tab === 'preview');
+        // al mostrar la vista previa, recalcular escala (pudo medirse oculta)
+        requestAnimationFrame(autoscale);
         break;
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
