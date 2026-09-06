@@ -115,7 +115,7 @@
     pdf.restoreGraphicsState();
   }
 
-  // Código de barras por folio (determinista, igual que la app)
+  // Código de barras Code 128 real del folio (escaneable; igual que la app)
   function drawBarcode(pdf, x, y, w, h, text) {
     const d = window.barcodeBars(text, w);
     const c = L().brand;
@@ -210,7 +210,7 @@
     });
 
     /* ---------- Código de barras + folio (banda bajo el cliente, a la izquierda) ---------- */
-    drawBarcode(pdf, 61, 250, 96, 16, doc.numero || 'MC');
+    drawBarcode(pdf, 61, 250, 114, 16, doc.numero || 'MC');
     pdf.setFont('courier', 'normal'); pdf.setFontSize(7.5);
     pdf.text('Nº ' + (doc.numero || ''), 61, 273);
 

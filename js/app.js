@@ -175,7 +175,7 @@
         <div class="card-foot">
           <strong>${window.fmtMoney(t.total)}</strong>
           <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
-          <span class="barcode card-bc">${window.barcodeSVG(d.numero, 92, 20)}</span>
+          <span class="barcode card-bc">${window.barcodeSVG(d.numero, 104, 20)}</span>
         </div>
         <div class="card-actions">
           <button class="btn small outline" data-action="edit" data-id="${d.id}">Editar</button>

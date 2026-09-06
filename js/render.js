@@ -167,7 +167,7 @@
     });
 
     /* código de barras + folio (banda bajo el cliente, a la izquierda) */
-    h += barcodeAbs(61, 250, 96, 16, doc.numero || 'MC');
+    h += barcodeAbs(61, 250, 114, 16, doc.numero || 'MC');
     h += txt(61, 273, 7.5, 400, 'Nº ' + (doc.numero || ''), { mono: true });
 
     /* tabla (encabezado mono, doble regla) */
