@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v11';
+const CACHE = 'mc-pwa-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',
+  './js/sync.js',
   './js/app.js',
   './assets/js/jspdf.umd.min.js',
   './assets/fonts/spacegrotesk-latin.woff2',

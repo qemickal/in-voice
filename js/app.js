@@ -16,6 +16,10 @@
   function storeSet(k, v) {
     _memStore[k] = v;
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento no disponible */ }
+    // notificar al sincronizador (colecciones que viajan)
+    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp') {
+      if (window.SYNC) window.SYNC.localChanged();
+    }
   }
 
   /* ---------------- Ajustes ---------------- */
@@ -805,6 +809,7 @@
     if (!confirm(`¿Eliminar el ${d.tipo === 'cotizacion' ? 'presupuesto' : 'recibo'} Nro. ${d.numero}?`)) return;
     docs = docs.filter((x) => x.id !== id);
     storeSet('mc_docs', docs);
+    if (window.SYNC) window.SYNC.tombstone('docs', id);
     showList();
   }
 
@@ -960,6 +965,7 @@
     settings.pagos = { cuenta: g('s-p-cuenta'), clabe: g('s-p-clabe'), beneficiario: g('s-p-beneficiario'), banco: g('s-p-banco') };
     settings.condiciones = g('s-condiciones');
     settings.terminos = g('s-terminos');
+    settings.updatedAt = Date.now();
     storeSet('mc_settings', settings);
     $('#modal-settings').classList.remove('open');
     if (editing) { renderPreview(); updateTotalsBox(); }
@@ -980,7 +986,7 @@
       case 'email': sendEmail(); break;
       case 'share': shareDoc(); break;
       case 'delete':
-        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); switchMainView(previousView); } }
+        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView); } }
         break;
       case 'edit': { const d = docs.find((x) => x.id === btn.dataset.id); if (d) showEditor(d); break; }
       case 'duplicate': {
@@ -1016,8 +1022,9 @@
                      : clientes.find((c) => (c.nombre || '').trim().toLowerCase() === nombre.toLowerCase());
         if (cli) {
           cli.nombre = nombre; cli.telefono = editing.telefono || ''; cli.email = editing.email || '';
+          cli.updatedAt = Date.now();
         } else {
-          cli = { id: window.uid(), nombre, telefono: editing.telefono || '', email: editing.email || '' };
+          cli = { id: window.uid(), nombre, telefono: editing.telefono || '', email: editing.email || '', updatedAt: Date.now() };
           clientes.push(cli);
         }
         storeSet('mc_clientes', clientes);
@@ -1032,6 +1039,7 @@
         if (!confirm('¿Eliminar este cliente guardado? (No borra los documentos)')) break;
         clientes = clientes.filter((c) => c.id !== sel.value);
         storeSet('mc_clientes', clientes);
+        if (window.SYNC) window.SYNC.tombstone('clientes', sel.value);
         selectedClientId = null;
         renderEditor(); renderPreview();
         toast('Cliente eliminado');
@@ -1041,6 +1049,7 @@
         if (!confirm('¿Eliminar este cliente guardado? (No borra los documentos)')) break;
         clientes = clientes.filter((c) => c.id !== btn.dataset.id);
         storeSet('mc_clientes', clientes);
+        if (window.SYNC) window.SYNC.tombstone('clientes', btn.dataset.id);
         openSettings();
         break;
       }
@@ -1083,6 +1092,7 @@
         if (!confirm('¿Eliminar esta cuenta por pagar?')) break;
         cuentasXPagar = cuentasXPagar.filter(function(x) { return x.id !== btn.dataset.id; });
         storeSet('mc_cxp', cuentasXPagar);
+        if (window.SYNC) window.SYNC.tombstone('cxp', btn.dataset.id);
         renderCxP();
         toast('Cuenta por pagar eliminada');
         break;
@@ -1122,6 +1132,7 @@
         break;
       }
       case 'close-cxc-detail': $('#modal-cxc-detail').classList.remove('open'); break;
+      case 'logout': if (window.SYNC) window.SYNC.logout(); break;
     }
   });
 
@@ -1179,7 +1190,11 @@
 
   // Menú inferior: índice general (pantalla completa)
   $$('#menu-overlay .menu-item').forEach(function(b) {
-    b.addEventListener('click', function() { closeMenu(); switchMainView(b.dataset.view); });
+    b.addEventListener('click', function() {
+      if (!b.dataset.view) return; // items sin vista (cuenta/salir)
+      closeMenu();
+      switchMainView(b.dataset.view);
+    });
   });
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeMenu();
@@ -1218,6 +1233,48 @@
     if (b) b.style.display = 'none';
   });
 
+  /* ---------------- Sync remoto: refrescar estado ---------------- */
+  function reloadFromStore(changed) {
+    if (!changed || changed.size === 0) return;
+    if (changed.has('mc_settings')) {
+      settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
+      settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+    }
+    if (changed.has('mc_docs')) docs = storeGet('mc_docs', []);
+    if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
+    if (changed.has('mc_cxp')) cuentasXPagar = storeGet('mc_cxp', []);
+
+    const acc = $('#sync-account');
+    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
+
+    if (!$('#view-editor').hidden && editing) {
+      // si el documento que estoy editando se borró en otro equipo, salir del editor
+      if (docs.some((d) => d.id === editing.id)) {
+        renderPreview();
+        updateTotalsBox();
+      } else {
+        switchMainView(previousView);
+      }
+    } else {
+      switchMainView(mainView);
+    }
+  }
+
+  function bootApp() {
+    // releer colecciones (el primer pull pudo traer datos remotos)
+    settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
+    settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+    docs = storeGet('mc_docs', []);
+    clientes = storeGet('mc_clientes', []);
+    cuentasXPagar = storeGet('mc_cxp', []);
+    const acc = $('#sync-account');
+    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
+    showList();
+    $$('#menu-overlay .menu-item').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.view === mainView);
+    });
+  }
+
   /* ---------------- Init ---------------- */
   async function init() {
     paintBarcodes();
@@ -1225,10 +1282,17 @@
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
     }
-    showList();
-    $$('#menu-overlay .menu-item').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.view === mainView);
-    });
+    if (window.SYNC) {
+      window.SYNC.setRemoteHandler(reloadFromStore);
+      if (window.SYNC.authed()) {
+        bootApp();
+        window.SYNC.runSync(true); // re-sincronizar al abrir
+      } else {
+        window.SYNC.showAuth(bootApp);
+      }
+    } else {
+      bootApp();
+    }
   }
   init();
 })();
