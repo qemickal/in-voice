@@ -117,12 +117,12 @@
 
     /* ---------- Fondos ---------- */
     // marca de agua: el propio logo escalado, con opacidad vía GState
-    if (images && images.blue) {
+    if (images && (images.lettering || images.blue)) {
       const w = LAY.watermark;
       try {
         pdf.saveGraphicsState();
         if (pdf.GState) pdf.setGState(new pdf.GState({ opacity: w.opacity }));
-        pdf.addImage(images.blue.dataUrl, 'PNG', w.x, w.y, w.w, w.h);
+        pdf.addImage((images.lettering || images.blue).dataUrl, 'PNG', w.x, w.y, w.w, w.h);
         pdf.restoreGraphicsState();
       } catch (e) { try { pdf.restoreGraphicsState(); } catch (e2) {} }
     }

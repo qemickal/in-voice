@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v17';
+const CACHE = 'mc-pwa-v18';
 const ASSETS = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   './assets/fonts/Archivo-Medium.ttf',
   './assets/fonts/Archivo-Bold.ttf',
   './assets/img/logo-blue.png',
+  './assets/img/bg-lettering.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
