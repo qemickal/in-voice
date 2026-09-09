@@ -124,10 +124,9 @@
   }
   async function preloadImages() {
     try {
-      // logo de cabecera + lettering de fondo ya tenido (LAYOUT.watermark)
+      // la marca de agua se dibuja con el propio logo escalado (LAYOUT.watermark)
       const blue = await toDataURL('assets/img/logo-blue.png', 500, 327);
-      const lettering = await toDataURL('assets/img/bg-lettering.png', 500, 327);
-      images = { blue, lettering };
+      images = { blue };
     } catch (e) { /* sin imágenes, el PDF saldrá sin logo */ }
   }
 

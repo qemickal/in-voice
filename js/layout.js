@@ -20,8 +20,8 @@ window.LAYOUT = {
   greyHex:   '#9AA3B2',
   body:      [51, 58, 71],    // #333A47  texto de términos
   bodyHex:   '#333A47',
-  lineArt:   [219, 238, 237], // #DBEEED  fondo de líneas
-  lineArtHex:'#DBEEED',
+  lineArt:   [205, 231, 230], // #CDE7E6  fondo de líneas
+  lineArtHex:'#CDE7E6',
   rule:      [143, 163, 196], // #8FA3C4  reglas finas
   ruleHex:   '#8FA3C4',
   light:     [232, 242, 248],
@@ -35,18 +35,9 @@ window.LAYOUT = {
   // Lettering pálido anclado arriba a la derecha (se recorta con la hoja).
   // Se dibuja con el propio logo escalado y muy poca opacidad: el PNG
   // antiguo traía el texto del diseño anterior incrustado.
-  // lettering de fondo, arriba-derecha. El PNG ya viene tenido en
-  // #E6F3F2, asi que se dibuja a opacidad plena (nitido al imprimir).
-  watermark: { x: 330, y: -54, w: 430, h: 281, opacity: 1 },
+  watermark: { x: 330, y: -54, w: 430, h: 281, opacity: 0.055 },
   // string-art: envolvente de rectas, esquina inferior izquierda
-  lineArtBox: { x: -30, y: 430, w: 672, h: 362 },
-  // Haces del string-art: [P0, P1, P2, n_rectas]
-  lineArtFans: [
-    [[-30, 430], [300, 540], [660, 980], 64],
-    [[-30, 505], [230, 650], [600, 980], 52],
-    [[-30, 590], [160, 790], [520, 960], 44],
-    [[-30, 690], [105, 930], [560, 990], 36]
-  ],
+  lineArtBox: { x: -30, y: 340, w: 672, h: 460 },
 
   /* ---------- Cabecera ---------- */
   logoBox:    { x: 34, y: 26, w: 78, h: 60 },
@@ -125,21 +116,26 @@ window.LAYOUT = {
    segmentos rectos (string art). Se genera una sola vez y se dibuja
    igual en la vista previa (SVG) y en el PDF (jsPDF). */
 window.lineArtSegments = function () {
+  var B = window.LAYOUT.lineArtBox;
   var out = [];
-  // Cada haz une el riel P0->P1 con el riel P1->P2: el resultado es
-  // tangente a la Bezier cuadratica (P0,P1,P2), que es la curva que se ve.
-  function fan(p0, p1, p2, n) {
+  function fan(ax, ay, bx, by, cx, cy, dx, dy, n) {
     for (var i = 0; i <= n; i++) {
       var t = i / n;
       out.push([
-        p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t,
-        p1[0] + (p2[0] - p1[0]) * t, p1[1] + (p2[1] - p1[1]) * t
+        ax + (bx - ax) * t, ay + (by - ay) * t,
+        cx + (dx - cx) * t, cy + (dy - cy) * t
       ]);
     }
   }
-  // Cuatro curvas anidadas confinadas a la mitad inferior izquierda,
-  // de modo que no crucen la tabla, los terminos ni el pie.
-  window.LAYOUT.lineArtFans.forEach(function (f) { fan(f[0], f[1], f[2], f[3]); });
+  var L = B.x, R = B.x + B.w, T = B.y, Bo = B.y + B.h;
+  // Haces contenidos en la mitad izquierda / borde inferior para que
+  // la curva no cruce el bloque de términos ni el pie.
+  // haz principal: envolvente que baja por la izquierda y se abre
+  fan(L, T,       L, Bo,        L, Bo,      R - 90, Bo, 58);
+  // haz secundario: densifica el interior de la curva
+  fan(L, T + 70,  L + 55, Bo,   L + 25, Bo, R - 260, Bo, 42);
+  // haz de cierre: rectas que insinúan la segunda curva
+  fan(L, T + 165, L, Bo - 55,   L + 130, Bo, R - 40, Bo, 30);
   return out;
 };
 /* ================== Iconos SVG minimalistas ================== */

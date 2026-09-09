@@ -124,7 +124,7 @@
 
     /* ---------- Fondos ---------- */
     const wm = L.watermark;
-    h += imgAbs('assets/img/bg-lettering.png', wm.x, wm.y, wm.w, wm.h, `opacity:${wm.opacity};`);
+    h += imgAbs('assets/img/logo-blue.png', wm.x, wm.y, wm.w, wm.h, `opacity:${wm.opacity};`);
     h += lineArtSVG();
 
     /* ---------- Cabecera ---------- */
