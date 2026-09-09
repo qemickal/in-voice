@@ -78,12 +78,12 @@
     return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${top}pt;width:${widthPt}pt;font-size:${size}pt;line-height:${lineH};font-weight:${weight};word-wrap:break-word;white-space:normal;${c}">${esc(str)}</div>`;
   }
 
-  // Mide un texto en pt (Space Grotesk, peso w). Convierte pt->px para el canvas.
+  // Mide un texto en pt (Archivo, peso w). Convierte pt->px para el canvas.
   let _ctx = null;
   function measurePt(str, sizePt, weight) {
     try {
       if (!_ctx) _ctx = document.createElement('canvas').getContext('2d');
-      _ctx.font = (weight || 300) + ' ' + (sizePt * 96 / 72) + 'px "Space Grotesk"';
+      _ctx.font = (weight || 400) + ' ' + (sizePt * 96 / 72) + 'px "Archivo"';
       return _ctx.measureText(str).width * 72 / 96;
     } catch (e) {
       return str.length * sizePt * 0.58;
@@ -120,7 +120,7 @@
     const lp = contain(L.logoBox, 500, 327);
 
     let h = '';
-    h += `<div style="width:612pt;height:792pt;position:relative;background:#ffffff;color:${BLUE};font-family:'Space Grotesk';font-weight:400;overflow:hidden;">`;
+    h += `<div style="width:612pt;height:792pt;position:relative;background:#ffffff;color:${BLUE};font-family:'Archivo';font-weight:400;overflow:hidden;">`;
 
     /* ---------- Fondos ---------- */
     const wm = L.watermark;

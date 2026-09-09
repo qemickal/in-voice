@@ -236,7 +236,7 @@ window.uid = function () {
 /* ================== Texto multi-línea ================== */
 // Divide un texto en líneas que caben en maxW (ancho estimado por nº de caracteres)
 window.wrapText = function (text, maxW, size) {
-  const charW = size * 0.575;                 // factor medido de Space Grotesk + margen
+  const charW = size * 0.50;                  // ancho medio de Archivo (0.463 em) + margen
   const maxChars = Math.max(6, Math.floor(maxW / charW));
   const words = String(text == null ? '' : text).trim().split(/\s+/);
   if (!words.length || !words[0]) return [''];

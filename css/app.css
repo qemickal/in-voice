@@ -1,13 +1,31 @@
 /* ============================================================
    APP CSS — "ARCHIVO" · Mono Cromat & Co.
    Sistema monocromo: tinta azul sobre papel blanco.
-   Display: Space Grotesk · Archivo: mono (tipewriter)
+   Tipografía: Archivo (Omnibus-Type) · Archivo/datos: mono (tipewriter)
    ============================================================ */
 
 @font-face {
-  font-family: 'Space Grotesk';
-  src: url('../assets/fonts/spacegrotesk-latin.woff2') format('woff2');
-  font-weight: 300 700;
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-latin-300.woff2') format('woff2');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-latin-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-latin-700.woff2') format('woff2');
+  font-weight: 700;
   font-display: swap;
 }
 
@@ -50,7 +68,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-family: 'Archivo', system-ui, -apple-system, sans-serif;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   /* evita que cualquier bloque ancho (vista previa, tablas) genere

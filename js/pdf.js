@@ -1,6 +1,6 @@
 /* ============================================================
    PDF ENGINE — genera el PDF real (para correo / compartir)
-   usando jsPDF + fuentes Space Grotesk incrustadas + el logo.
+   usando jsPDF + fuentes Archivo incrustadas + el logo.
    Dibuja con las mismas coordenadas que la vista previa (LAYOUT).
    Rediseño 2026: cabecera a una línea, totales con DESCUENTO y
    POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS a dos
@@ -10,12 +10,12 @@
   const L = () => window.LAYOUT;
 
   const FONT_URLS = {
-    light:   'assets/fonts/SpaceGrotesk-Light.ttf',
-    regular: 'assets/fonts/SpaceGrotesk-Regular.ttf',
-    medium:  'assets/fonts/SpaceGrotesk-Medium.ttf',
-    bold:    'assets/fonts/SpaceGrotesk-Bold.ttf',
+    light:   'assets/fonts/Archivo-Light.ttf',
+    regular: 'assets/fonts/Archivo-Regular.ttf',
+    medium:  'assets/fonts/Archivo-Medium.ttf',
+    bold:    'assets/fonts/Archivo-Bold.ttf',
   };
-  const FONT_NAMES = { light: 'SGLight', regular: 'SGRegular', medium: 'SGMedium', bold: 'SGBold' };
+  const FONT_NAMES = { light: 'ArchivoLight', regular: 'ArchivoRegular', medium: 'ArchivoMedium', bold: 'ArchivoBold' };
 
   let fontB64Cache = null;
 
@@ -45,7 +45,7 @@
   async function ensureFonts(pdf) {
     const fonts = await getFontB64();
     for (const key of Object.keys(FONT_URLS)) {
-      const vfsName = 'SG-' + key + '.ttf';
+      const vfsName = 'Archivo-' + key + '.ttf';
       pdf.addFileToVFS(vfsName, fonts[key]);
       pdf.addFont(vfsName, FONT_NAMES[key], 'normal');
     }
