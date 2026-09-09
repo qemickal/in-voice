@@ -68,7 +68,7 @@ que instala `pg` (dependencia nueva) y despliega 3 funciones:
 | `api/sync.js` | `GET /api/sync?since=` · `POST /api/sync` | Pull incremental / push con guarda "solo si es más nuevo" |
 | `js/sync.js` | cliente | Cola de cambios, pull+push, merge last-write-wins, tumbas, píldora de estado |
 | `js/app.js` | hooks | Notifica cambios/borrados al sincronizador; refresca vistas al llegar remoto |
-| `sw.js` v12 | PWA | Cachea `js/sync.js` |
+| `sw.js` v14 | PWA | Cachea `js/sync.js` y fuerza la actualización de los recursos |
 
 **Esquema:** `app_records(owner_email, kind, record_id, data JSONB, updated_at BIGINT,
 deleted BOOL, PK(owner_email, kind, record_id))` — cada fila es un documento, cliente,

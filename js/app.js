@@ -813,11 +813,30 @@
     showList();
   }
 
-  function printDoc() {
+  async function printDoc() {
     if (!editing) return;
     syncForm();
-    $('#print-area').innerHTML = window.receiptHTML(editing, settings);
-    setTimeout(() => window.print(), 60);
+    const btn = $('[data-action="print"]');
+    const old = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.textContent = 'Generando PDF…';
+    }
+    try {
+      const file = await makePdfFile();
+      downloadBlob(file, file.name || fileName(editing));
+      toast('PDF descargado ✓');
+    } catch (err) {
+      console.error(err);
+      toast('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error'));
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        btn.innerHTML = old;
+      }
+    }
   }
 
   function downloadBlob(blob, name) {
@@ -843,16 +862,24 @@
   }
 
   async function makePdfFile() {
+    if (!window.PDFEngine || typeof window.PDFEngine.build !== 'function') {
+      throw new Error('El generador de PDF no está disponible');
+    }
     if (!images) await preloadImages();
     const blob = await window.PDFEngine.build(editing, settings, images);
-    return new File([blob], fileName(editing), { type: 'application/pdf' });
+    const name = fileName(editing);
+    // File es necesario para compartir por Web Share; Blob mantiene el respaldo
+    // de descarga en navegadores que no implementan el constructor File.
+    return typeof File === 'function'
+      ? new File([blob], name, { type: 'application/pdf' })
+      : Object.assign(blob, { name });
   }
 
   async function sendEmail() {
     if (!editing) return;
     syncForm();
     const btn = $('[data-action="email"]');
-    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generando…';
+    const old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando…';
     try {
       const file = await makePdfFile();
       // 1) Si el dispositivo permite compartir archivos → mejor UX en móvil
@@ -874,7 +901,7 @@
       console.error(err);
       toast('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error'));
     } finally {
-      btn.disabled = false; btn.textContent = old;
+      btn.disabled = false; btn.innerHTML = old;
     }
   }
 
@@ -882,7 +909,7 @@
     if (!editing) return;
     syncForm();
     const btn = $('[data-action="share"]');
-    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generando…';
+    const old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando…';
     try {
       const file = await makePdfFile();
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -894,7 +921,7 @@
     } catch (err) {
       if (!(err && err.name === 'AbortError')) toast('No se pudo compartir: ' + (err && err.message ? err.message : 'error'));
     } finally {
-      btn.disabled = false; btn.textContent = old;
+      btn.disabled = false; btn.innerHTML = old;
     }
   }
 
