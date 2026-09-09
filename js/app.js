@@ -550,9 +550,15 @@
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
     document.body.classList.add('in-editor');
+    // al abrir siempre se entra por "Datos" (en móvil las pestañas
+    // conservaban el estado anterior y se veía la hoja recortada)
+    document.body.classList.add('tab-datos');
+    document.body.classList.remove('tab-preview');
+    $$('.editor-tabs [data-tab]').forEach((t) => t.classList.toggle('on', t.dataset.tab === 'datos'));
     closeMenu();
     renderEditor();
     renderPreview();
+    watchPreview();
     window.scrollTo(0, 0);
   }
 
@@ -781,15 +787,25 @@
   }
   function autoscale() {
     const frame = $('#preview-frame');
-    const rec = $('#preview-inner > div');
-    if (!frame || !rec) return;
+    const inner = $('#preview-inner');
+    if (!frame || !inner) return;
     // si el frame está oculto (tabs en móvil) no hay que escalar a 0:
     // se recalcula al volver a mostrarlo
-    if (!frame.clientWidth) return;
-    const scale = Math.min(1, frame.clientWidth / 816);
-    rec.style.transform = `scale(${scale})`;
-    rec.style.transformOrigin = 'top left';
-    frame.style.height = Math.round(1056 * scale) + 'px';
+    const w = frame.clientWidth;
+    if (!w) return;
+    // 612pt = 816px @96dpi. El alto lo da el aspect-ratio del frame en CSS.
+    frame.style.setProperty('--preview-scale', (w / 816).toFixed(5));
+  }
+
+  // Recalcula la escala cuando el frame cambia de tamaño (rotación,
+  // cambio de pestaña, teclado virtual, barra de direcciones del móvil…)
+  let _previewRO = null;
+  function watchPreview() {
+    if (_previewRO || typeof ResizeObserver === 'undefined') return;
+    const frame = $('#preview-frame');
+    if (!frame) return;
+    _previewRO = new ResizeObserver(() => autoscale());
+    _previewRO.observe(frame);
   }
 
   /* ---------------- Acciones ---------------- */

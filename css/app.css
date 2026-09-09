@@ -53,6 +53,12 @@ html, body {
   font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  /* evita que cualquier bloque ancho (vista previa, tablas) genere
+     scroll lateral y "corte" la pantalla en móvil */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -439,8 +445,19 @@ p.hint { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; lin
   overflow: hidden;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  /* la hoja siempre guarda la proporción Carta aunque el JS aún no
+     haya escalado (p. ej. al abrir la pestaña por primera vez) */
+  aspect-ratio: 612 / 792;
 }
-#preview-inner > div { width: 612pt; height: 792pt; }
+#preview-inner {
+  position: absolute;
+  inset: 0;
+  transform-origin: top left;
+  /* el JS ajusta --preview-scale; 0 no, para que nunca se vea vacío */
+  transform: scale(var(--preview-scale, 1));
+}
+#preview-inner > div { width: 612pt; height: 792pt; flex: none; }
 
 /* ---------- Modal ---------- */
 .modal {
@@ -684,7 +701,7 @@ body.in-editor .menu-fab { display: none; }
   .editor-tabs { display: flex; }
   body.tab-datos .editor-preview { display: none; }
   body.tab-preview .editor-form { display: none; }
-  .editor-bar { position: static; }
+  .editor-bar { position: sticky; top: 0; }
   .cxc-summary, .cxp-summary { flex-direction: column; }
   .list-head { flex-direction: column; align-items: flex-start; }
   .list-head-actions { flex-direction: column; align-items: stretch; }
@@ -701,6 +718,88 @@ body.in-editor .menu-fab { display: none; }
   .menu-meta { font-size: 10px; }
 }
 
+/* ============================================================
+   RESPONSIVE MÓVIL — ajustes finos
+   El problema de "pantalla cortada" venía de tres cosas:
+   1) la hoja de 612pt desbordaba horizontalmente antes de escalar,
+   2) el editor no reservaba las áreas seguras (notch / gesto),
+   3) filas y barras con anchos fijos que no cabían a <420px.
+   ============================================================ */
+@media (max-width: 760px) {
+  /* respetar notch y barra de gestos en pantalla completa (PWA) */
+  #topbar {
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-left: max(18px, env(safe-area-inset-left, 0px));
+    padding-right: max(18px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+  }
+  .editor-bar {
+    margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-top: max(14px, env(safe-area-inset-top, 0px));
+    gap: 8px;
+  }
+  .editor-bar-title { width: 100%; margin-right: 0; }
+
+  /* el topbar se ocultaba al entrar al editor y el usuario perdía
+     la referencia: la barra del editor toma su lugar y no se corta */
+  .editor-bar-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .editor-bar-actions .btn { min-width: 0; }
+
+  /* conceptos y abonos: en columna, sin anchos fijos que desborden */
+  .item-row,
+  .item-row.abono,
+  .cxp-abono-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .item-row .i-nums { flex-wrap: wrap; }
+  .item-row .i-nums label { flex: 1; min-width: 0; }
+  .item-row .i-nums input { width: 100%; min-width: 0; }
+  .item-row .i-desc { min-width: 0; }
+  .i-sub { text-align: right; }
+  .item-row > .icon-btn,
+  .item-row.abono > .icon-btn { justify-self: end; }
+
+  /* la caption de la vista previa se apilaba mal en pantallas angostas */
+  .preview-caption { gap: 10px; font-size: 8.5px; letter-spacing: .16em; }
+
+  /* toast y FAB dentro del área segura */
+  #toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); }
+  .menu-fab { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+
+  /* modales a pantalla casi completa, con scroll interno correcto */
+  .modal { padding: 12px; align-items: flex-end; }
+  .modal-box { max-height: calc(100dvh - 24px); border-radius: 18px; }
+  .modal-body { padding: 16px; }
+  .modal-foot { padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 420px) {
+  main { padding-top: 22px; }
+  .editor-bar-actions .btn { flex: 1 1 calc(50% - 6px); font-size: 10px; padding: 9px 8px; }
+  .editor-bar-actions .btn.danger { flex: 0 0 auto; }
+  .chip { padding: 7px 13px; font-size: 10px; }
+  .summary-card { min-width: 0; width: 100%; }
+  .card-actions .btn { flex: 1 1 calc(50% - 8px); }
+  h1 { font-size: clamp(26px, 8vw, 34px); }
+}
+
+/* pantallas bajas (móvil apaisado): el menú a pantalla completa
+   se cortaba porque centraba los ítems sin permitir scroll */
+@media (max-height: 620px) {
+  .menu-items { justify-content: flex-start; overflow-y: auto; }
+  .menu-item { padding: 16px 6px; }
+  .menu-foot { margin-top: 14px; }
+  .menu-logo { width: 110px; }
+}
+
 /* ---------- Impresión ---------- */
 @page { size: letter; margin: 0; }
 @media print {
@@ -709,22 +808,39 @@ body.in-editor .menu-fab { display: none; }
     margin: 0 !important;
     padding: 0 !important;
     width: auto !important;
+    max-width: none !important;
+    /* el overflow-x:hidden de pantalla recortaría la hoja de 612pt */
+    overflow: visible !important;
   }
   main { display: none !important; }
   #topbar, #view-list, #view-cxc, #view-cxp, #view-editor, #modal-settings, #modal-cxp, #modal-cxc-detail, #toast, .editor-tabs,
   #menu-fab, .menu-overlay { display: none !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  #print-area { display: block !important; margin: 0 !important; padding: 0 !important; }
+  #print-area {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 612pt;
+    height: 791.5pt;
+    overflow: hidden;
+  }
   #print-area > div {
     width: 612pt;
-    height: 792pt;
+    /* 791.5pt en vez de 792pt: el redondeo del motor de impresión
+       empujaba media línea a una segunda hoja en blanco */
+    height: 791.5pt !important;
     margin: 0 !important;
     transform: none !important;
     box-shadow: none !important;
     overflow: hidden;
     page-break-after: avoid;
+    page-break-before: avoid;
     page-break-inside: avoid;
+    break-after: avoid;
+    break-inside: avoid;
   }
+  /* nada después de la hoja puede generar una página extra */
+  #print-area > div + * { display: none !important; }
 }
 
 /* ============================================================
