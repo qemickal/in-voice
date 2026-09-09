@@ -134,14 +134,13 @@
     h += txt(L.brandLine1.x + wEmp + 7, L.brandLine1.y, L.brandSlash.size, 500,
       '// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), { color: GREY });
 
-    // tipo de documento (turquesa, alineado a la derecha)
-    h += txt(L.docType.right, L.docType.y, L.docType.size, 700,
-      isCot ? 'COTIZACIÓN' : 'RECIBO', { align: 'right', color: TURQ, ls: 0.4 });
-
-    // código de barras del folio, justo bajo el tipo de documento
+    // Folio: sólo código de barras + número (el prefijo PO/RQ identifica
+    // si es recibo o cotización, así que no se imprime el rótulo).
+    const FB = L.folioBox;
     const folio = doc.numero || 'MC';
-    h += barcodeAbs(L.docType.right - 128, L.docType.y + 7, 128, 15, folio, BLUE);
-    h += txt(L.docType.right, L.docType.y + 30, 7.5, 500, 'Nº ' + folio, { align: 'right', color: STEEL, ls: 0.6 });
+    h += barcodeAbs(FB.right - FB.w, FB.y, FB.w, FB.h, folio, BLUE);
+    h += txt(FB.right, FB.y + FB.h + FB.gap, FB.size, 500, folio,
+      { align: 'right', color: STEEL, ls: 0.7 });
 
     /* ---------- Datos (dos columnas) ---------- */
     const MS = L.metaSize;

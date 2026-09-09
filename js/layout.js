@@ -42,7 +42,10 @@ window.LAYOUT = {
   logoBox:    { x: 38, y: 26, w: 78, h: 60 },
   brandLine1: { x: 183, y: 50, size: 20.5 },   // "MONO CROMAT & CO."
   brandSlash: { x: 183, y: 50, size: 16.5 },   // "// estudio creativo" (x se calcula)
-  docType:    { right: 560, y: 70, size: 17 }, // "RECIBO" / "COTIZACIÓN"
+  // Bloque de folio (arriba a la derecha). No se imprime "RECIBO" /
+  // "COTIZACIÓN": el prefijo del folio ya lo identifica (PO = recibo,
+  // RQ = cotización), así que sólo van el código de barras y el número.
+  folioBox: { right: 560, y: 58, w: 150, h: 22, size: 8.5, gap: 11 },
 
   /* ---------- Datos (dos columnas) ---------- */
   metaSize: 10.5,

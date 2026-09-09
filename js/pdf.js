@@ -139,15 +139,13 @@
     F('medium'); pdf.setFontSize(LAY.brandSlash.size); C(GREY);
     pdf.text('// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), LAY.brandLine1.x + wEmp + 7, LAY.brandLine1.y);
 
-    // tipo de documento (turquesa, derecha)
-    F('bold'); pdf.setFontSize(LAY.docType.size); C(TURQ);
-    pdf.text(isCot ? 'COTIZACIÓN' : 'RECIBO', LAY.docType.right, LAY.docType.y, { align: 'right' });
-
-    // código de barras del folio bajo el tipo de documento
+    // Folio: sólo código de barras + número (el prefijo PO/RQ identifica
+    // si es recibo o cotización, así que no se imprime el rótulo).
+    const FB = LAY.folioBox;
     const folio = doc.numero || 'MC';
-    drawBarcode(pdf, LAY.docType.right - 128, LAY.docType.y + 7, 128, 15, folio, BLUE);
-    F('medium'); pdf.setFontSize(7.5); C(STEEL);
-    pdf.text('Nº ' + folio, LAY.docType.right, LAY.docType.y + 30, { align: 'right' });
+    drawBarcode(pdf, FB.right - FB.w, FB.y, FB.w, FB.h, folio, BLUE);
+    F('medium'); pdf.setFontSize(FB.size); C(STEEL);
+    pdf.text(folio, FB.right, FB.y + FB.h + FB.gap, { align: 'right' });
 
     /* ---------- Datos (dos columnas) ---------- */
     const MS = LAY.metaSize;
