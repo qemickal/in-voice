@@ -111,7 +111,9 @@
 
     const t = window.docTotals(doc, s);
     const table = window.layoutItems(doc);
-    const shift = table.delta;
+    // Sólo el bloque de totales sigue a una tabla larga; de P.O. TRACK
+    // hacia abajo todo queda anclado para no invadir el pie.
+    const shift = Math.min(table.delta, L.totalsShiftMax);
     const itemSize = table.size;
 
     // posiciones del logo (contain dentro del recuadro)
@@ -192,38 +194,38 @@
     h += totalRow('POR PAGAR', window.fmtMoney(t.porPagar), TY.porPagar, 700, L.porPagarSize, BLUE);
 
     /* ---------- P.O. TRACK ---------- */
-    h += dash(L.contentL, L.trackDashY + shift, L.contentR - L.contentL, 1, RULE);
-    h += txt(L.trackTitle.x, L.trackTitle.y + shift, L.trackTitle.size, 700, 'P.O. TRACK', { color: GREY, ls: 0.5 });
+    h += dash(L.contentL, L.trackDashY, L.contentR - L.contentL, 1, RULE);
+    h += txt(L.trackTitle.x, L.trackTitle.y, L.trackTitle.size, 700, 'P.O. TRACK', { color: GREY, ls: 0.5 });
     const TKS = L.trackSize;
-    h += txt(L.trackFechaX, L.trackHeaderY + shift, TKS, 700, 'FECHA', { color: BLUE });
-    h += txt(L.trackAbonoX, L.trackHeaderY + shift, TKS, 700, 'ABONO', { color: BLUE });
-    h += txt(L.trackSaldoX, L.trackHeaderY + shift, TKS, 700, 'SALDO', { color: BLUE });
-    h += txt(L.trackEstadoX, L.trackHeaderY + shift, TKS, 700, 'ESTADO', { color: BLUE });
+    h += txt(L.trackFechaX, L.trackHeaderY, TKS, 700, 'FECHA', { color: BLUE });
+    h += txt(L.trackAbonoX, L.trackHeaderY, TKS, 700, 'ABONO', { color: BLUE });
+    h += txt(L.trackSaldoX, L.trackHeaderY, TKS, 700, 'SALDO', { color: BLUE });
+    h += txt(L.trackEstadoX, L.trackHeaderY, TKS, 700, 'ESTADO', { color: BLUE });
 
     const abonos = (doc.abonos || [])
       .filter((a) => a.fecha || (Number(a.monto) || 0) !== 0)
       .slice(0, L.trackMax);
     let saldo = t.total;
     abonos.forEach((a, i) => {
-      const yy = L.trackStartY + i * L.trackRowH + shift;
+      const yy = L.trackStartY + i * L.trackRowH;
       saldo -= (Number(a.monto) || 0);
       h += txt(L.trackFechaX, yy, TKS, 400, window.fmtDate(a.fecha) || '—', { color: BODY });
       h += txt(L.trackAbonoX, yy, TKS, 400, window.fmtMoney(a.monto), { color: BODY });
       h += txt(L.trackSaldoX, yy, TKS, 400, window.fmtMoney(saldo), { color: BODY });
       h += txt(L.trackEstadoX, yy, TKS, 700, window.abonoEstado(saldo, i), { color: saldo <= 0.005 ? TURQ : STEEL });
     });
-    h += rule(L.contentL, L.trackRuleY + shift, L.contentR - L.contentL, 0.9, RULE);
+    h += rule(L.contentL, L.trackRuleY, L.contentR - L.contentL, 0.9, RULE);
 
     /* ---------- Pagos (columna izquierda) ---------- */
-    h += txt(L.pagosTitle.x, L.pagosTitle.y + shift, L.pagosTitle.size, 700, 'PAGOS', { color: BLUE, ls: -0.3 });
-    h += txt(L.pagosSubt.x, L.pagosSubt.y + shift, L.pagosSubt.size, 700, 'TRANSFERENCIAS A', { color: BLUE, ls: 0.3 });
+    h += txt(L.pagosTitle.x, L.pagosTitle.y, L.pagosTitle.size, 700, 'PAGOS', { color: BLUE, ls: -0.3 });
+    h += txt(L.pagosSubt.x, L.pagosSubt.y, L.pagosSubt.size, 700, 'TRANSFERENCIAS A', { color: BLUE, ls: 0.3 });
     const PS = L.pagosSize;
     const p = doc.pagos || {};
     function pagoRow(label, value, py, italic) {
-      let out = txt(L.pagosLabelX, py + shift, PS, 700, label, { color: BLUE });
+      let out = txt(L.pagosLabelX, py, PS, 700, label, { color: BLUE });
       if (value) {
         const wl = measurePt(label, PS, 700);
-        out += txt(L.pagosLabelX + wl + 5, py + shift, PS, 400, value,
+        out += txt(L.pagosLabelX + wl + 5, py, PS, 400, value,
           { color: BODY, ellipsis: true, w: 190 - wl, italic: italic });
       }
       return out;
@@ -233,13 +235,13 @@
     h += pagoRow('BENEFICIARIO:', p.beneficiario, L.pagosYs.beneficiario);
     h += pagoRow('BANCO:', p.banco, L.pagosYs.banco, true);
 
-    h += `<div style="position:absolute;left:${L.qrBox.x}pt;top:${(L.qrBox.y + shift).toFixed(2)}pt;width:${L.qrBox.w}pt;height:${L.qrBox.h}pt;border:0.8pt solid ${RULE};border-radius:${L.qrBox.r}pt;"></div>`;
+    h += `<div style="position:absolute;left:${L.qrBox.x}pt;top:${(L.qrBox.y).toFixed(2)}pt;width:${L.qrBox.w}pt;height:${L.qrBox.h}pt;border:0.8pt solid ${RULE};border-radius:${L.qrBox.r}pt;"></div>`;
     if (s.qr) {
-      h += imgAbs(s.qr, L.qrBox.x + 4, L.qrBox.y + 4 + shift, L.qrBox.w - 8, L.qrBox.h - 8);
+      h += imgAbs(s.qr, L.qrBox.x + 4, L.qrBox.y + 4, L.qrBox.w - 8, L.qrBox.h - 8);
     }
 
     /* ---------- Términos & condiciones (columna derecha) ---------- */
-    h += txt(L.termsTitle.x, L.termsTitle.y + shift, L.termsTitle.size, 700, 'TÉRMINOS & CONDICIONES', { color: BLUE, ls: 0.2 });
+    h += txt(L.termsTitle.x, L.termsTitle.y, L.termsTitle.size, 700, 'TÉRMINOS & CONDICIONES', { color: BLUE, ls: 0.2 });
     const terms = window.parseTerms(doc.terminos || s.terminos || '');
     const TSZ = L.termsSize;
     const lineStep = TSZ * L.termsLineH;

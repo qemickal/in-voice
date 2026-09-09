@@ -27,8 +27,9 @@ window.LAYOUT = {
   light:     [232, 242, 248],
   lightHex:  '#E8F2F8',
 
+  // márgenes laterales simétricos: 34pt a cada lado
   contentL: 34,
-  contentR: 560,
+  contentR: 578,
 
   /* ---------- Marca de agua + fondo de líneas ---------- */
   // Lettering pálido anclado arriba a la derecha (se recorta con la hoja).
@@ -36,68 +37,78 @@ window.LAYOUT = {
   // antiguo traía el texto del diseño anterior incrustado.
   watermark: { x: 330, y: -54, w: 430, h: 281, opacity: 0.055 },
   // string-art: envolvente de rectas, esquina inferior izquierda
-  lineArtBox: { x: -30, y: 330, w: 660, h: 470 },
+  lineArtBox: { x: -30, y: 340, w: 672, h: 460 },
 
   /* ---------- Cabecera ---------- */
-  logoBox:    { x: 38, y: 26, w: 78, h: 60 },
+  logoBox:    { x: 34, y: 26, w: 78, h: 60 },
   brandLine1: { x: 183, y: 50, size: 20.5 },   // "MONO CROMAT & CO."
   brandSlash: { x: 183, y: 50, size: 16.5 },   // "// estudio creativo" (x se calcula)
   // Bloque de folio (arriba a la derecha). No se imprime "RECIBO" /
   // "COTIZACIÓN": el prefijo del folio ya lo identifica (PO = recibo,
   // RQ = cotización), así que sólo van el código de barras y el número.
-  folioBox: { right: 560, y: 58, w: 150, h: 22, size: 8.5, gap: 11 },
+  folioBox: { right: 578, y: 58, w: 150, h: 22, size: 8.5, gap: 11 },
 
   /* ---------- Datos (dos columnas) ---------- */
   metaSize: 10.5,
-  metaLeftX: 34, metaRightX: 247,
+  metaLeftX: 34, metaRightX: 300,
   metaYs: { fecha: 112, representante: 128, proyecto: 112, telefono: 128, email: 144 },
 
   /* ---------- Tabla de conceptos ---------- */
   headRuleY: 163, headRuleW: 0.9,
   tableHeaderY: 177, tableHeaderSize: 10.5,
-  colDesc: 34, colQ: 339, colPrecio: 406, colSubtotal: 486,
-  qtyAlignX: 356, priceAlignX: 447, subtotalAlignX: 560,
+  colDesc: 34, colQ: 352, colPrecio: 418, colSubtotal: 500,
+  qtyAlignX: 370, priceAlignX: 462, subtotalAlignX: 578,
   itemsStartY: 196, rowH: 17, itemsMaxBottom: 380, itemSize: 10,
-  itemsShiftBudget: 26,
+  itemsShiftBudget: 12,
+  // Sólo el bloque de totales acompaña a una tabla larga. Todo lo que va
+  // debajo (P.O. TRACK, PAGOS, TÉRMINOS, pie) queda anclado, para que
+  // nunca se monte sobre la regla del pie.
+  totalsShiftMax: 12,
 
   /* ---------- Totales (columna derecha) ---------- */
-  totalsLabelX: 387, totalsAlignX: 560, totalsSize: 10.5,
-  totalsYs: { subtotal: 397, iva: 407, total: 417, descuento: 427, porPagar: 446 },
+  // interlineado de 12pt entre conceptos y 20pt de aire antes de POR PAGAR
+  totalsLabelX: 400, totalsAlignX: 578, totalsSize: 10.5,
+  totalsYs: { subtotal: 396, iva: 408, total: 420, descuento: 432, porPagar: 452 },
   porPagarSize: 11.5,
 
   /* ---------- P.O. TRACK ---------- */
-  trackDashY: 460,
-  trackTitle: { x: 34, y: 478, size: 17 },
-  trackHeaderY: 492, trackSize: 9.5,
-  trackFechaX: 34, trackAbonoX: 205, trackSaldoX: 349, trackEstadoX: 502,
-  trackStartY: 508, trackRowH: 14, trackMax: 5,
-  trackRuleY: 546,
+  trackDashY: 472,
+  trackTitle: { x: 34, y: 488, size: 17 },
+  trackHeaderY: 504, trackSize: 9.5,
+  // columnas repartidas en cuartos del ancho útil (34 → 560)
+  trackFechaX: 34, trackAbonoX: 214, trackSaldoX: 370, trackEstadoX: 500,
+  trackStartY: 519, trackRowH: 13, trackMax: 4,
+  // la regla deja 10pt de aire bajo la última fila (519 + 3*13 = 558)
+  trackRuleY: 568,
 
   /* ---------- Pagos (columna izquierda) ---------- */
-  pagosTitle:  { x: 34, y: 570, size: 22 },
-  pagosSubt:   { x: 34, y: 586, size: 9.5 },
+  // ambas columnas arrancan a la misma altura (583) para que PAGOS y
+  // TÉRMINOS queden a ras por arriba
+  pagosTitle:  { x: 34, y: 588, size: 22 },
+  pagosSubt:   { x: 34, y: 604, size: 9.5 },
   pagosLabelX: 34, pagosSize: 9.5,
-  pagosYs: { cuenta: 604, clabe: 614, beneficiario: 624, banco: 634 },
-  qrBox: { x: 34, y: 646, w: 48, h: 48, r: 7 },
+  pagosYs: { cuenta: 620, clabe: 631, beneficiario: 642, banco: 653 },
+  qrBox: { x: 34, y: 661, w: 42, h: 42, r: 7 },
 
   /* ---------- Términos (columna derecha) ---------- */
-  termsTitle: { x: 259, y: 562, size: 9.5 },
-  termsX: 259, termsY: 574, termsW: 301, termsSize: 6.6, termsLineH: 1.33,
-  termsMaxLines: 15,
-  // ninguna línea puede pisar la regla del pie
-  termsBottom: 688,
+  termsTitle: { x: 300, y: 588, size: 9.5 },
+  termsX: 300, termsY: 601, termsW: 278, termsSize: 6.6, termsLineH: 1.36,
+  termsMaxLines: 14,
+  // ninguna línea puede pisar la regla del pie (deja 8pt de aire)
+  termsBottom: 704,
 
   /* ---------- Pie ---------- */
-  footRuleY: 695, footRuleW: 2.2,
+  // 26pt de margen arriba (logo) y ~26pt abajo tras la última línea
+  footRuleY: 712, footRuleW: 2.2,
   footSize: 8,
-  footYs: [708, 719],
-  footColL: 34, footColM: 279, footColR: 560,
+  footYs: [726, 737],
+  footColL: 34, footColM: 300, footColR: 578,
 
   /* compat: claves antiguas que aún consultan algunos helpers */
-  clientX: 34, clientValueX: 247, clientSize: 10.5,
-  condX: 259, condTextW: 301, condTextSize: 7.4,
+  clientX: 34, clientValueX: 300, clientSize: 10.5,
+  condX: 300, condTextW: 278, condTextSize: 7.4,
   abonosMax: 5,
-  terminosW: 301, terminosSize: 7.4,
+  terminosW: 278, terminosSize: 7.4,
 };
 
 /* ================== Fondo string-art ==================

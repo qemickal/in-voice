@@ -110,7 +110,9 @@
     const isCot = doc.tipo === 'cotizacion';
     const t = window.docTotals(doc, s);
     const table = window.layoutItems(doc);
-    const shift = table.delta;
+    // Sólo el bloque de totales sigue a una tabla larga; de P.O. TRACK
+    // hacia abajo todo queda anclado para no invadir el pie.
+    const shift = Math.min(table.delta, LAY.totalsShiftMax);
     const itemSize = table.size;
 
     /* ---------- Fondos ---------- */
@@ -203,23 +205,23 @@
     totalRow('POR PAGAR', window.fmtMoney(t.porPagar), TY.porPagar, LAY.porPagarSize, true);
 
     /* ---------- P.O. TRACK ---------- */
-    dashedLine(pdf, LAY.contentL, LAY.trackDashY + shift, LAY.contentR, 1, [2.6, 2.6], RULE);
+    dashedLine(pdf, LAY.contentL, LAY.trackDashY, LAY.contentR, 1, [2.6, 2.6], RULE);
     F('bold'); pdf.setFontSize(LAY.trackTitle.size); C(GREY);
-    pdf.text('P.O. TRACK', LAY.trackTitle.x, LAY.trackTitle.y + shift);
+    pdf.text('P.O. TRACK', LAY.trackTitle.x, LAY.trackTitle.y);
 
     const TKS = LAY.trackSize;
     F('bold'); pdf.setFontSize(TKS); C(BLUE);
-    pdf.text('FECHA', LAY.trackFechaX, LAY.trackHeaderY + shift);
-    pdf.text('ABONO', LAY.trackAbonoX, LAY.trackHeaderY + shift);
-    pdf.text('SALDO', LAY.trackSaldoX, LAY.trackHeaderY + shift);
-    pdf.text('ESTADO', LAY.trackEstadoX, LAY.trackHeaderY + shift);
+    pdf.text('FECHA', LAY.trackFechaX, LAY.trackHeaderY);
+    pdf.text('ABONO', LAY.trackAbonoX, LAY.trackHeaderY);
+    pdf.text('SALDO', LAY.trackSaldoX, LAY.trackHeaderY);
+    pdf.text('ESTADO', LAY.trackEstadoX, LAY.trackHeaderY);
 
     const abonos = (doc.abonos || [])
       .filter((a) => a.fecha || (Number(a.monto) || 0) !== 0)
       .slice(0, LAY.trackMax);
     let saldo = t.total;
     abonos.forEach((a, i) => {
-      const yy = LAY.trackStartY + i * LAY.trackRowH + shift;
+      const yy = LAY.trackStartY + i * LAY.trackRowH;
       saldo -= (Number(a.monto) || 0);
       F('regular'); pdf.setFontSize(TKS); C(BODY);
       pdf.text(window.fmtDate(a.fecha) || '—', LAY.trackFechaX, yy);
@@ -228,23 +230,23 @@
       F('bold'); C(saldo <= 0.005 ? TURQ : STEEL);
       pdf.text(window.abonoEstado(saldo, i), LAY.trackEstadoX, yy);
     });
-    solidLine(pdf, LAY.contentL, LAY.trackRuleY + shift, LAY.contentR, 0.9, RULE);
+    solidLine(pdf, LAY.contentL, LAY.trackRuleY, LAY.contentR, 0.9, RULE);
 
     /* ---------- Pagos (columna izquierda) ---------- */
     F('bold'); pdf.setFontSize(LAY.pagosTitle.size); C(BLUE);
-    pdf.text('PAGOS', LAY.pagosTitle.x, LAY.pagosTitle.y + shift);
+    pdf.text('PAGOS', LAY.pagosTitle.x, LAY.pagosTitle.y);
     F('bold'); pdf.setFontSize(LAY.pagosSubt.size);
-    pdf.text('TRANSFERENCIAS A', LAY.pagosSubt.x, LAY.pagosSubt.y + shift);
+    pdf.text('TRANSFERENCIAS A', LAY.pagosSubt.x, LAY.pagosSubt.y);
 
     const PS = LAY.pagosSize;
     const p = doc.pagos || {};
     function pagoRow(label, value, py) {
       F('bold'); pdf.setFontSize(PS); C(BLUE);
-      pdf.text(label, LAY.pagosLabelX, py + shift);
+      pdf.text(label, LAY.pagosLabelX, py);
       if (!value) return;
       const wl = pdf.getTextWidth(label);
       F('regular'); C(BODY);
-      pdf.text(fitText(pdf, String(value), 190 - wl), LAY.pagosLabelX + wl + 5, py + shift);
+      pdf.text(fitText(pdf, String(value), 190 - wl), LAY.pagosLabelX + wl + 5, py);
     }
     pagoRow('CUENTA', p.cuenta, LAY.pagosYs.cuenta);
     pagoRow('CLABE', p.clabe, LAY.pagosYs.clabe);
@@ -252,22 +254,22 @@
     pagoRow('BANCO:', p.banco, LAY.pagosYs.banco);
 
     pdf.setDrawColor(...RULE); pdf.setLineWidth(0.8);
-    pdf.roundedRect(LAY.qrBox.x, LAY.qrBox.y + shift, LAY.qrBox.w, LAY.qrBox.h, LAY.qrBox.r, LAY.qrBox.r, 'S');
+    pdf.roundedRect(LAY.qrBox.x, LAY.qrBox.y, LAY.qrBox.w, LAY.qrBox.h, LAY.qrBox.r, LAY.qrBox.r, 'S');
     if (s.qr) {
-      try { pdf.addImage(s.qr, 'PNG', LAY.qrBox.x + 4, LAY.qrBox.y + 4 + shift, LAY.qrBox.w - 8, LAY.qrBox.h - 8); } catch (e) {}
+      try { pdf.addImage(s.qr, 'PNG', LAY.qrBox.x + 4, LAY.qrBox.y + 4, LAY.qrBox.w - 8, LAY.qrBox.h - 8); } catch (e) {}
     }
 
     /* ---------- Términos & condiciones (columna derecha) ---------- */
     F('bold'); pdf.setFontSize(LAY.termsTitle.size); C(BLUE);
-    pdf.text('TÉRMINOS & CONDICIONES', LAY.termsTitle.x, LAY.termsTitle.y + shift);
+    pdf.text('TÉRMINOS & CONDICIONES', LAY.termsTitle.x, LAY.termsTitle.y);
 
     const terms = window.parseTerms(doc.terminos || s.terminos || '');
     const TSZ = LAY.termsSize;
     const lineStep = TSZ * LAY.termsLineH;
-    let ty = LAY.termsY + shift;
+    let ty = LAY.termsY;
     let used = 0;
     terms.forEach((item) => {
-      if (used >= LAY.termsMaxLines || ty > LAY.termsBottom + shift) return;
+      if (used >= LAY.termsMaxLines || ty > LAY.termsBottom) return;
       const labelTxt = item.label ? item.label + ':' : '';
       F('bold'); pdf.setFontSize(TSZ);
       const wl = labelTxt ? pdf.getTextWidth(labelTxt + ' ') : 0;
@@ -296,10 +298,10 @@
       rest.forEach((w) => {
         const test = cur ? cur + ' ' + w : w;
         if (pdf.getTextWidth(test) <= LAY.termsW) { cur = test; return; }
-        if (used < LAY.termsMaxLines && ty <= LAY.termsBottom + shift) { pdf.text(cur, LAY.termsX, ty); ty += lineStep; used++; }
+        if (used < LAY.termsMaxLines && ty <= LAY.termsBottom) { pdf.text(cur, LAY.termsX, ty); ty += lineStep; used++; }
         cur = w;
       });
-      if (cur && used < LAY.termsMaxLines && ty <= LAY.termsBottom + shift) {
+      if (cur && used < LAY.termsMaxLines && ty <= LAY.termsBottom) {
         pdf.text(cur, LAY.termsX, ty);
         ty += lineStep; used++;
       }
