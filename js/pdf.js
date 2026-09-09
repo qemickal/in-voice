@@ -78,6 +78,51 @@
     pdf.line(x + 6, y - 6, x + 6, y + 0.5);               // pliegue
   }
 
+  // Línea punteada (perforado)
+  function dashedLine(pdf, x1, y, x2, w, dashArr) {
+    pdf.setLineWidth(w);
+    pdf.setLineDashPattern(dashArr, 0);
+    pdf.line(x1, y, x2, y);
+    pdf.setLineDashPattern([], 0);
+  }
+
+  // Sello tipo goma: doble anillo rotado + texto Courier bold.
+  // angle: convención CSS (negativo = sentido antihorario).
+  function drawStamp(pdf, cx, cy, text, w, h, angle, fontPt) {
+    const c = L().brand;
+    pdf.saveGraphicsState();
+    pdf.setDrawColor(...c); pdf.setTextColor(...c);
+    const th = angle * Math.PI / 180;
+    const cos = Math.cos(th), sin = Math.sin(th);
+    function ring(w2, h2, lw) {
+      const q = [];
+      [[-w2/2, -h2/2], [w2/2, -h2/2], [w2/2, h2/2], [-w2/2, h2/2]].forEach(([px, py]) => {
+        q.push([cx + px * cos - py * sin, cy + px * sin + py * cos]);
+      });
+      pdf.setLineWidth(lw);
+      pdf.lines([
+        [q[1][0] - q[0][0], q[1][1] - q[0][1]],
+        [q[2][0] - q[1][0], q[2][1] - q[1][1]],
+        [q[3][0] - q[2][0], q[3][1] - q[2][1]],
+        [q[0][0] - q[3][0], q[0][1] - q[3][1]],
+      ], q[0][0], q[0][1], [1, 1], 'S');
+    }
+    ring(w, h, 1.1);
+    ring(w - 3.4, h - 3.4, 0.5);
+    pdf.setFont('courier', 'bold');
+    pdf.setFontSize(fontPt || 10.5);
+    pdf.text(text.toUpperCase(), cx, cy + 2, { align: 'center', angle: -angle });
+    pdf.restoreGraphicsState();
+  }
+
+  // Código de barras Code 128 real del folio (escaneable; igual que la app)
+  function drawBarcode(pdf, x, y, w, h, text) {
+    const d = window.barcodeBars(text, w);
+    const c = L().brand;
+    pdf.setFillColor(...c);
+    d.bars.forEach((b) => pdf.rect(x + b.x, y, b.w, h, 'F'));
+  }
+
   async function build(doc, settings, images) {
     const LAY = L();
     const { jsPDF } = window.jspdf;
@@ -109,8 +154,8 @@
     pdf.setFontSize(LAY.brandLine2.size);
     pdf.text(settings.empresaSub || 'Estudio Creativo', LAY.brandLine2.x, LAY.brandLine2.y);
 
-    /* ---------- Contacto (columna derecha) ---------- */
-    F('light'); pdf.setFontSize(LAY.contact.size);
+    /* ---------- Contacto (columna derecha, tipografía archivo) ---------- */
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.contact.size);
     const contactLines = [settings.email, settings.telefono, settings.web, settings.ciudad].filter(Boolean);
     contactLines.forEach((t, i) => {
       if (i < LAY.contact.ys.length) {
@@ -118,15 +163,35 @@
       }
     });
 
-    /* ---------- Título ---------- */
+    /* ---------- Título (SG light) + número (Courier bold) ---------- */
     const titulo = doc.tipo === 'cotizacion' ? 'COTIZACIÓN NRO. ' : 'RECIBO NRO. ';
     F('light'); pdf.setFontSize(LAY.title.size);
-    pdf.text(titulo + (doc.numero || ''), LAY.title.x, LAY.title.y);
+    pdf.text(titulo, LAY.title.x, LAY.title.y);
+    const numW = pdf.getTextWidth(titulo);
+    const numStr = doc.numero || '';
+    const numMaxW = LAY.date.x - 6 - (LAY.title.x + numW + 2);
+    let numSize = 16;
+    if (numStr.length * 0.6 * numSize > numMaxW) numSize = Math.max(9, numMaxW / (0.6 * numStr.length));
+    pdf.setFont('courier', 'bold'); pdf.setFontSize(numSize);
+    pdf.text(numStr, LAY.title.x + numW + 2, LAY.title.y);
 
-    F('light'); pdf.setFontSize(LAY.date.size);
-    pdf.text('Fecha: ' + window.fmtDate(doc.fecha), LAY.date.x, LAY.date.y);
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.date.size);
+    pdf.text('FECHA: ' + window.fmtDate(doc.fecha), LAY.date.x, LAY.date.y);
     if (doc.tipo === 'cotizacion' && doc.vigencia) {
-      pdf.text('Vigencia: ' + window.fmtDate(doc.vigencia), LAY.vigencia.x, LAY.vigencia.y);
+      pdf.text('VIGENCIA: ' + window.fmtDate(doc.vigencia), LAY.vigencia.x, LAY.vigencia.y);
+    }
+
+    /* ---------- Sellos: RECIBO / COTIZACIÓN (+ PAGADO si está saldado) ---------- */
+    if (doc.tipo === 'cotizacion') {
+      drawStamp(pdf, 511, 258, 'COTIZACIÓN', 80, 18, -4, 11);
+    } else {
+      drawStamp(pdf, 524, 258, 'RECIBO', 54, 18, -4, 11);
+    }
+    const abonosSum = (doc.abonos || []).reduce((s2, a) => s2 + (Number(a.monto) || 0), 0);
+    const preTotal = (doc.items || []).reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0)
+      * (1 + (doc.conIva === false ? 0 : (Number(doc.iva != null ? doc.iva : settings.iva) || 0)) / 100);
+    if ((doc.abonos || []).length > 0 && preTotal - abonosSum <= 0.005) {
+      drawStamp(pdf, 468, 207, 'PAGADO', 52, 16.5, 3, 10.5);
     }
 
     /* ---------- Datos del cliente ---------- */
@@ -144,14 +209,21 @@
       pdf.text(fitText(pdf, val || '', maxW), LAY.clientValueX, y);
     });
 
-    /* ---------- Encabezado de la tabla ---------- */
-    F('light'); pdf.setFontSize(LAY.tableHeaderSize);
-    pdf.text('Descripción del servicio', LAY.colDesc, LAY.tableHeaderY);
+    /* ---------- Código de barras + folio (banda bajo el cliente, a la izquierda) ---------- */
+    drawBarcode(pdf, 61, 250, 114, 16, doc.numero || 'MC');
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(7.5);
+    pdf.text('Nº ' + (doc.numero || ''), 61, 273);
+
+    /* ---------- Encabezado de la tabla (mono, doble regla) ---------- */
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.tableHeaderSize);
+    pdf.text('DESCRIPCIÓN DEL SERVICIO', LAY.colDesc, LAY.tableHeaderY);
     pdf.text('Q', LAY.colQ, LAY.tableHeaderY);
-    pdf.text('Precio U', LAY.colPrecio, LAY.tableHeaderY);
-    pdf.text('Sub-total', LAY.colSubtotal, LAY.tableHeaderY);
+    pdf.text('PRECIO U', LAY.colPrecio, LAY.tableHeaderY);
+    pdf.text('SUB-TOTAL', LAY.colSubtotal, LAY.tableHeaderY);
     pdf.setLineWidth(LAY.headerLineW);
     pdf.line(LAY.contentL, LAY.headerLineY, LAY.contentR, LAY.headerLineY);
+    pdf.setLineWidth(0.6);
+    pdf.line(LAY.contentL, LAY.headerLineY + LAY.headerLineW + 1.7, LAY.contentR, LAY.headerLineY + LAY.headerLineW + 1.7);
 
     /* ---------- Conceptos (descripción multi-línea) ---------- */
     const items = (doc.items || []).filter((it) => it.desc && it.desc.trim());
@@ -193,18 +265,19 @@
     F('bold');
     pdf.text(window.fmtMoney(total), LAY.totalsAlignX, LAY.totalsYs.total + shift, { align: 'right' });
 
-    /* ---------- Línea separadora ---------- */
-    pdf.setLineWidth(0.57);
-    pdf.line(LAY.contentL, LAY.sectionLineY + shift, LAY.contentR, LAY.sectionLineY + shift);
+    /* ---------- Línea separadora (perforado) ---------- */
+    dashedLine(pdf, LAY.contentL, LAY.sectionLineY + shift, LAY.contentR, 1, [2.4, 2.4]);
 
-    /* ---------- Datos para pagos ---------- */
-    pdf.setDrawColor(...blue); pdf.setLineWidth(0.57);
+    /* ---------- Datos para pagos (recuadro QR en punteado) ---------- */
+    pdf.setDrawColor(...blue); pdf.setLineWidth(0.8);
+    pdf.setLineDashPattern([2, 1.6], 0);
     pdf.roundedRect(LAY.qrBox.x, LAY.qrBox.y + shift, LAY.qrBox.w, LAY.qrBox.h, LAY.qrBox.r, LAY.qrBox.r, 'S');
+    pdf.setLineDashPattern([], 0);
     if (settings.qr) {
       try { pdf.addImage(settings.qr, 'PNG', LAY.qrBox.x + 6, LAY.qrBox.y + 6 + shift, LAY.qrBox.w - 12, LAY.qrBox.h - 12); } catch (e) {}
     }
-    F('light'); pdf.setFontSize(LAY.pagosTitle.size);
-    pdf.text('Datos para pagos', LAY.pagosTitle.x, LAY.pagosTitle.y + shift);
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.pagosTitle.size);
+    pdf.text('DATOS PARA PAGOS', LAY.pagosTitle.x, LAY.pagosTitle.y + shift);
     const pagoRows = [
       ['Cuenta Nro. ', doc.pagos.cuenta, LAY.pagosYs.cuenta],
       ['Nro. Clabe', doc.pagos.clabe, LAY.pagosYs.clabe],
@@ -227,8 +300,7 @@
       F('regular');
       pdf.text(window.fmtDate(doc.entregaFecha), LAY.entregaClockText.valueX, LAY.entregaClockText.y + shift);
     }
-    pdf.setLineWidth(0.57);
-    pdf.line(LAY.condX - 0.3, LAY.condLineY + shift, LAY.contentR, LAY.condLineY + shift);
+    dashedLine(pdf, LAY.condX - 0.3, LAY.condLineY + shift, LAY.contentR, 0.8, [1.8, 1.8]);
     drawBox(pdf, LAY.condIcon2.x, LAY.condIcon2.y + shift);
     if (doc.entregaForma) {
       F('light'); pdf.setFontSize(LAY.entregaBoxText.size);
@@ -237,20 +309,19 @@
       const formaLines = pdf.splitTextToSize(doc.entregaForma || '', LAY.entregaBoxText.maxW).slice(0, 2);
       pdf.text(formaLines, LAY.entregaBoxText.valueX, LAY.entregaBoxText.y + shift, { lineHeightFactor: 1.3 });
     }
-    F('light'); pdf.setFontSize(LAY.condTitle.size);
-    pdf.text('Condiciones de Entrega', LAY.condTitle.x, LAY.condTitle.y + shift);
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.condTitle.size);
+    pdf.text('CONDICIONES DE ENTREGA', LAY.condTitle.x, LAY.condTitle.y + shift);
     F('regular'); pdf.setFontSize(LAY.condTextSize);
     const condLines = pdf.splitTextToSize(doc.condiciones || settings.condiciones || '', LAY.condTextW).slice(0, 3);
     pdf.text(condLines, LAY.condX, LAY.condTextY + shift, { lineHeightFactor: 1.35 });
 
-    /* ---------- Abonos ---------- */
-    F('light'); pdf.setFontSize(LAY.abonosSize);
-    pdf.text('Fecha', LAY.abonosFechaX, LAY.abonosHeaderY + shift);
-    pdf.text('Abonos', LAY.abonosAbonoX, LAY.abonosHeaderY + shift);
-    pdf.text('Saldo', LAY.abonosSaldoX, LAY.abonosHeaderY + shift);
+    /* ---------- Abonos (tipografía archivo) ---------- */
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.abonosSize);
+    pdf.text('FECHA', LAY.abonosFechaX, LAY.abonosHeaderY + shift);
+    pdf.text('ABONOS', LAY.abonosAbonoX, LAY.abonosHeaderY + shift);
+    pdf.text('SALDO', LAY.abonosSaldoX, LAY.abonosHeaderY + shift);
     const abonos = (doc.abonos || []).filter((a) => a.fecha || (Number(a.monto) || 0) !== 0).slice(0, LAY.abonosMax);
     let saldo = total;
-    F('regular');
     abonos.forEach((a, i) => {
       const yy = LAY.abonosStartY + i * LAY.abonosRowH + shift;
       pdf.text(window.fmtDate(a.fecha) || '—', LAY.abonosFechaX, yy);
@@ -259,11 +330,10 @@
       pdf.text(window.fmtMoney(saldo), LAY.abonosSaldoX, yy);
     });
 
-    /* ---------- Pie: términos ---------- */
-    pdf.setLineWidth(0.28);
-    pdf.line(57, LAY.footerLineY + shift, 549, LAY.footerLineY + shift);
-    F('light'); pdf.setFontSize(LAY.terminosTitle.size);
-    pdf.text('Términos', LAY.terminosTitle.x, LAY.terminosTitle.y + shift);
+    /* ---------- Pie (perforado): términos ---------- */
+    dashedLine(pdf, 57, LAY.footerLineY + shift, 549, 0.6, [1.6, 1.6]);
+    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.terminosTitle.size);
+    pdf.text('TÉRMINOS', LAY.terminosTitle.x, LAY.terminosTitle.y + shift);
     F('regular'); pdf.setFontSize(LAY.terminosSize);
     const termLines = pdf.splitTextToSize(doc.terminos || settings.terminos || '', LAY.terminosW).slice(0, 3);
     pdf.text(termLines, LAY.terminosTitle.x, LAY.terminosY + shift, { lineHeightFactor: 1.3 });

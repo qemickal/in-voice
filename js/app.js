@@ -16,6 +16,10 @@
   function storeSet(k, v) {
     _memStore[k] = v;
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento no disponible */ }
+    // notificar al sincronizador (colecciones que viajan)
+    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp') {
+      if (window.SYNC) window.SYNC.localChanged();
+    }
   }
 
   /* ---------------- Ajustes ---------------- */
@@ -126,6 +130,8 @@
     $('#view-list').hidden = false;
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
+    document.body.classList.remove('in-editor');
+    closeMenu();
     renderList();
   }
 
@@ -143,7 +149,7 @@
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty">
-          <div class="empty-icon">${window.ICONS.receipt('ic-lg')}</div>
+          <span class="stamp empty-stamp">${docs.length ? 'Sin coincidencias' : 'Sin registros'}</span>
           <h3>${docs.length ? 'No hay documentos que coincidan' : 'Aún no hay documentos'}</h3>
           <p>${docs.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primer recibo o cotización y guárdalo en este dispositivo.'}</p>
           <div class="empty-actions">
@@ -151,50 +157,95 @@
             <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
           </div>
         </div>`;
+      refreshMenuCounts();
       return;
     }
 
     wrap.innerHTML = filtered.map((d) => {
       const t = computeTotals(d);
-      const badge = d.tipo === 'cotizacion'
-        ? '<span class="badge cot">COTIZACIÓN</span>'
-        : '<span class="badge rec">RECIBO</span>';
+      const stamp = d.tipo === 'cotizacion'
+        ? '<span class="stamp">Cotización</span>'
+        : '<span class="stamp solid">Recibo</span>';
       return `
       <div class="card">
         <div class="card-top">
-          ${badge}
-          <span class="card-num">Nro. ${esc(d.numero)}</span>
+          ${stamp}
+          <span class="card-num">Nº ${esc(d.numero)}</span>
           <span class="card-date">${window.fmtDate(d.fecha)}</span>
         </div>
         <div class="card-title">${esc(d.proyecto || 'Sin proyecto')}</div>
         <div class="card-sub">${esc(d.representante || '')}${d.representante ? ' · ' : ''}${esc(d.email || '')}</div>
+        <div class="perf"></div>
         <div class="card-foot">
           <strong>${window.fmtMoney(t.total)}</strong>
-          <span class="muted">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
+          <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
+          <span class="barcode card-bc">${window.barcodeSVG(d.numero, 104, 20)}</span>
         </div>
         <div class="card-actions">
-          <button class="btn small" data-action="edit" data-id="${d.id}">Editar</button>
-          <button class="btn small" data-action="duplicate" data-id="${d.id}">Duplicar</button>
+          <button class="btn small outline" data-action="edit" data-id="${d.id}">Editar</button>
+          <button class="btn small outline" data-action="duplicate" data-id="${d.id}">Duplicar</button>
           <button class="btn small danger" data-action="delete-list" data-id="${d.id}">Eliminar</button>
         </div>
       </div>`;
     }).join('');
+    refreshMenuCounts();
   }
 
-  /* ================= NAVEGACIÓN PRINCIPAL ================= */
+  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
   function switchMainView(view) {
     mainView = view;
-    $$('#main-nav .nav-btn').forEach(function(b) {
+    $$('#menu-overlay .menu-item').forEach(function(b) {
       b.classList.toggle('active', b.dataset.view === view);
     });
     $('#view-list').hidden = view !== 'docs';
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
     $('#view-editor').hidden = true;
-    $('#topbar').classList.toggle('hidden', view !== 'docs');
+    $('#topbar').classList.remove('hidden');
+    document.body.classList.remove('in-editor');
+    closeMenu();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
     if (view === 'cxp') renderCxP();
+    window.scrollTo(0, 0);
+  }
+
+  function refreshMenuCounts() {
+    var d = $('#menu-count-docs');
+    if (d) d.textContent = docs.length + ' EXP.';
+    var c = $('#menu-count-cxc');
+    if (c) c.textContent = getCxCData().length + ' CLT';
+    var pen = 0;
+    cuentasXPagar.forEach(function(x) {
+      var ab = (x.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
+      if (x.monto - ab > 0.005) pen++;
+    });
+    var p = $('#menu-count-cxp');
+    if (p) p.textContent = pen + ' PEN';
+  }
+
+  function openMenu() {
+    refreshMenuCounts();
+    $('#menu-overlay').classList.add('open');
+    var fab = $('#menu-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMenu() {
+    var o = $('#menu-overlay');
+    if (!o || !o.classList.contains('open')) return;
+    o.classList.remove('open');
+    var fab = $('#menu-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  function paintBarcodes() {
+    var tb = $('#topbar-barcode');
+    if (tb) tb.innerHTML = window.barcodeSVG('MONO CROMAT & CO. · ARCHIVO', 128, 22);
+    var mb = $('#menu-barcode');
+    if (mb) mb.innerHTML = window.barcodeSVG('MC-ARCHIVO-2026', 220, 34);
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -248,20 +299,21 @@
 
     var wrap = $('#cxc-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-icon">' + window.ICONS.coin('ic-lg') + '</div>'
+      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (data.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
         + '<h3>' + (data.length ? 'No hay coincidencias' : 'No hay cuentas por cobrar') + '</h3>'
         + '<p>' + (data.length ? 'Prueba con otra búsqueda.' : 'Los saldos pendientes de tus recibos y cotizaciones aparecerán aquí automáticamente.') + '</p></div>';
+      refreshMenuCounts();
       return;
     }
 
     wrap.innerHTML = filtered.map(function(c) {
       var docsHtml = c.docs.map(function(d) {
         var badge = d.tipo === 'cotizacion'
-          ? '<span class="badge cot">COT</span>'
-          : '<span class="badge rec">REC</span>';
+          ? '<span class="stamp mini">COT</span>'
+          : '<span class="stamp mini solid">REC</span>';
         var pct = d.total > 0 ? Math.min(100, (d.abonado / d.total) * 100) : 0;
         return '<div class="card-doc-item">'
-          + '<div>' + badge + ' <span>Nro. ' + esc(d.numero) + '</span>'
+          + '<div>' + badge + ' <span>Nº ' + esc(d.numero) + '</span>'
           + (d.proyecto ? ' <span class="muted">— ' + esc(d.proyecto) + '</span>' : '')
           + '</div>'
           + '<div><strong>' + window.fmtMoney(d.saldo) + '</strong> <span class="muted">de ' + window.fmtMoney(d.total) + '</span></div>'
@@ -274,22 +326,25 @@
 
       return '<div class="card-cxc" data-cliente="' + esc(c.cliente) + '">'
         + '<div class="card-top">'
+        + '<span class="stamp mini">Pendiente</span>'
         + '<span style="width:20px;height:20px;display:inline-flex">' + window.ICONS.user() + '</span>'
-        + '<div><div style="font-weight:700;font-size:15px">' + esc(c.cliente) + '</div>'
+        + '<div><div style="font-weight:700;font-size:16px">' + esc(c.cliente) + '</div>'
         + (c.email ? '<div class="muted">' + esc(c.email) + '</div>' : '')
         + '</div>'
         + '<div style="margin-left:auto;text-align:right">'
         + '<div class="card-cxc-saldo">' + window.fmtMoney(c.saldoTotal) + '</div>'
-        + '<div class="card-total-orig muted">de ' + window.fmtMoney(pctTotal) + '</div>'
+        + '<div class="card-total-orig">DE ' + window.fmtMoney(pctTotal) + '</div>'
         + '</div>'
         + '</div>'
+        + '<div class="perf"></div>'
         + '<div class="card-progress"><div class="card-progress-bar" style="width:' + pct.toFixed(1) + '%"></div></div>'
         + '<div class="card-docs">' + docsHtml + '</div>'
         + '<div class="card-actions">'
-        + '<button class="btn small" data-action="view-cxc-doc" data-docid="' + c.docs[0].id + '">' + window.ICONS.docs() + ' Ver documento</button>'
+        + '<button class="btn small outline" data-action="view-cxc-doc" data-docid="' + c.docs[0].id + '">' + window.ICONS.docs() + ' Ver documento</button>'
         + '</div>'
         + '</div>';
     }).join('');
+    refreshMenuCounts();
   }
 
   /* ================= CUENTAS POR PAGAR ================= */
@@ -337,10 +392,11 @@
 
     var wrap = $('#cxp-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-icon">' + window.ICONS.clipboard('ic-lg') + '</div>'
+      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (cuentasXPagar.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
         + '<h3>' + (cuentasXPagar.length ? 'No hay coincidencias' : 'No hay cuentas por pagar') + '</h3>'
         + '<p>' + (cuentasXPagar.length ? 'Prueba con otra búsqueda o filtro.' : 'Registra tus gastos y facturas pendientes de pago.') + '</p>'
         + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
+      refreshMenuCounts();
       return;
     }
 
@@ -382,6 +438,7 @@
         + '</div>'
         + '</div>';
     }).join('');
+    refreshMenuCounts();
   }
 
   function openCxpModal(cxp) {
@@ -492,6 +549,8 @@
     $('#view-cxp').hidden = true;
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
+    document.body.classList.add('in-editor');
+    closeMenu();
     renderEditor();
     renderPreview();
     window.scrollTo(0, 0);
@@ -724,6 +783,9 @@
     const frame = $('#preview-frame');
     const rec = $('#preview-inner > div');
     if (!frame || !rec) return;
+    // si el frame está oculto (tabs en móvil) no hay que escalar a 0:
+    // se recalcula al volver a mostrarlo
+    if (!frame.clientWidth) return;
     const scale = Math.min(1, frame.clientWidth / 816);
     rec.style.transform = `scale(${scale})`;
     rec.style.transformOrigin = 'top left';
@@ -747,6 +809,7 @@
     if (!confirm(`¿Eliminar el ${d.tipo === 'cotizacion' ? 'presupuesto' : 'recibo'} Nro. ${d.numero}?`)) return;
     docs = docs.filter((x) => x.id !== id);
     storeSet('mc_docs', docs);
+    if (window.SYNC) window.SYNC.tombstone('docs', id);
     showList();
   }
 
@@ -902,6 +965,7 @@
     settings.pagos = { cuenta: g('s-p-cuenta'), clabe: g('s-p-clabe'), beneficiario: g('s-p-beneficiario'), banco: g('s-p-banco') };
     settings.condiciones = g('s-condiciones');
     settings.terminos = g('s-terminos');
+    settings.updatedAt = Date.now();
     storeSet('mc_settings', settings);
     $('#modal-settings').classList.remove('open');
     if (editing) { renderPreview(); updateTotalsBox(); }
@@ -922,7 +986,7 @@
       case 'email': sendEmail(); break;
       case 'share': shareDoc(); break;
       case 'delete':
-        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); switchMainView(previousView); } }
+        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView); } }
         break;
       case 'edit': { const d = docs.find((x) => x.id === btn.dataset.id); if (d) showEditor(d); break; }
       case 'duplicate': {
@@ -958,8 +1022,9 @@
                      : clientes.find((c) => (c.nombre || '').trim().toLowerCase() === nombre.toLowerCase());
         if (cli) {
           cli.nombre = nombre; cli.telefono = editing.telefono || ''; cli.email = editing.email || '';
+          cli.updatedAt = Date.now();
         } else {
-          cli = { id: window.uid(), nombre, telefono: editing.telefono || '', email: editing.email || '' };
+          cli = { id: window.uid(), nombre, telefono: editing.telefono || '', email: editing.email || '', updatedAt: Date.now() };
           clientes.push(cli);
         }
         storeSet('mc_clientes', clientes);
@@ -974,6 +1039,7 @@
         if (!confirm('¿Eliminar este cliente guardado? (No borra los documentos)')) break;
         clientes = clientes.filter((c) => c.id !== sel.value);
         storeSet('mc_clientes', clientes);
+        if (window.SYNC) window.SYNC.tombstone('clientes', sel.value);
         selectedClientId = null;
         renderEditor(); renderPreview();
         toast('Cliente eliminado');
@@ -983,6 +1049,7 @@
         if (!confirm('¿Eliminar este cliente guardado? (No borra los documentos)')) break;
         clientes = clientes.filter((c) => c.id !== btn.dataset.id);
         storeSet('mc_clientes', clientes);
+        if (window.SYNC) window.SYNC.tombstone('clientes', btn.dataset.id);
         openSettings();
         break;
       }
@@ -992,10 +1059,19 @@
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
         $$('[data-tab]').forEach((t) => t.classList.toggle('on', t === btn));
+        document.body.classList.toggle('tab-datos', btn.dataset.tab === 'datos');
         document.body.classList.toggle('tab-preview', btn.dataset.tab === 'preview');
+        // al mostrar la vista previa, recalcular escala (pudo medirse oculta)
+        requestAnimationFrame(autoscale);
         break;
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
+
+      /* --- Menú inferior (índice general) --- */
+      case 'toggle-menu':
+        if ($('#menu-overlay').classList.contains('open')) closeMenu(); else openMenu();
+        break;
+      case 'close-menu': closeMenu(); break;
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -1016,6 +1092,7 @@
         if (!confirm('¿Eliminar esta cuenta por pagar?')) break;
         cuentasXPagar = cuentasXPagar.filter(function(x) { return x.id !== btn.dataset.id; });
         storeSet('mc_cxp', cuentasXPagar);
+        if (window.SYNC) window.SYNC.tombstone('cxp', btn.dataset.id);
         renderCxP();
         toast('Cuenta por pagar eliminada');
         break;
@@ -1055,6 +1132,7 @@
         break;
       }
       case 'close-cxc-detail': $('#modal-cxc-detail').classList.remove('open'); break;
+      case 'logout': if (window.SYNC) window.SYNC.logout(); break;
     }
   });
 
@@ -1110,9 +1188,16 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Navegación principal
-  $$('#main-nav .nav-btn').forEach(function(b) {
-    b.addEventListener('click', function() { switchMainView(b.dataset.view); });
+  // Menú inferior: índice general (pantalla completa)
+  $$('#menu-overlay .menu-item').forEach(function(b) {
+    b.addEventListener('click', function() {
+      if (!b.dataset.view) return; // items sin vista (cuenta/salir)
+      closeMenu();
+      switchMainView(b.dataset.view);
+    });
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
   });
 
   // Búsqueda CxC
@@ -1148,13 +1233,66 @@
     if (b) b.style.display = 'none';
   });
 
+  /* ---------------- Sync remoto: refrescar estado ---------------- */
+  function reloadFromStore(changed) {
+    if (!changed || changed.size === 0) return;
+    if (changed.has('mc_settings')) {
+      settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
+      settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+    }
+    if (changed.has('mc_docs')) docs = storeGet('mc_docs', []);
+    if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
+    if (changed.has('mc_cxp')) cuentasXPagar = storeGet('mc_cxp', []);
+
+    const acc = $('#sync-account');
+    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
+
+    if (!$('#view-editor').hidden && editing) {
+      // si el documento que estoy editando se borró en otro equipo, salir del editor
+      if (docs.some((d) => d.id === editing.id)) {
+        renderPreview();
+        updateTotalsBox();
+      } else {
+        switchMainView(previousView);
+      }
+    } else {
+      switchMainView(mainView);
+    }
+  }
+
+  function bootApp() {
+    // releer colecciones (el primer pull pudo traer datos remotos)
+    settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
+    settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+    docs = storeGet('mc_docs', []);
+    clientes = storeGet('mc_clientes', []);
+    cuentasXPagar = storeGet('mc_cxp', []);
+    const acc = $('#sync-account');
+    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
+    showList();
+    $$('#menu-overlay .menu-item').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.view === mainView);
+    });
+  }
+
   /* ---------------- Init ---------------- */
   async function init() {
+    paintBarcodes();
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
     }
-    showList();
+    if (window.SYNC) {
+      window.SYNC.setRemoteHandler(reloadFromStore);
+      if (window.SYNC.authed()) {
+        bootApp();
+        window.SYNC.runSync(true); // re-sincronizar al abrir
+      } else {
+        window.SYNC.showAuth(bootApp);
+      }
+    } else {
+      bootApp();
+    }
   }
   init();
 })();
