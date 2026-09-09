@@ -33,7 +33,17 @@
     iva: 16,
     pagos: { cuenta: '', clabe: '', beneficiario: '', banco: '' },
     condiciones: 'Entrega de 7 a 10 días hábiles después de confirmar el pago.',
-    terminos: 'Este documento es un comprobante de la transacción indicada. Cualquier aclaración deberá realizarse dentro de los 30 días siguientes a su emisión.',
+    // Formato "Título: texto" por línea (el PDF resalta el título en negrita)
+    terminos: [
+      'Propiedad intelectual: Los derechos de diseño se ceden al cliente únicamente tras el pago total.',
+      'Aprobación: Su visto bueno es final. No se aceptan cambios ni devoluciones tras autorizar la impresión o publicación.',
+      'Presupuestos: Válidos por 15 días. Trabajos extra se cotizan por separado.',
+      'Entregas: Los tiempos son estimados y no nos hacemos responsables por retrasos externos (proveedores o envíos).',
+      'Pagos: Requiere 50% de anticipo para iniciar producción y 50% restante contra entrega.',
+      'Garantía: Reportar cualquier defecto dentro de los 5 días hábiles posteriores a la entrega.',
+      'Archivos: Se guardan en nuestro sistema por 30 días después de la entrega.',
+      'Uso: El material es para el uso especifico acordado; prohibida su edición o reventa sin autorización.'
+    ].join('\n'),
     qr: ''
   };
 
@@ -57,12 +67,9 @@
   let cxcDetailDocId = null;
 
   /* ---------------- Utilidades ---------------- */
+  // fuente única de verdad (layout.js): subtotal → IVA → descuento → por pagar
   function computeTotals(doc) {
-    const items = (doc.items || []).filter((it) => it.desc && it.desc.trim());
-    const subtotal = items.reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0);
-    const ivaRate = (doc.conIva === false) ? 0 : (Number(doc.iva != null ? doc.iva : settings.iva) || 0);
-    const iva = subtotal * ivaRate / 100;
-    return { subtotal, iva, ivaRate, total: subtotal + iva, n: items.length };
+    return window.docTotals(doc, settings);
   }
   function nextNumero(tipo) {
     var prefijo = tipo === 'cotizacion' ? 'RQ' : 'PO';
@@ -80,7 +87,7 @@
       fecha: window.todayISO(), vigencia: '',
       proyecto: '', representante: '', telefono: '', email: '',
       items: [{ desc: '', q: 1, precioU: 0 }],
-      conIva: true, iva: settings.iva,
+      conIva: true, iva: settings.iva, descuento: 0,
       pagos: { cuenta: settings.pagos.cuenta, clabe: settings.pagos.clabe, beneficiario: settings.pagos.beneficiario, banco: settings.pagos.banco },
       abonos: [], condiciones: settings.condiciones, terminos: settings.terminos,
       entregaFecha: '', entregaForma: '',
@@ -117,11 +124,9 @@
   }
   async function preloadImages() {
     try {
-      const [blue, watermark] = await Promise.all([
-        toDataURL('assets/img/logo-blue.png', 500, 327),
-        toDataURL('assets/img/watermark.png', 1275, 1650),
-      ]);
-      images = { blue, watermark };
+      // la marca de agua se dibuja con el propio logo escalado (LAYOUT.watermark)
+      const blue = await toDataURL('assets/img/logo-blue.png', 500, 327);
+      images = { blue };
     } catch (e) { /* sin imágenes, el PDF saldrá sin logo */ }
   }
 
@@ -627,11 +632,15 @@
         <div class="iva-controls">
           <label class="toggle"><input type="checkbox" id="f-coniva" ${editing.conIva === false ? '' : 'checked'}><span>Aplicar IVA</span></label>
           <label class="iva-rate ${editing.conIva === false ? 'disabled' : ''}">% <input id="f-iva" type="number" min="0" max="30" step="0.1" value="${esc(editing.iva != null ? editing.iva : settings.iva)}" ${editing.conIva === false ? 'disabled' : ''}></label>
+          <label class="iva-rate">Descuento $ <input id="f-descuento" type="number" min="0" step="0.01" value="${esc(editing.descuento || 0)}"></label>
         </div>
         <div class="totals-box">
           <div><span>Subtotal</span><b id="t-subtotal"></b></div>
           <div id="iva-row"><span id="t-iva-label">IVA</span><b id="t-iva"></b></div>
+          <div id="desc-row"><span>Descuento</span><b id="t-descuento"></b></div>
           <div class="grand"><span>Total</span><b id="t-total"></b></div>
+          <div><span>Abonado</span><b id="t-abonado"></b></div>
+          <div class="grand"><span>Por pagar</span><b id="t-porpagar"></b></div>
         </div>
       </section>
 
@@ -678,8 +687,9 @@
       </section>
 
       <section class="fsec">
-        <h2>Términos</h2>
-        <textarea id="f-terminos" rows="3">${esc(editing.terminos)}</textarea>
+        <h2>Términos <span class="hint">un punto por línea</span></h2>
+        <p class="hint">Formato «Título: texto». El título sale en negrita en el documento.</p>
+        <textarea id="f-terminos" rows="9">${esc(editing.terminos)}</textarea>
       </section>
     `;
     updateTotalsBox();
@@ -730,6 +740,8 @@
     editing.conIva = conIvaEl ? conIvaEl.checked : (editing.conIva !== false);
     const ivaEl = $('#f-iva');
     if (ivaEl) { const v = ivaEl.value.trim(); editing.iva = v === '' ? null : Number(v); }
+    const descEl = $('#f-descuento');
+    if (descEl) editing.descuento = Math.max(0, Number(descEl.value) || 0);
     // items
     $$('#items-list .item-row').forEach((row) => {
       const i = Number(row.dataset.index);
@@ -763,7 +775,14 @@
         ivaRow.style.display = 'none';
       }
     }
+    const descRow = $('#desc-row');
+    if (descRow) {
+      descRow.style.display = t.descuento > 0 ? '' : 'none';
+      s('t-descuento', '-' + window.fmtMoney(t.descuento));
+    }
     s('t-total', window.fmtMoney(t.total));
+    s('t-abonado', window.fmtMoney(t.abonado));
+    s('t-porpagar', window.fmtMoney(t.porPagar));
   }
 
   function updateAbonosSaldo() {
@@ -948,8 +967,8 @@
       <h3>Textos por defecto</h3>
       <label>Condiciones de Entrega
         <textarea id="s-condiciones" rows="2">${esc(s.condiciones)}</textarea></label>
-      <label>Términos
-        <textarea id="s-terminos" rows="2">${esc(s.terminos)}</textarea></label>
+      <label>Términos <span class="hint">formato «Título: texto», uno por línea</span>
+        <textarea id="s-terminos" rows="9">${esc(s.terminos)}</textarea></label>
       <h3>Código QR de pago (opcional)</h3>
       <div class="qr-row">
         <input id="s-qr-file" type="file" accept="image/png,image/jpeg,image/webp">
@@ -1159,7 +1178,7 @@
         e.target.id === 'f-email' || e.target.id === 'f-condiciones' || e.target.id === 'f-terminos' ||
         e.target.id === 'f-entrega-fecha' || e.target.id === 'f-entrega-forma' ||
         e.target.id === 'f-cuenta' || e.target.id === 'f-clabe' || e.target.id === 'f-beneficiario' || e.target.id === 'f-banco' ||
-        e.target.id === 'f-iva' ||
+        e.target.id === 'f-iva' || e.target.id === 'f-descuento' ||
         e.target.classList.contains('i-desc') || e.target.classList.contains('i-q') || e.target.classList.contains('i-pu') ||
         e.target.classList.contains('a-fecha') || e.target.classList.contains('a-monto')) {
       syncForm();

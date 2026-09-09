@@ -1,12 +1,14 @@
 /* ============================================================
    RENDER HTML — construye el documento como HTML (pt) para la
    vista previa en pantalla y la impresión. Usa LAYOUT.
-   Estilo "Archivo": sellos, perforados (punteados), tipografía
-   mono (Courier) y código de barras por folio.
+   Rediseño 2026: cabecera a una línea, totales con DESCUENTO y
+   POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS a dos
+   columnas, fondo string-art y pie con datos de contacto.
+   El código de barras del folio ocupa el lugar del tipo de
+   documento (arriba a la derecha), como en la referencia.
    ============================================================ */
 (function () {
   const ASC = 0.77; // fracción de la em box por encima de la línea base
-  const MONO = "'Courier New',Courier,monospace";
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -19,14 +21,16 @@
     const top = (yBaseline - size * ASC).toFixed(2);
     const w = opts.w ? `width:${opts.w}pt;` : '';
     const overflow = opts.ellipsis ? 'overflow:hidden;text-overflow:ellipsis;' : '';
-    const font = opts.mono ? `font-family:${MONO};` : '';
+    const color = opts.color ? `color:${opts.color};` : '';
+    const ls = opts.ls != null ? `letter-spacing:${opts.ls}pt;` : '';
+    const it = opts.italic ? 'font-style:italic;' : '';
     let pos;
     if (opts.align === 'right') {
       pos = `left:auto;right:${(612 - x).toFixed(2)}pt;text-align:right;`;
     } else {
       pos = `left:${x.toFixed(2)}pt;text-align:left;`;
     }
-    return `<div style="position:absolute;${pos}top:${top}pt;font-size:${size}pt;line-height:${size}pt;font-weight:${weight};white-space:nowrap;${w}${overflow}${font}">${esc(str)}</div>`;
+    return `<div style="position:absolute;${pos}top:${top}pt;font-size:${size}pt;line-height:${size}pt;font-weight:${weight};white-space:nowrap;${w}${overflow}${color}${ls}${it}">${esc(str)}</div>`;
   }
 
   function imgAbs(src, x, y, w, h, extra = '') {
@@ -39,44 +43,39 @@
     return { x: box.x + (box.w - w) / 2, y: box.y + (box.h - h) / 2, w, h };
   }
 
-  function clockSVG(x, y) {
-    return `<svg style="position:absolute;left:${x}pt;top:${y}pt" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#2B5EAB" stroke-width="1.1" stroke-linecap="round">
-      <circle cx="6.5" cy="6.5" r="5.4"/>
-      <line x1="6.5" y1="6.5" x2="6.5" y2="3.4"/>
-      <line x1="6.5" y1="6.5" x2="9.1" y2="8.1"/>
-    </svg>`;
+  // Regla sólida
+  function rule(x, y, w, weight, color) {
+    return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${y.toFixed(2)}pt;width:${w.toFixed(2)}pt;height:${weight}pt;background:${color};"></div>`;
   }
 
-  function boxSVG(x, y) {
-    return `<svg style="position:absolute;left:${x}pt;top:${y}pt" width="13" height="11" viewBox="0 0 13 11" fill="none" stroke="#2B5EAB" stroke-width="1.1" stroke-linejoin="round">
-      <path d="M1 3.2 L6.5 0.6 L12 3.2 L12 8.4 L6.5 10.9 L1 8.4 Z"/>
-      <path d="M1 3.2 L6.5 6.1 L12 3.2"/>
-      <line x1="6.5" y1="6.1" x2="6.5" y2="10.9"/>
+  // Línea punteada (perforado)
+  function dash(x, y, w, weight, color) {
+    return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${y.toFixed(2)}pt;width:${w.toFixed(2)}pt;border-top:${weight}pt dashed ${color};"></div>`;
+  }
+
+  // Código de barras posicional (SVG)
+  function barcodeAbs(x, y, w, h, text, color) {
+    return `<div style="position:absolute;left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt;color:${color};">${window.barcodeSVG(text, w, h)}</div>`;
+  }
+
+  // Fondo string-art (haz de rectas de la referencia)
+  function lineArtSVG() {
+    const L = window.LAYOUT;
+    const B = L.lineArtBox;
+    const segs = window.lineArtSegments();
+    const lines = segs.map((s) =>
+      `<line x1="${(s[0] - B.x).toFixed(1)}" y1="${(s[1] - B.y).toFixed(1)}" x2="${(s[2] - B.x).toFixed(1)}" y2="${(s[3] - B.y).toFixed(1)}"/>`
+    ).join('');
+    return `<svg style="position:absolute;left:${B.x}pt;top:${B.y}pt;width:${B.w}pt;height:${B.h}pt;" viewBox="0 0 ${B.w} ${B.h}" preserveAspectRatio="none" aria-hidden="true">
+      <g stroke="${L.lineArtHex}" stroke-width="0.35" fill="none">${lines}</g>
     </svg>`;
   }
 
   // block de texto multi-línea (ancho fijo)
-  function para(x, yBaseline, size, str, widthPt, lineH = 1.35, weight = 400) {
+  function para(x, yBaseline, size, str, widthPt, lineH = 1.35, weight = 400, color) {
     const top = (yBaseline - size).toFixed(2);
-    return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${top}pt;width:${widthPt}pt;font-size:${size}pt;line-height:${lineH};font-weight:${weight};word-wrap:break-word;white-space:normal;">${esc(str)}</div>`;
-  }
-
-  // Línea punteada (perforado)
-  function dash(x, y, w, weight) {
-    return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${y.toFixed(2)}pt;width:${w.toFixed(2)}pt;border-top:${weight}pt dashed #2B5EAB;"></div>`;
-  }
-
-  // Sello tipo goma (doble anillo, rotado)
-  function stamp(cx, cy, text, w, h, rot, fontPt) {
-    return `<div style="position:absolute;left:${cx}pt;top:${cy}pt;width:${w}pt;height:${h}pt;transform:translate(-50%,-50%) rotate(${rot}deg);border:1.1pt solid #2B5EAB;border-radius:2pt;opacity:.92;">
-      <div style="position:absolute;inset:1.2pt;border:0.5pt solid #2B5EAB;border-radius:1.5pt;"></div>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${fontPt}pt;font-weight:700;letter-spacing:1.5pt;text-transform:uppercase;">${esc(text)}</div>
-    </div>`;
-  }
-
-  // Código de barras posicional (SVG)
-  function barcodeAbs(x, y, w, h, text) {
-    return `<div style="position:absolute;left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt;color:#2B5EAB;">${window.barcodeSVG(text, w, h)}</div>`;
+    const c = color ? `color:${color};` : '';
+    return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${top}pt;width:${widthPt}pt;font-size:${size}pt;line-height:${lineH};font-weight:${weight};word-wrap:break-word;white-space:normal;${c}">${esc(str)}</div>`;
   }
 
   // Mide un texto en pt (Space Grotesk, peso w). Convierte pt->px para el canvas.
@@ -91,171 +90,203 @@
     }
   }
 
+  /* Términos & condiciones: la referencia los muestra como pares
+     "Título: texto". Se aceptan tanto el texto libre de ajustes como
+     el formato "Clave: valor" por línea. */
+  window.parseTerms = function (raw) {
+    const src = String(raw == null ? '' : raw).trim();
+    if (!src) return [];
+    return src.split(/\n+/).map((ln) => {
+      const m = ln.match(/^\s*([^:]{2,28}):\s*(.+)$/);
+      return m ? { label: m[1].trim(), text: m[2].trim() } : { label: '', text: ln.trim() };
+    }).filter((t) => t.label || t.text);
+  };
+
   window.receiptHTML = function (doc, settings) {
     const L = window.LAYOUT;
-    const blue = L.brandHex;
     const s = settings || {};
     const isCot = doc.tipo === 'cotizacion';
-    const items = (doc.items || []).filter((it) => it.desc && it.desc.trim());
+    const BLUE = L.brandHex, STEEL = L.steelHex, TURQ = L.turqHex;
+    const GREY = L.greyHex, BODY = L.bodyHex, RULE = L.ruleHex;
+
+    const t = window.docTotals(doc, s);
     const table = window.layoutItems(doc);
     const shift = table.delta;
     const itemSize = table.size;
-    const subtotal = items.reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0);
-    const ivaRate = (doc.conIva === false) ? 0 : (Number(doc.iva != null ? doc.iva : s.iva) || 0);
-    const iva = subtotal * ivaRate / 100;
-    const total = subtotal + iva;
-    const abonosTotal = (doc.abonos || []).reduce((sum, a) => sum + (Number(a.monto) || 0), 0);
-    const isPaid = (doc.abonos || []).length > 0 && (total - abonosTotal) <= 0.005;
 
     // posiciones del logo (contain dentro del recuadro)
-    const logoNatW = 500, logoNatH = 327;
-    const lp = contain(L.logoBox, logoNatW, logoNatH);
+    const lp = contain(L.logoBox, 500, 327);
 
     let h = '';
-    h += `<div style="width:612pt;height:792pt;position:relative;background:#ffffff;color:${blue};font-family:'Space Grotesk';font-weight:300;overflow:hidden;">`;
+    h += `<div style="width:612pt;height:792pt;position:relative;background:#ffffff;color:${BLUE};font-family:'Space Grotesk';font-weight:400;overflow:hidden;">`;
 
-    /* marca de agua */
-    h += imgAbs('assets/img/watermark.png', L.watermark.x, L.watermark.y, L.watermark.w, L.watermark.h);
+    /* ---------- Fondos ---------- */
+    const wm = L.watermark;
+    h += imgAbs('assets/img/logo-blue.png', wm.x, wm.y, wm.w, wm.h, `opacity:${wm.opacity};`);
+    h += lineArtSVG();
 
-    /* logo azul */
+    /* ---------- Cabecera ---------- */
     h += imgAbs('assets/img/logo-blue.png', lp.x, lp.y, lp.w, lp.h);
 
-    /* nombre de empresa */
-    h += txt(L.brandLine1.x, L.brandLine1.y, L.brandLine1.size, 700, s.empresa || 'Mono Cromat & Co.');
-    h += txt(L.brandSlash.x, L.brandSlash.y, L.brandSlash.size, 300, '/');
-    h += txt(L.brandLine2.x, L.brandLine2.y, L.brandLine2.size, 300, s.empresaSub || 'Estudio Creativo');
+    const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
+    h += txt(L.brandLine1.x, L.brandLine1.y, L.brandLine1.size, 700, empresa, { ls: -0.2 });
+    const wEmp = measurePt(empresa, L.brandLine1.size, 700);
+    h += txt(L.brandLine1.x + wEmp + 7, L.brandLine1.y, L.brandSlash.size, 500,
+      '// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), { color: GREY });
 
-    /* contacto (tipografía archivo) */
-    const contact = [s.email, s.telefono, s.web, s.ciudad].filter(Boolean);
-    contact.forEach((t, i) => {
-      if (i < L.contact.ys.length) h += txt(L.contact.right, L.contact.ys[i], L.contact.size, 400, t, { align: 'right', w: 150, ellipsis: true, mono: true });
-    });
+    // tipo de documento (turquesa, alineado a la derecha)
+    h += txt(L.docType.right, L.docType.y, L.docType.size, 700,
+      isCot ? 'COTIZACIÓN' : 'RECIBO', { align: 'right', color: TURQ, ls: 0.4 });
 
-    /* título (SG light) + número (Courier bold, tamaño adaptable) */
-    const titulo = (isCot ? 'COTIZACIÓN NRO. ' : 'RECIBO NRO. ');
-    h += txt(L.title.x, L.title.y, L.title.size, 300, titulo);
-    const wT = measurePt(titulo, L.title.size, 300);
-    const numStr = doc.numero || '';
-    const numMaxW = L.date.x - 6 - (L.title.x + wT + 2);
-    let numSize = 16;
-    if (numStr && numStr.length * 0.6 * numSize > numMaxW) numSize = Math.max(9, numMaxW / (0.6 * numStr.length));
-    h += txt(L.title.x + wT + 2, L.title.y, numSize, 700, numStr, { mono: true });
+    // código de barras del folio, justo bajo el tipo de documento
+    const folio = doc.numero || 'MC';
+    h += barcodeAbs(L.docType.right - 128, L.docType.y + 7, 128, 15, folio, BLUE);
+    h += txt(L.docType.right, L.docType.y + 30, 7.5, 500, 'Nº ' + folio, { align: 'right', color: STEEL, ls: 0.6 });
 
-    /* fecha / vigencia (tipografía archivo) */
-    h += txt(L.date.x, L.date.y, L.date.size, 400, 'FECHA: ' + window.fmtDate(doc.fecha), { mono: true });
-    if (isCot && doc.vigencia) h += txt(L.vigencia.x, L.vigencia.y, L.vigencia.size, 400, 'VIGENCIA: ' + window.fmtDate(doc.vigencia), { mono: true });
-
-    /* sello principal: RECIBO / COTIZACIÓN (banda del código de barras) */
-    if (isCot) {
-      h += stamp(505, 258, 'Cotización', 92, 18, -4, 10);
-    } else {
-      h += stamp(522, 258, 'Recibo', 58, 18, -4, 10);
+    /* ---------- Datos (dos columnas) ---------- */
+    const MS = L.metaSize;
+    function metaPair(x, y, label, value) {
+      let out = txt(x, y, MS, 700, label, { color: STEEL });
+      const wl = measurePt(label, MS, 700);
+      if (value) out += txt(x + wl + 8, y, MS, 400, value, { color: BODY, ellipsis: true, w: 150 });
+      return out;
     }
-    /* sello secundario: PAGADO (solo si quedó saldado) */
-    if (isPaid) h += stamp(468, 207, 'Pagado', 58, 16.5, 3, 9.5);
+    h += metaPair(L.metaLeftX, L.metaYs.fecha, 'Fecha', window.fmtDate(doc.fecha));
+    h += metaPair(L.metaLeftX, L.metaYs.representante, 'Representante', doc.representante);
+    h += metaPair(L.metaRightX, L.metaYs.proyecto, 'Proyecto', doc.proyecto);
+    h += metaPair(L.metaRightX, L.metaYs.telefono, 'Telefono', doc.telefono);
+    h += metaPair(L.metaRightX, L.metaYs.email, 'Email', doc.email);
+    if (isCot && doc.vigencia) {
+      h += metaPair(L.metaLeftX, L.metaYs.email, 'Vigencia', window.fmtDate(doc.vigencia));
+    }
 
-    /* cliente */
-    const clientRows = [
-      ['Proyecto:', doc.proyecto, L.clientYs.proyecto],
-      ['Representante:', doc.representante, L.clientYs.representante],
-      ['Teléfono:', doc.telefono, L.clientYs.telefono],
-      ['Email:', doc.email, L.clientYs.email],
-    ];
-    clientRows.forEach(([label, val, y]) => {
-      h += txt(L.clientX, y, L.clientSize, 300, label);
-      h += txt(L.clientValueX, y, L.clientSize, 400, val, { ellipsis: true, w: L.contentR - L.clientValueX - 4 });
-    });
+    /* ---------- Tabla de conceptos ---------- */
+    h += rule(L.contentL, L.headRuleY, L.contentR - L.contentL, L.headRuleW, RULE);
+    h += txt(L.colDesc, L.tableHeaderY, L.tableHeaderSize, 700, 'ITEM', { color: BLUE });
+    h += txt(L.colQ, L.tableHeaderY, L.tableHeaderSize, 700, 'Q', { color: BLUE });
+    h += txt(L.colPrecio, L.tableHeaderY, L.tableHeaderSize, 700, '$ U', { color: BLUE });
+    h += txt(L.colSubtotal, L.tableHeaderY, L.tableHeaderSize, 700, 'SUB TOTAL', { color: BLUE });
 
-    /* código de barras + folio (banda bajo el cliente, a la izquierda) */
-    h += barcodeAbs(61, 250, 114, 16, doc.numero || 'MC');
-    h += txt(61, 273, 7.5, 400, 'Nº ' + (doc.numero || ''), { mono: true });
-
-    /* tabla (encabezado mono, doble regla) */
-    h += txt(L.colDesc, L.tableHeaderY, L.tableHeaderSize, 400, 'DESCRIPCIÓN DEL SERVICIO', { mono: true });
-    h += txt(L.colQ, L.tableHeaderY, L.tableHeaderSize, 400, 'Q', { mono: true });
-    h += txt(L.colPrecio, L.tableHeaderY, L.tableHeaderSize, 400, 'PRECIO U', { mono: true });
-    h += txt(L.colSubtotal, L.tableHeaderY, L.tableHeaderSize, 400, 'SUB-TOTAL', { mono: true });
-    h += `<div style="position:absolute;left:${L.contentL}pt;top:${L.headerLineY}pt;width:${L.contentR - L.contentL}pt;height:${L.headerLineW}pt;background:${blue};"></div>`;
-    h += `<div style="position:absolute;left:${L.contentL}pt;top:${(L.headerLineY + L.headerLineW + 1.7).toFixed(2)}pt;width:${L.contentR - L.contentL}pt;height:0.6pt;background:${blue};"></div>`;
-
-    /* conceptos (descripción multi-línea) */
-    let y = table.startY;
-    const maxDescW = L.qtyAlignX - 6 - L.colDesc;
+    let y = L.itemsStartY;
+    const maxDescW = L.qtyAlignX - 10 - L.colDesc;
     table.rows.forEach((r) => {
       r.lines.forEach((ln, li) => {
-        h += txt(L.colDesc, y + li * table.lineH, itemSize, 400, ln, { ellipsis: true, w: maxDescW });
+        h += txt(L.colDesc, y + li * table.lineH, itemSize, 400, ln, { ellipsis: true, w: maxDescW, color: BODY });
       });
-      const q = r.q;
-      if (q) h += txt(L.qtyAlignX, y, itemSize, 400, String(q), { align: 'right', w: 34 });
-      const pu = r.pu;
-      if (pu) h += txt(L.priceAlignX, y, itemSize, 400, window.fmtMoney(pu), { align: 'right', w: 92 });
-      h += txt(L.subtotalAlignX, y, itemSize, 400, window.fmtMoney(q * pu), { align: 'right', w: 92 });
+      if (r.q) h += txt(L.qtyAlignX, y, itemSize, 400, String(r.q), { align: 'right', w: 40, color: BODY });
+      if (r.pu) h += txt(L.priceAlignX, y, itemSize, 400, window.fmtMoney(r.pu), { align: 'right', w: 92, color: BODY });
+      h += txt(L.subtotalAlignX, y, itemSize, 500, window.fmtMoney(r.q * r.pu), { align: 'right', w: 92, color: BLUE });
       y += r.rowH;
     });
 
-    /* totales */
-    h += txt(L.totalsAlignX - 90, L.totalsYs.subtotal + shift, L.totalsSize, 300, 'Subtotal', { align: 'right', w: 90 });
-    h += txt(L.totalsAlignX, L.totalsYs.subtotal + shift, L.totalsSize, 400, window.fmtMoney(subtotal), { align: 'right', w: 100 });
-    if (ivaRate > 0) {
-      h += txt(L.totalsAlignX - 90, L.totalsYs.iva + shift, L.totalsSize, 300, 'IVA (' + ivaRate + '%)', { align: 'right', w: 90 });
-      h += txt(L.totalsAlignX, L.totalsYs.iva + shift, L.totalsSize, 400, window.fmtMoney(iva), { align: 'right', w: 100 });
+    /* ---------- Totales ---------- */
+    const TY = L.totalsYs, TS = L.totalsSize;
+    function totalRow(label, value, ty, weight, size, color) {
+      let out = txt(L.totalsLabelX, ty + shift, size || TS, weight || 700, label, { color: color || BLUE });
+      if (value != null) out += txt(L.totalsAlignX, ty + shift, size || TS, weight || 500, value, { align: 'right', w: 110, color: color || BODY });
+      return out;
     }
-    h += txt(L.totalsAlignX - 90, L.totalsYs.total + shift, L.totalSize, 500, 'Total', { align: 'right', w: 90 });
-    h += txt(L.totalsAlignX, L.totalsYs.total + shift, L.totalSize, 700, window.fmtMoney(total), { align: 'right', w: 100 });
+    h += totalRow('SUBTOTAL', window.fmtMoney(t.subtotal), TY.subtotal);
+    h += totalRow('I.V.A.', t.ivaRate > 0 ? window.fmtMoney(t.iva) : '—', TY.iva);
+    h += totalRow('TOTAL', window.fmtMoney(t.subtotal + t.iva), TY.total);
+    h += totalRow('DESCUENTO', t.descuento > 0 ? '-' + window.fmtMoney(t.descuento) : '—', TY.descuento);
+    h += totalRow('POR PAGAR', window.fmtMoney(t.porPagar), TY.porPagar, 700, L.porPagarSize, BLUE);
 
-    /* línea separadora (perforado) */
-    h += dash(L.contentL, L.sectionLineY + shift, L.contentR - L.contentL, 1);
+    /* ---------- P.O. TRACK ---------- */
+    h += dash(L.contentL, L.trackDashY + shift, L.contentR - L.contentL, 1, RULE);
+    h += txt(L.trackTitle.x, L.trackTitle.y + shift, L.trackTitle.size, 700, 'P.O. TRACK', { color: GREY, ls: 0.5 });
+    const TKS = L.trackSize;
+    h += txt(L.trackFechaX, L.trackHeaderY + shift, TKS, 700, 'FECHA', { color: BLUE });
+    h += txt(L.trackAbonoX, L.trackHeaderY + shift, TKS, 700, 'ABONO', { color: BLUE });
+    h += txt(L.trackSaldoX, L.trackHeaderY + shift, TKS, 700, 'SALDO', { color: BLUE });
+    h += txt(L.trackEstadoX, L.trackHeaderY + shift, TKS, 700, 'ESTADO', { color: BLUE });
 
-    /* datos para pagos (recuadro QR en punteado) */
-    h += `<div style="position:absolute;left:${L.qrBox.x}pt;top:${(L.qrBox.y + shift).toFixed(2)}pt;width:${L.qrBox.w}pt;height:${L.qrBox.h}pt;border:0.8pt dashed ${blue};border-radius:${L.qrBox.r}pt;"></div>`;
-    if (s.qr) {
-      h += imgAbs(s.qr, L.qrBox.x + 6, L.qrBox.y + 6 + shift, L.qrBox.w - 12, L.qrBox.h - 12);
-    }
-    h += txt(L.pagosTitle.x, L.pagosTitle.y + shift, L.pagosTitle.size, 400, 'DATOS PARA PAGOS', { mono: true });
-    const pagoRows = [
-      ['Cuenta Nro. ', doc.pagos.cuenta, L.pagosYs.cuenta],
-      ['Nro. Clabe', doc.pagos.clabe, L.pagosYs.clabe],
-      ['Beneficiario', doc.pagos.beneficiario, L.pagosYs.beneficiario],
-      ['Banco', doc.pagos.banco, L.pagosYs.banco],
-    ];
-    pagoRows.forEach(([label, val, py]) => {
-      h += txt(L.pagosLabelX, py + shift, L.pagosSize, 300, label);
-      h += txt(L.pagosValueX, py + shift, L.pagosSize, 400, val, { ellipsis: true, w: L.condX - L.pagosValueX - 8 });
-    });
-
-    /* columna derecha: condiciones */
-    h += clockSVG(L.condIcon1.x, L.condIcon1.y - 6.5 + shift);
-    if (doc.entregaFecha) {
-      h += txt(L.entregaClockText.labelX, L.entregaClockText.y + shift, L.entregaClockText.size, 300, 'Fecha de entrega:');
-      h += txt(L.entregaClockText.valueX, L.entregaClockText.y + shift, L.entregaClockText.size, 400, window.fmtDate(doc.entregaFecha), { w: L.entregaClockText.maxW, ellipsis: true });
-    }
-    h += dash(L.condX - 0.3, L.condLineY + shift, L.contentR - L.condX + 0.3, 0.8);
-    h += boxSVG(L.condIcon2.x, L.condIcon2.y - 5 + shift);
-    if (doc.entregaForma) {
-      h += txt(L.entregaBoxText.labelX, L.entregaBoxText.y + shift, L.entregaBoxText.size, 300, 'Forma de entrega:');
-      h += `<div style="position:absolute;left:${L.entregaBoxText.valueX}pt;top:${(L.entregaBoxText.y - L.entregaBoxText.size + shift).toFixed(2)}pt;width:${L.entregaBoxText.maxW}pt;font-size:${L.entregaBoxText.size}pt;line-height:1.3;font-weight:400;word-wrap:break-word;white-space:normal;max-height:24pt;overflow:hidden;">${esc(doc.entregaForma)}</div>`;
-    }
-    h += txt(L.condTitle.x, L.condTitle.y + shift, L.condTitle.size, 400, 'CONDICIONES DE ENTREGA', { mono: true });
-    h += para(L.condX, L.condTextY + shift, L.condTextSize, doc.condiciones || s.condiciones || '', L.condTextW);
-
-    /* abonos (encabezado mono) */
-    h += txt(L.abonosFechaX, L.abonosHeaderY + shift, L.abonosSize, 400, 'FECHA', { mono: true });
-    h += txt(L.abonosAbonoX, L.abonosHeaderY + shift, L.abonosSize, 400, 'ABONOS', { mono: true });
-    h += txt(L.abonosSaldoX, L.abonosHeaderY + shift, L.abonosSize, 400, 'SALDO', { mono: true });
-    const abonos = (doc.abonos || []).filter((a) => a.fecha || (Number(a.monto) || 0) !== 0).slice(0, L.abonosMax);
-    let saldo = total;
+    const abonos = (doc.abonos || [])
+      .filter((a) => a.fecha || (Number(a.monto) || 0) !== 0)
+      .slice(0, L.trackMax);
+    let saldo = t.total;
     abonos.forEach((a, i) => {
-      const yy = L.abonosStartY + i * L.abonosRowH + shift;
-      h += txt(L.abonosFechaX, yy, L.abonosSize, 400, window.fmtDate(a.fecha) || '—', { mono: true });
-      h += txt(L.abonosAbonoX, yy, L.abonosSize, 400, window.fmtMoney(a.monto), { mono: true });
+      const yy = L.trackStartY + i * L.trackRowH + shift;
       saldo -= (Number(a.monto) || 0);
-      h += txt(L.abonosSaldoX, yy, L.abonosSize, 400, window.fmtMoney(saldo), { mono: true });
+      h += txt(L.trackFechaX, yy, TKS, 400, window.fmtDate(a.fecha) || '—', { color: BODY });
+      h += txt(L.trackAbonoX, yy, TKS, 400, window.fmtMoney(a.monto), { color: BODY });
+      h += txt(L.trackSaldoX, yy, TKS, 400, window.fmtMoney(saldo), { color: BODY });
+      h += txt(L.trackEstadoX, yy, TKS, 700, window.abonoEstado(saldo, i), { color: saldo <= 0.005 ? TURQ : STEEL });
+    });
+    h += rule(L.contentL, L.trackRuleY + shift, L.contentR - L.contentL, 0.9, RULE);
+
+    /* ---------- Pagos (columna izquierda) ---------- */
+    h += txt(L.pagosTitle.x, L.pagosTitle.y + shift, L.pagosTitle.size, 700, 'PAGOS', { color: BLUE, ls: -0.3 });
+    h += txt(L.pagosSubt.x, L.pagosSubt.y + shift, L.pagosSubt.size, 700, 'TRANSFERENCIAS A', { color: BLUE, ls: 0.3 });
+    const PS = L.pagosSize;
+    const p = doc.pagos || {};
+    function pagoRow(label, value, py, italic) {
+      let out = txt(L.pagosLabelX, py + shift, PS, 700, label, { color: BLUE });
+      if (value) {
+        const wl = measurePt(label, PS, 700);
+        out += txt(L.pagosLabelX + wl + 5, py + shift, PS, 400, value,
+          { color: BODY, ellipsis: true, w: 190 - wl, italic: italic });
+      }
+      return out;
+    }
+    h += pagoRow('CUENTA', p.cuenta, L.pagosYs.cuenta);
+    h += pagoRow('CLABE', p.clabe, L.pagosYs.clabe);
+    h += pagoRow('BENEFICIARIO:', p.beneficiario, L.pagosYs.beneficiario);
+    h += pagoRow('BANCO:', p.banco, L.pagosYs.banco, true);
+
+    h += `<div style="position:absolute;left:${L.qrBox.x}pt;top:${(L.qrBox.y + shift).toFixed(2)}pt;width:${L.qrBox.w}pt;height:${L.qrBox.h}pt;border:0.8pt solid ${RULE};border-radius:${L.qrBox.r}pt;"></div>`;
+    if (s.qr) {
+      h += imgAbs(s.qr, L.qrBox.x + 4, L.qrBox.y + 4 + shift, L.qrBox.w - 8, L.qrBox.h - 8);
+    }
+
+    /* ---------- Términos & condiciones (columna derecha) ---------- */
+    h += txt(L.termsTitle.x, L.termsTitle.y + shift, L.termsTitle.size, 700, 'TÉRMINOS & CONDICIONES', { color: BLUE, ls: 0.2 });
+    const terms = window.parseTerms(doc.terminos || s.terminos || '');
+    const TSZ = L.termsSize;
+    const lineStep = TSZ * L.termsLineH;
+    let ty = L.termsY;
+    let used = 0;
+    terms.forEach((item) => {
+      if (used >= L.termsMaxLines || ty > L.termsBottom) return;
+      const labelTxt = item.label ? item.label + ': ' : '';
+      const wl = labelTxt ? measurePt(labelTxt, TSZ, 700) : 0;
+      // primera línea: etiqueta en negrita + inicio del texto
+      const words = String(item.text).split(/\s+/);
+      const firstMax = L.termsW - wl;
+      let line = '', rest = [];
+      words.forEach((w) => {
+        if (rest.length) { rest.push(w); return; }
+        const test = line ? line + ' ' + w : w;
+        if (measurePt(test, TSZ, 400) <= firstMax) line = test;
+        else rest.push(w);
+      });
+      if (labelTxt) h += txt(L.termsX, ty, TSZ, 700, labelTxt.trim(), { color: BLUE });
+      if (line) h += txt(L.termsX + wl, ty, TSZ, 400, line, { color: BODY });
+      ty += lineStep; used++;
+      // líneas siguientes al ancho completo
+      let cur = '';
+      rest.forEach((w) => {
+        const test = cur ? cur + ' ' + w : w;
+        if (measurePt(test, TSZ, 400) <= L.termsW) { cur = test; return; }
+        if (used < L.termsMaxLines && ty <= L.termsBottom) { h += txt(L.termsX, ty, TSZ, 400, cur, { color: BODY }); ty += lineStep; used++; }
+        cur = w;
+      });
+      if (cur && used < L.termsMaxLines && ty <= L.termsBottom) {
+        h += txt(L.termsX, ty, TSZ, 400, cur, { color: BODY });
+        ty += lineStep; used++;
+      }
     });
 
-    /* pie (perforado) + términos */
-    h += dash(57, L.footerLineY + shift, 492, 0.6);
-    h += txt(L.terminosTitle.x, L.terminosTitle.y + shift, L.terminosTitle.size, 400, 'TÉRMINOS', { mono: true });
-    h += para(L.terminosTitle.x, L.terminosY + shift, L.terminosSize, doc.terminos || s.terminos || '', L.terminosW);
+    /* ---------- Pie ---------- */
+    h += rule(L.contentL, L.footRuleY, L.contentR - L.contentL, L.footRuleW, BLUE);
+    const FS = L.footSize, FY = L.footYs;
+    h += txt(L.footColL, FY[0], FS, 700, (s.empresa || 'Mono Cromat & Co.').toUpperCase(), { color: BLUE });
+    const wf = measurePt((s.empresa || 'Mono Cromat & Co.').toUpperCase(), FS, 700);
+    h += txt(L.footColL + wf + 5, FY[0], FS, 400, (s.empresaSub || 'estudio creativo').toLowerCase(), { color: BODY, italic: true });
+    h += txt(L.footColL, FY[1], FS, 400, (s.ciudad || 'Ciudad de México') + ', México', { color: BODY, italic: true });
+    if (s.telefono) h += txt(L.footColM, FY[0], FS, 400, s.telefono, { color: BODY, italic: true });
+    if (s.email) h += txt(L.footColM, FY[1], FS, 400, s.email, { color: BODY, italic: true });
+    if (s.web) h += txt(L.footColR, FY[1], FS, 400, s.web, { align: 'right', color: BODY, italic: true });
 
     h += `</div>`;
     return h;

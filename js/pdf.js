@@ -2,6 +2,9 @@
    PDF ENGINE — genera el PDF real (para correo / compartir)
    usando jsPDF + fuentes Space Grotesk incrustadas + el logo.
    Dibuja con las mismas coordenadas que la vista previa (LAYOUT).
+   Rediseño 2026: cabecera a una línea, totales con DESCUENTO y
+   POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS a dos
+   columnas, fondo string-art y pie con datos de contacto.
    ============================================================ */
 (function () {
   const L = () => window.LAYOUT;
@@ -49,6 +52,7 @@
   }
 
   function fitText(pdf, str, maxW) {
+    if (!str) return '';
     if (pdf.getTextWidth(str) <= maxW) return str;
     let s = str;
     while (s.length > 1 && pdf.getTextWidth(s + '…') > maxW) s = s.slice(0, -1);
@@ -61,66 +65,34 @@
     return { x: box.x + (box.w - w) / 2, y: box.y + (box.h - h) / 2, w, h };
   }
 
-  function drawClock(pdf, x, y) {
-    const c = L().brand;
-    pdf.setDrawColor(...c); pdf.setLineWidth(0.8);
-    pdf.circle(x + 5.5, y - 4, 5.5, 'S');                 // esfera
-    pdf.line(x + 5.5, y - 4, x + 5.5, y - 7.4);           // manecilla 12
-    pdf.line(x + 5.5, y - 4, x + 8.4, y - 2.2);           // manecilla 3
-  }
-
-  function drawBox(pdf, x, y) {
-    const c = L().brand;
-    pdf.setDrawColor(...c); pdf.setLineWidth(0.8);
-    pdf.rect(x + 1, y - 2.5, 10, 7.5, 'S');               // caja
-    pdf.line(x + 1, y - 2.5, x + 6, y - 6);               // solapa izq
-    pdf.line(x + 6, y - 6, x + 11, y - 2.5);              // solapa der
-    pdf.line(x + 6, y - 6, x + 6, y + 0.5);               // pliegue
-  }
-
   // Línea punteada (perforado)
-  function dashedLine(pdf, x1, y, x2, w, dashArr) {
+  function dashedLine(pdf, x1, y, x2, w, dashArr, color) {
+    pdf.setDrawColor(...color);
     pdf.setLineWidth(w);
     pdf.setLineDashPattern(dashArr, 0);
     pdf.line(x1, y, x2, y);
     pdf.setLineDashPattern([], 0);
   }
 
-  // Sello tipo goma: doble anillo rotado + texto Courier bold.
-  // angle: convención CSS (negativo = sentido antihorario).
-  function drawStamp(pdf, cx, cy, text, w, h, angle, fontPt) {
-    const c = L().brand;
-    pdf.saveGraphicsState();
-    pdf.setDrawColor(...c); pdf.setTextColor(...c);
-    const th = angle * Math.PI / 180;
-    const cos = Math.cos(th), sin = Math.sin(th);
-    function ring(w2, h2, lw) {
-      const q = [];
-      [[-w2/2, -h2/2], [w2/2, -h2/2], [w2/2, h2/2], [-w2/2, h2/2]].forEach(([px, py]) => {
-        q.push([cx + px * cos - py * sin, cy + px * sin + py * cos]);
-      });
-      pdf.setLineWidth(lw);
-      pdf.lines([
-        [q[1][0] - q[0][0], q[1][1] - q[0][1]],
-        [q[2][0] - q[1][0], q[2][1] - q[1][1]],
-        [q[3][0] - q[2][0], q[3][1] - q[2][1]],
-        [q[0][0] - q[3][0], q[0][1] - q[3][1]],
-      ], q[0][0], q[0][1], [1, 1], 'S');
-    }
-    ring(w, h, 1.1);
-    ring(w - 3.4, h - 3.4, 0.5);
-    pdf.setFont('courier', 'bold');
-    pdf.setFontSize(fontPt || 10.5);
-    pdf.text(text.toUpperCase(), cx, cy + 2, { align: 'center', angle: -angle });
-    pdf.restoreGraphicsState();
+  function solidLine(pdf, x1, y, x2, w, color) {
+    pdf.setDrawColor(...color);
+    pdf.setLineWidth(w);
+    pdf.line(x1, y, x2, y);
   }
 
   // Código de barras Code 128 real del folio (escaneable; igual que la app)
-  function drawBarcode(pdf, x, y, w, h, text) {
+  function drawBarcode(pdf, x, y, w, h, text, color) {
     const d = window.barcodeBars(text, w);
-    const c = L().brand;
-    pdf.setFillColor(...c);
+    pdf.setFillColor(...color);
     d.bars.forEach((b) => pdf.rect(x + b.x, y, b.w, h, 'F'));
+  }
+
+  // Fondo string-art: el mismo haz de rectas que la vista previa
+  function drawLineArt(pdf) {
+    const LAY = L();
+    pdf.setDrawColor(...LAY.lineArt);
+    pdf.setLineWidth(0.35);
+    window.lineArtSegments().forEach((s) => pdf.line(s[0], s[1], s[2], s[3]));
   }
 
   async function build(doc, settings, images) {
@@ -130,213 +102,223 @@
     await ensureFonts(pdf);
 
     const F = (w) => pdf.setFont(FONT_NAMES[w], 'normal');
-    const blue = LAY.brand;
-    pdf.setTextColor(...blue);
-    pdf.setFillColor(...blue);
-    pdf.setDrawColor(...blue);
+    const BLUE = LAY.brand, STEEL = LAY.steel, TURQ = LAY.turq;
+    const GREY = LAY.grey, BODY = LAY.body, RULE = LAY.rule;
+    const C = (c) => pdf.setTextColor(...c);
 
-    /* ---------- Marca de agua (extraída del diseño original) ---------- */
-    if (images && images.watermark) {
-      pdf.addImage(images.watermark.dataUrl, 'PNG', LAY.watermark.x, LAY.watermark.y, LAY.watermark.w, LAY.watermark.h);
+    const s = settings || {};
+    const isCot = doc.tipo === 'cotizacion';
+    const t = window.docTotals(doc, s);
+    const table = window.layoutItems(doc);
+    const shift = table.delta;
+    const itemSize = table.size;
+
+    /* ---------- Fondos ---------- */
+    // marca de agua: el propio logo escalado, con opacidad vía GState
+    if (images && images.blue) {
+      const w = LAY.watermark;
+      try {
+        pdf.saveGraphicsState();
+        if (pdf.GState) pdf.setGState(new pdf.GState({ opacity: w.opacity }));
+        pdf.addImage(images.blue.dataUrl, 'PNG', w.x, w.y, w.w, w.h);
+        pdf.restoreGraphicsState();
+      } catch (e) { try { pdf.restoreGraphicsState(); } catch (e2) {} }
     }
+    drawLineArt(pdf);
 
-    /* ---------- Logo azul ---------- */
+    /* ---------- Cabecera ---------- */
     if (images && images.blue) {
       const p = contain(images.blue, LAY.logoBox);
       pdf.addImage(images.blue.dataUrl, 'PNG', p.x, p.y, p.w, p.h);
     }
 
-    /* ---------- Nombre de la empresa ---------- */
-    F('bold'); pdf.setFontSize(LAY.brandLine1.size);
-    pdf.text(settings.empresa || 'Mono Cromat & Co.', LAY.brandLine1.x, LAY.brandLine1.y);
-    F('light'); pdf.setFontSize(LAY.brandSlash.size);
-    pdf.text('/', LAY.brandSlash.x, LAY.brandSlash.y);
-    pdf.setFontSize(LAY.brandLine2.size);
-    pdf.text(settings.empresaSub || 'Estudio Creativo', LAY.brandLine2.x, LAY.brandLine2.y);
+    const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
+    F('bold'); pdf.setFontSize(LAY.brandLine1.size); C(BLUE);
+    pdf.text(empresa, LAY.brandLine1.x, LAY.brandLine1.y);
+    const wEmp = pdf.getTextWidth(empresa);
+    F('medium'); pdf.setFontSize(LAY.brandSlash.size); C(GREY);
+    pdf.text('// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), LAY.brandLine1.x + wEmp + 7, LAY.brandLine1.y);
 
-    /* ---------- Contacto (columna derecha, tipografía archivo) ---------- */
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.contact.size);
-    const contactLines = [settings.email, settings.telefono, settings.web, settings.ciudad].filter(Boolean);
-    contactLines.forEach((t, i) => {
-      if (i < LAY.contact.ys.length) {
-        pdf.text(t, LAY.contact.right, LAY.contact.ys[i], { align: 'right' });
-      }
-    });
+    // tipo de documento (turquesa, derecha)
+    F('bold'); pdf.setFontSize(LAY.docType.size); C(TURQ);
+    pdf.text(isCot ? 'COTIZACIÓN' : 'RECIBO', LAY.docType.right, LAY.docType.y, { align: 'right' });
 
-    /* ---------- Título (SG light) + número (Courier bold) ---------- */
-    const titulo = doc.tipo === 'cotizacion' ? 'COTIZACIÓN NRO. ' : 'RECIBO NRO. ';
-    F('light'); pdf.setFontSize(LAY.title.size);
-    pdf.text(titulo, LAY.title.x, LAY.title.y);
-    const numW = pdf.getTextWidth(titulo);
-    const numStr = doc.numero || '';
-    const numMaxW = LAY.date.x - 6 - (LAY.title.x + numW + 2);
-    let numSize = 16;
-    if (numStr.length * 0.6 * numSize > numMaxW) numSize = Math.max(9, numMaxW / (0.6 * numStr.length));
-    pdf.setFont('courier', 'bold'); pdf.setFontSize(numSize);
-    pdf.text(numStr, LAY.title.x + numW + 2, LAY.title.y);
+    // código de barras del folio bajo el tipo de documento
+    const folio = doc.numero || 'MC';
+    drawBarcode(pdf, LAY.docType.right - 128, LAY.docType.y + 7, 128, 15, folio, BLUE);
+    F('medium'); pdf.setFontSize(7.5); C(STEEL);
+    pdf.text('Nº ' + folio, LAY.docType.right, LAY.docType.y + 30, { align: 'right' });
 
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.date.size);
-    pdf.text('FECHA: ' + window.fmtDate(doc.fecha), LAY.date.x, LAY.date.y);
-    if (doc.tipo === 'cotizacion' && doc.vigencia) {
-      pdf.text('VIGENCIA: ' + window.fmtDate(doc.vigencia), LAY.vigencia.x, LAY.vigencia.y);
+    /* ---------- Datos (dos columnas) ---------- */
+    const MS = LAY.metaSize;
+    function metaPair(x, y, label, value) {
+      F('bold'); pdf.setFontSize(MS); C(STEEL);
+      pdf.text(label, x, y);
+      if (!value) return;
+      const wl = pdf.getTextWidth(label);
+      F('regular'); C(BODY);
+      pdf.text(fitText(pdf, String(value), 150), x + wl + 8, y);
+    }
+    metaPair(LAY.metaLeftX, LAY.metaYs.fecha, 'Fecha', window.fmtDate(doc.fecha));
+    metaPair(LAY.metaLeftX, LAY.metaYs.representante, 'Representante', doc.representante);
+    metaPair(LAY.metaRightX, LAY.metaYs.proyecto, 'Proyecto', doc.proyecto);
+    metaPair(LAY.metaRightX, LAY.metaYs.telefono, 'Telefono', doc.telefono);
+    metaPair(LAY.metaRightX, LAY.metaYs.email, 'Email', doc.email);
+    if (isCot && doc.vigencia) {
+      metaPair(LAY.metaLeftX, LAY.metaYs.email, 'Vigencia', window.fmtDate(doc.vigencia));
     }
 
-    /* ---------- Sellos: RECIBO / COTIZACIÓN (+ PAGADO si está saldado) ---------- */
-    if (doc.tipo === 'cotizacion') {
-      drawStamp(pdf, 511, 258, 'COTIZACIÓN', 80, 18, -4, 11);
-    } else {
-      drawStamp(pdf, 524, 258, 'RECIBO', 54, 18, -4, 11);
-    }
-    const abonosSum = (doc.abonos || []).reduce((s2, a) => s2 + (Number(a.monto) || 0), 0);
-    const preTotal = (doc.items || []).reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0)
-      * (1 + (doc.conIva === false ? 0 : (Number(doc.iva != null ? doc.iva : settings.iva) || 0)) / 100);
-    if ((doc.abonos || []).length > 0 && preTotal - abonosSum <= 0.005) {
-      drawStamp(pdf, 468, 207, 'PAGADO', 52, 16.5, 3, 10.5);
-    }
-
-    /* ---------- Datos del cliente ---------- */
-    const clientRows = [
-      ['Proyecto:', doc.proyecto, LAY.clientYs.proyecto],
-      ['Representante:', doc.representante, LAY.clientYs.representante],
-      ['Teléfono:', doc.telefono, LAY.clientYs.telefono],
-      ['Email:', doc.email, LAY.clientYs.email],
-    ];
-    clientRows.forEach(([label, val, y]) => {
-      F('light'); pdf.setFontSize(LAY.clientSize);
-      pdf.text(label, LAY.clientX, y);
-      F('regular');
-      const maxW = LAY.contentR - LAY.clientValueX - 6;
-      pdf.text(fitText(pdf, val || '', maxW), LAY.clientValueX, y);
-    });
-
-    /* ---------- Código de barras + folio (banda bajo el cliente, a la izquierda) ---------- */
-    drawBarcode(pdf, 61, 250, 114, 16, doc.numero || 'MC');
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(7.5);
-    pdf.text('Nº ' + (doc.numero || ''), 61, 273);
-
-    /* ---------- Encabezado de la tabla (mono, doble regla) ---------- */
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.tableHeaderSize);
-    pdf.text('DESCRIPCIÓN DEL SERVICIO', LAY.colDesc, LAY.tableHeaderY);
+    /* ---------- Tabla de conceptos ---------- */
+    solidLine(pdf, LAY.contentL, LAY.headRuleY, LAY.contentR, LAY.headRuleW, RULE);
+    F('bold'); pdf.setFontSize(LAY.tableHeaderSize); C(BLUE);
+    pdf.text('ITEM', LAY.colDesc, LAY.tableHeaderY);
     pdf.text('Q', LAY.colQ, LAY.tableHeaderY);
-    pdf.text('PRECIO U', LAY.colPrecio, LAY.tableHeaderY);
-    pdf.text('SUB-TOTAL', LAY.colSubtotal, LAY.tableHeaderY);
-    pdf.setLineWidth(LAY.headerLineW);
-    pdf.line(LAY.contentL, LAY.headerLineY, LAY.contentR, LAY.headerLineY);
-    pdf.setLineWidth(0.6);
-    pdf.line(LAY.contentL, LAY.headerLineY + LAY.headerLineW + 1.7, LAY.contentR, LAY.headerLineY + LAY.headerLineW + 1.7);
+    pdf.text('$ U', LAY.colPrecio, LAY.tableHeaderY);
+    pdf.text('SUB TOTAL', LAY.colSubtotal, LAY.tableHeaderY);
 
-    /* ---------- Conceptos (descripción multi-línea) ---------- */
-    const items = (doc.items || []).filter((it) => it.desc && it.desc.trim());
-    const table = window.layoutItems(doc);
-    const shift = table.delta;
-    const itemSize = table.size;
-    const descMaxW = LAY.qtyAlignX - 6 - LAY.colDesc;
-    let y = table.startY;
+    let y = LAY.itemsStartY;
+    const descMaxW = LAY.qtyAlignX - 10 - LAY.colDesc;
     table.rows.forEach((r) => {
-      F('regular'); pdf.setFontSize(itemSize);
-      r.lines.forEach((ln, li) => {
-        pdf.text(ln, LAY.colDesc, y + li * table.lineH);
-      });
-      const q = r.q;
-      if (q) pdf.text(String(q), LAY.qtyAlignX, y, { align: 'right' });
-      const pu = r.pu;
-      if (pu) pdf.text(window.fmtMoney(pu), LAY.priceAlignX, y, { align: 'right' });
-      pdf.text(window.fmtMoney(q * pu), LAY.subtotalAlignX, y, { align: 'right' });
+      F('regular'); pdf.setFontSize(itemSize); C(BODY);
+      r.lines.forEach((ln, li) => pdf.text(ln, LAY.colDesc, y + li * table.lineH));
+      if (r.q) pdf.text(String(r.q), LAY.qtyAlignX, y, { align: 'right' });
+      if (r.pu) pdf.text(window.fmtMoney(r.pu), LAY.priceAlignX, y, { align: 'right' });
+      F('medium'); C(BLUE);
+      pdf.text(window.fmtMoney(r.q * r.pu), LAY.subtotalAlignX, y, { align: 'right' });
       y += r.rowH;
     });
 
     /* ---------- Totales ---------- */
-    const subtotal = items.reduce((a, it) => a + (Number(it.q) || 0) * (Number(it.precioU) || 0), 0);
-    const ivaRate = (doc.conIva === false) ? 0 : (Number(doc.iva != null ? doc.iva : settings.iva) || 0);
-    const iva = subtotal * ivaRate / 100;
-    const total = subtotal + iva;
-    F('light'); pdf.setFontSize(LAY.totalsSize);
-    pdf.text('Subtotal', LAY.totalsAlignX - 90, LAY.totalsYs.subtotal + shift, { align: 'right' });
-    F('regular');
-    pdf.text(window.fmtMoney(subtotal), LAY.totalsAlignX, LAY.totalsYs.subtotal + shift, { align: 'right' });
-    if (ivaRate > 0) {
-      F('light');
-      pdf.text('IVA (' + ivaRate + '%)', LAY.totalsAlignX - 90, LAY.totalsYs.iva + shift, { align: 'right' });
-      F('regular');
-      pdf.text(window.fmtMoney(iva), LAY.totalsAlignX, LAY.totalsYs.iva + shift, { align: 'right' });
+    const TY = LAY.totalsYs, TS = LAY.totalsSize;
+    function totalRow(label, value, ty, size, strong) {
+      const sz = size || TS;
+      F('bold'); pdf.setFontSize(sz); C(BLUE);
+      pdf.text(label, LAY.totalsLabelX, ty + shift);
+      if (value == null) return;
+      if (strong) { F('bold'); C(BLUE); } else { F('medium'); C(BODY); }
+      pdf.text(value, LAY.totalsAlignX, ty + shift, { align: 'right' });
     }
-    F('medium'); pdf.setFontSize(LAY.totalSize);
-    pdf.text('Total', LAY.totalsAlignX - 90, LAY.totalsYs.total + shift, { align: 'right' });
-    F('bold');
-    pdf.text(window.fmtMoney(total), LAY.totalsAlignX, LAY.totalsYs.total + shift, { align: 'right' });
+    totalRow('SUBTOTAL', window.fmtMoney(t.subtotal), TY.subtotal);
+    totalRow('I.V.A.', t.ivaRate > 0 ? window.fmtMoney(t.iva) : '—', TY.iva);
+    totalRow('TOTAL', window.fmtMoney(t.subtotal + t.iva), TY.total);
+    totalRow('DESCUENTO', t.descuento > 0 ? '-' + window.fmtMoney(t.descuento) : '—', TY.descuento);
+    totalRow('POR PAGAR', window.fmtMoney(t.porPagar), TY.porPagar, LAY.porPagarSize, true);
 
-    /* ---------- Línea separadora (perforado) ---------- */
-    dashedLine(pdf, LAY.contentL, LAY.sectionLineY + shift, LAY.contentR, 1, [2.4, 2.4]);
+    /* ---------- P.O. TRACK ---------- */
+    dashedLine(pdf, LAY.contentL, LAY.trackDashY + shift, LAY.contentR, 1, [2.6, 2.6], RULE);
+    F('bold'); pdf.setFontSize(LAY.trackTitle.size); C(GREY);
+    pdf.text('P.O. TRACK', LAY.trackTitle.x, LAY.trackTitle.y + shift);
 
-    /* ---------- Datos para pagos (recuadro QR en punteado) ---------- */
-    pdf.setDrawColor(...blue); pdf.setLineWidth(0.8);
-    pdf.setLineDashPattern([2, 1.6], 0);
-    pdf.roundedRect(LAY.qrBox.x, LAY.qrBox.y + shift, LAY.qrBox.w, LAY.qrBox.h, LAY.qrBox.r, LAY.qrBox.r, 'S');
-    pdf.setLineDashPattern([], 0);
-    if (settings.qr) {
-      try { pdf.addImage(settings.qr, 'PNG', LAY.qrBox.x + 6, LAY.qrBox.y + 6 + shift, LAY.qrBox.w - 12, LAY.qrBox.h - 12); } catch (e) {}
-    }
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.pagosTitle.size);
-    pdf.text('DATOS PARA PAGOS', LAY.pagosTitle.x, LAY.pagosTitle.y + shift);
-    const pagoRows = [
-      ['Cuenta Nro. ', doc.pagos.cuenta, LAY.pagosYs.cuenta],
-      ['Nro. Clabe', doc.pagos.clabe, LAY.pagosYs.clabe],
-      ['Beneficiario', doc.pagos.beneficiario, LAY.pagosYs.beneficiario],
-      ['Banco', doc.pagos.banco, LAY.pagosYs.banco],
-    ];
-    pagoRows.forEach(([label, val, py]) => {
-      F('light'); pdf.setFontSize(LAY.pagosSize);
-      pdf.text(label, LAY.pagosLabelX, py + shift);
-      F('regular');
-      const maxW = LAY.condX - LAY.pagosValueX - 8;
-      pdf.text(fitText(pdf, val || '', maxW), LAY.pagosValueX, py + shift);
-    });
+    const TKS = LAY.trackSize;
+    F('bold'); pdf.setFontSize(TKS); C(BLUE);
+    pdf.text('FECHA', LAY.trackFechaX, LAY.trackHeaderY + shift);
+    pdf.text('ABONO', LAY.trackAbonoX, LAY.trackHeaderY + shift);
+    pdf.text('SALDO', LAY.trackSaldoX, LAY.trackHeaderY + shift);
+    pdf.text('ESTADO', LAY.trackEstadoX, LAY.trackHeaderY + shift);
 
-    /* ---------- Columna derecha: condiciones ---------- */
-    drawClock(pdf, LAY.condIcon1.x, LAY.condIcon1.y + shift);
-    if (doc.entregaFecha) {
-      F('light'); pdf.setFontSize(LAY.entregaClockText.size);
-      pdf.text('Fecha de entrega:', LAY.entregaClockText.labelX, LAY.entregaClockText.y + shift);
-      F('regular');
-      pdf.text(window.fmtDate(doc.entregaFecha), LAY.entregaClockText.valueX, LAY.entregaClockText.y + shift);
-    }
-    dashedLine(pdf, LAY.condX - 0.3, LAY.condLineY + shift, LAY.contentR, 0.8, [1.8, 1.8]);
-    drawBox(pdf, LAY.condIcon2.x, LAY.condIcon2.y + shift);
-    if (doc.entregaForma) {
-      F('light'); pdf.setFontSize(LAY.entregaBoxText.size);
-      pdf.text('Forma de entrega:', LAY.entregaBoxText.labelX, LAY.entregaBoxText.y + shift);
-      F('regular');
-      const formaLines = pdf.splitTextToSize(doc.entregaForma || '', LAY.entregaBoxText.maxW).slice(0, 2);
-      pdf.text(formaLines, LAY.entregaBoxText.valueX, LAY.entregaBoxText.y + shift, { lineHeightFactor: 1.3 });
-    }
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.condTitle.size);
-    pdf.text('CONDICIONES DE ENTREGA', LAY.condTitle.x, LAY.condTitle.y + shift);
-    F('regular'); pdf.setFontSize(LAY.condTextSize);
-    const condLines = pdf.splitTextToSize(doc.condiciones || settings.condiciones || '', LAY.condTextW).slice(0, 3);
-    pdf.text(condLines, LAY.condX, LAY.condTextY + shift, { lineHeightFactor: 1.35 });
-
-    /* ---------- Abonos (tipografía archivo) ---------- */
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.abonosSize);
-    pdf.text('FECHA', LAY.abonosFechaX, LAY.abonosHeaderY + shift);
-    pdf.text('ABONOS', LAY.abonosAbonoX, LAY.abonosHeaderY + shift);
-    pdf.text('SALDO', LAY.abonosSaldoX, LAY.abonosHeaderY + shift);
-    const abonos = (doc.abonos || []).filter((a) => a.fecha || (Number(a.monto) || 0) !== 0).slice(0, LAY.abonosMax);
-    let saldo = total;
+    const abonos = (doc.abonos || [])
+      .filter((a) => a.fecha || (Number(a.monto) || 0) !== 0)
+      .slice(0, LAY.trackMax);
+    let saldo = t.total;
     abonos.forEach((a, i) => {
-      const yy = LAY.abonosStartY + i * LAY.abonosRowH + shift;
-      pdf.text(window.fmtDate(a.fecha) || '—', LAY.abonosFechaX, yy);
-      pdf.text(window.fmtMoney(a.monto), LAY.abonosAbonoX, yy);
+      const yy = LAY.trackStartY + i * LAY.trackRowH + shift;
       saldo -= (Number(a.monto) || 0);
-      pdf.text(window.fmtMoney(saldo), LAY.abonosSaldoX, yy);
+      F('regular'); pdf.setFontSize(TKS); C(BODY);
+      pdf.text(window.fmtDate(a.fecha) || '—', LAY.trackFechaX, yy);
+      pdf.text(window.fmtMoney(a.monto), LAY.trackAbonoX, yy);
+      pdf.text(window.fmtMoney(saldo), LAY.trackSaldoX, yy);
+      F('bold'); C(saldo <= 0.005 ? TURQ : STEEL);
+      pdf.text(window.abonoEstado(saldo, i), LAY.trackEstadoX, yy);
+    });
+    solidLine(pdf, LAY.contentL, LAY.trackRuleY + shift, LAY.contentR, 0.9, RULE);
+
+    /* ---------- Pagos (columna izquierda) ---------- */
+    F('bold'); pdf.setFontSize(LAY.pagosTitle.size); C(BLUE);
+    pdf.text('PAGOS', LAY.pagosTitle.x, LAY.pagosTitle.y + shift);
+    F('bold'); pdf.setFontSize(LAY.pagosSubt.size);
+    pdf.text('TRANSFERENCIAS A', LAY.pagosSubt.x, LAY.pagosSubt.y + shift);
+
+    const PS = LAY.pagosSize;
+    const p = doc.pagos || {};
+    function pagoRow(label, value, py) {
+      F('bold'); pdf.setFontSize(PS); C(BLUE);
+      pdf.text(label, LAY.pagosLabelX, py + shift);
+      if (!value) return;
+      const wl = pdf.getTextWidth(label);
+      F('regular'); C(BODY);
+      pdf.text(fitText(pdf, String(value), 190 - wl), LAY.pagosLabelX + wl + 5, py + shift);
+    }
+    pagoRow('CUENTA', p.cuenta, LAY.pagosYs.cuenta);
+    pagoRow('CLABE', p.clabe, LAY.pagosYs.clabe);
+    pagoRow('BENEFICIARIO:', p.beneficiario, LAY.pagosYs.beneficiario);
+    pagoRow('BANCO:', p.banco, LAY.pagosYs.banco);
+
+    pdf.setDrawColor(...RULE); pdf.setLineWidth(0.8);
+    pdf.roundedRect(LAY.qrBox.x, LAY.qrBox.y + shift, LAY.qrBox.w, LAY.qrBox.h, LAY.qrBox.r, LAY.qrBox.r, 'S');
+    if (s.qr) {
+      try { pdf.addImage(s.qr, 'PNG', LAY.qrBox.x + 4, LAY.qrBox.y + 4 + shift, LAY.qrBox.w - 8, LAY.qrBox.h - 8); } catch (e) {}
+    }
+
+    /* ---------- Términos & condiciones (columna derecha) ---------- */
+    F('bold'); pdf.setFontSize(LAY.termsTitle.size); C(BLUE);
+    pdf.text('TÉRMINOS & CONDICIONES', LAY.termsTitle.x, LAY.termsTitle.y + shift);
+
+    const terms = window.parseTerms(doc.terminos || s.terminos || '');
+    const TSZ = LAY.termsSize;
+    const lineStep = TSZ * LAY.termsLineH;
+    let ty = LAY.termsY + shift;
+    let used = 0;
+    terms.forEach((item) => {
+      if (used >= LAY.termsMaxLines || ty > LAY.termsBottom + shift) return;
+      const labelTxt = item.label ? item.label + ':' : '';
+      F('bold'); pdf.setFontSize(TSZ);
+      const wl = labelTxt ? pdf.getTextWidth(labelTxt + ' ') : 0;
+      F('regular'); pdf.setFontSize(TSZ);
+      // primera línea: lo que quepa junto a la etiqueta
+      const words = String(item.text).split(/\s+/);
+      let line = '', rest = [];
+      words.forEach((w) => {
+        if (rest.length) { rest.push(w); return; }
+        const test = line ? line + ' ' + w : w;
+        if (pdf.getTextWidth(test) <= LAY.termsW - wl) line = test;
+        else rest.push(w);
+      });
+      if (labelTxt) {
+        F('bold'); C(BLUE);
+        pdf.text(labelTxt, LAY.termsX, ty);
+      }
+      if (line) {
+        F('regular'); C(BODY);
+        pdf.text(line, LAY.termsX + wl, ty);
+      }
+      ty += lineStep; used++;
+      // resto al ancho completo
+      F('regular'); C(BODY);
+      let cur = '';
+      rest.forEach((w) => {
+        const test = cur ? cur + ' ' + w : w;
+        if (pdf.getTextWidth(test) <= LAY.termsW) { cur = test; return; }
+        if (used < LAY.termsMaxLines && ty <= LAY.termsBottom + shift) { pdf.text(cur, LAY.termsX, ty); ty += lineStep; used++; }
+        cur = w;
+      });
+      if (cur && used < LAY.termsMaxLines && ty <= LAY.termsBottom + shift) {
+        pdf.text(cur, LAY.termsX, ty);
+        ty += lineStep; used++;
+      }
     });
 
-    /* ---------- Pie (perforado): términos ---------- */
-    dashedLine(pdf, 57, LAY.footerLineY + shift, 549, 0.6, [1.6, 1.6]);
-    pdf.setFont('courier', 'normal'); pdf.setFontSize(LAY.terminosTitle.size);
-    pdf.text('TÉRMINOS', LAY.terminosTitle.x, LAY.terminosTitle.y + shift);
-    F('regular'); pdf.setFontSize(LAY.terminosSize);
-    const termLines = pdf.splitTextToSize(doc.terminos || settings.terminos || '', LAY.terminosW).slice(0, 3);
-    pdf.text(termLines, LAY.terminosTitle.x, LAY.terminosY + shift, { lineHeightFactor: 1.3 });
+    /* ---------- Pie ---------- */
+    solidLine(pdf, LAY.contentL, LAY.footRuleY, LAY.contentR, LAY.footRuleW, BLUE);
+    const FS = LAY.footSize, FY = LAY.footYs;
+    F('bold'); pdf.setFontSize(FS); C(BLUE);
+    pdf.text(empresa, LAY.footColL, FY[0]);
+    const wf = pdf.getTextWidth(empresa);
+    F('regular'); C(BODY);
+    pdf.text((s.empresaSub || 'estudio creativo').toLowerCase(), LAY.footColL + wf + 5, FY[0]);
+    pdf.text((s.ciudad || 'Ciudad de México') + ', México', LAY.footColL, FY[1]);
+    if (s.telefono) pdf.text(s.telefono, LAY.footColM, FY[0]);
+    if (s.email) pdf.text(s.email, LAY.footColM, FY[1]);
+    if (s.web) pdf.text(s.web, LAY.footColR, FY[1], { align: 'right' });
 
     return pdf.output('blob');
   }
