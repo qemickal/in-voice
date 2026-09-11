@@ -119,6 +119,29 @@
       <div id="cxp-list" class="doc-list"></div>
     </section>
 
+    <!-- ===== Vista: Clientes / Prospectos ===== -->
+    <section id="view-clientes" hidden>
+      <div class="list-head">
+        <div>
+          <p class="kicker">04 · Clientes y prospectos</p>
+          <h1>Directorio</h1>
+        </div>
+        <div class="list-head-actions">
+          <button class="btn primary" data-action="new-cliente"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo cliente</button>
+          <button class="btn outline" data-action="new-prospecto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo prospecto</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search-cli" type="search" placeholder="Buscar por nombre, empresa, email, teléfono…">
+        <div class="chips">
+          <button class="chip active" data-cli-filter="todos">Todos</button>
+          <button class="chip" data-cli-filter="cliente">Clientes</button>
+          <button class="chip" data-cli-filter="prospecto">Prospectos</button>
+        </div>
+      </div>
+      <div id="cli-list" class="doc-list"></div>
+    </section>
+
     <!-- ===== Vista: editor ===== -->
     <section id="view-editor" hidden>
       <div class="editor-bar">
@@ -188,8 +211,16 @@
         </span>
         <span class="menu-meta" id="menu-count-cxp">0 PEN</span>
       </button>
-      <button class="menu-item menu-item-account" data-action="logout">
+      <button class="menu-item" data-view="clientes">
         <span class="menu-idx">04</span>
+        <span class="menu-body">
+          <span class="menu-name">Clientes</span>
+          <span class="menu-kicker">Directorio y prospectos</span>
+        </span>
+        <span class="menu-meta" id="menu-count-cli">0 CTES.</span>
+      </button>
+      <button class="menu-item menu-item-account" data-action="logout">
+        <span class="menu-idx">05</span>
         <span class="menu-body">
           <span class="menu-name">Cerrar sesión</span>
           <span class="menu-kicker" id="sync-account">Sincronización de cuenta</span>
@@ -288,6 +319,57 @@
       <div class="modal-foot">
         <button class="btn outline" data-action="close-cxc-detail">Cerrar</button>
         <button class="btn primary" data-action="go-edit-cxc">Editar documento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal: Cliente / Prospecto (agregar/editar) ===== -->
+  <div id="modal-cliente" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-cliente-title">Nuevo cliente</h2>
+        <button class="icon-btn" data-action="close-cliente-modal" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <label>Tipo de contacto</label>
+        <div class="seg" id="cli-tipo-seg">
+          <button type="button" class="seg-btn on" data-action="set-cli-tipo" data-cli-tipo="cliente">Cliente</button>
+          <button type="button" class="seg-btn" data-action="set-cli-tipo" data-cli-tipo="prospecto">Prospecto</button>
+        </div>
+        <label>Nombre / Representante *
+          <input id="cl-nombre" type="text" placeholder="Ej. Ana Martínez" autocomplete="off">
+        </label>
+        <label>Empresa
+          <input id="cl-empresa" type="text" placeholder="Ej. Restaurantes del Pacífico" autocomplete="off">
+        </label>
+        <div class="sgrid">
+          <label>Email
+            <input id="cl-email" type="email" placeholder="correo@ejemplo.com" autocomplete="off">
+          </label>
+          <label>Teléfono / WhatsApp
+            <input id="cl-telefono" type="tel" placeholder="55 0000 0000" autocomplete="off">
+          </label>
+        </div>
+        <label>Dirección
+          <input id="cl-direccion" type="text" placeholder="Calle, colonia, ciudad" autocomplete="off">
+        </label>
+        <label id="cl-estado-wrap" hidden>Estado del prospecto
+          <select id="cl-estado">
+            <option value="nuevo">Nuevo</option>
+            <option value="contactado">Contactado</option>
+            <option value="negociacion">En negociación</option>
+            <option value="ganado">Ganado ✓</option>
+            <option value="perdido">Perdido</option>
+          </select>
+        </label>
+        <label>Notas
+          <textarea id="cl-notas" rows="3" placeholder="Referencias, servicios de interés, seguimiento…"></textarea>
+        </label>
+        <p class="hint">Los contactos guardados aparecen en el selector «Cliente guardado» del editor de recibos y cotizaciones, y viajan con tu cuenta entre dispositivos.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-cliente-modal">Cancelar</button>
+        <button class="btn primary" data-action="save-cliente">Guardar contacto</button>
       </div>
     </div>
   </div>
