@@ -55,11 +55,15 @@
   let cuentasXPagar = storeGet('mc_cxp', []);
   let editing = null;   // copia de trabajo
   let editingCxp = null; // copia de trabajo para cuenta por pagar
+  let editingCliente = null; // referencia al contacto en edición (null = nuevo)
   let selectedClientId = null;
   let images = null;    // dataURLs pre-cargados para el PDF
   let listFilter = 'todos';
   let listQuery = '';
-  let mainView = 'docs';  // 'docs' | 'cxc' | 'cxp'
+  let cliFilter = 'todos';  // 'todos' | 'cliente' | 'prospecto'
+  let cliQuery = '';
+  let cliModalTipo = 'cliente'; // tipo seleccionado en el modal de contacto
+  let mainView = 'docs';  // 'docs' | 'cxc' | 'cxp' | 'clientes'
   let previousView = 'docs'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
@@ -205,6 +209,7 @@
     $('#view-list').hidden = view !== 'docs';
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
+    $('#view-clientes').hidden = view !== 'clientes';
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
@@ -212,6 +217,7 @@
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
     if (view === 'cxp') renderCxP();
+    if (view === 'clientes') renderClientes();
     window.scrollTo(0, 0);
   }
 
@@ -227,6 +233,8 @@
     });
     var p = $('#menu-count-cxp');
     if (p) p.textContent = pen + ' PEN';
+    var cli = $('#menu-count-cli');
+    if (cli) cli.textContent = clientes.length + ' CTES.';
   }
 
   function openMenu() {
@@ -537,6 +545,141 @@
     toast('Cuenta por pagar guardada ✓');
   }
 
+  /* ================= CLIENTES / PROSPECTOS (directorio) ================= */
+  const CLI_ESTADOS = {
+    nuevo: 'Nuevo', contactado: 'Contactado', negociacion: 'En negociación',
+    ganado: 'Ganado', perdido: 'Perdido'
+  };
+
+  function cliTipo(c) { return (c && c.tipo === 'prospecto') ? 'prospecto' : 'cliente'; }
+
+  function fmtCliFecha(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const p = (x) => String(x).padStart(2, '0');
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function renderClientes() {
+    const wrap = $('#cli-list');
+    if (!wrap) return;
+    const q = cliQuery.trim().toLowerCase();
+    const filtered = clientes.filter(function(c) {
+      const okTipo = cliFilter === 'todos' || cliTipo(c) === cliFilter;
+      const okQ = !q || [c.nombre, c.empresa, c.email, c.telefono, c.direccion, c.notas]
+        .join(' ').toLowerCase().includes(q);
+      return okTipo && okQ;
+    }).sort(function(a, b) {
+      return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+    });
+
+    $$('.chip[data-cli-filter]').forEach(function(c) {
+      c.classList.toggle('active', c.dataset.cliFilter === cliFilter);
+    });
+
+    if (!filtered.length) {
+      wrap.innerHTML = `
+        <div class="empty">
+          <span class="stamp empty-stamp">${clientes.length ? 'Sin coincidencias' : 'Directorio vacío'}</span>
+          <h3>${clientes.length ? 'Ningún contacto coincide' : 'Aún no hay clientes ni prospectos'}</h3>
+          <p>${clientes.length ? 'Prueba con otra búsqueda o quita los filtros.' : 'Agrega tu primer contacto: lo reutilizarás en recibos y cotizaciones con un toque.'}</p>
+          <div class="empty-actions">
+            <button class="btn primary" data-action="new-cliente">Nuevo cliente</button>
+            <button class="btn outline" data-action="new-prospecto">Nuevo prospecto</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    wrap.innerHTML = filtered.map(function(c) {
+      const tipo = cliTipo(c);
+      const stamp = tipo === 'prospecto'
+        ? '<span class="stamp dashed">Prospecto</span>'
+        : '<span class="stamp solid">Cliente</span>';
+      const estado = (tipo === 'prospecto' && c.estado)
+        ? `<span class="cli-estado" data-estado="${esc(c.estado)}">${esc(CLI_ESTADOS[c.estado] || c.estado)}</span>`
+        : '';
+      const contacto = [c.email, c.telefono].filter(Boolean).map(esc).join(' · ');
+      return `
+      <div class="card card-cli">
+        <div class="card-top">
+          ${stamp}${estado}
+          <span class="card-date">${fmtCliFecha(c.updatedAt)}</span>
+        </div>
+        <div class="card-title">${esc(c.nombre || 'Sin nombre')}</div>
+        ${c.empresa ? `<div class="cli-line" style="font-weight:700;color:var(--ink)">${esc(c.empresa)}</div>` : ''}
+        ${contacto ? `<div class="cli-line">${contacto}</div>` : ''}
+        ${c.direccion ? `<div class="cli-line">${esc(c.direccion)}</div>` : ''}
+        <div class="perf"></div>
+        ${c.notas ? `<div class="cli-notas">${esc(c.notas)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn small outline" data-action="edit-cliente" data-id="${c.id}">Editar</button>
+          <button class="btn small danger" data-action="del-cliente-card" data-id="${c.id}">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function setCliTipo(t) {
+    cliModalTipo = t === 'prospecto' ? 'prospecto' : 'cliente';
+    $$('#cli-tipo-seg .seg-btn').forEach(function(b) {
+      b.classList.toggle('on', b.dataset.cliTipo === cliModalTipo);
+    });
+    const wrap = $('#cl-estado-wrap');
+    if (wrap) wrap.hidden = cliModalTipo !== 'prospecto';
+  }
+
+  function openClienteModal(id, tipoDef) {
+    editingCliente = id ? (clientes.find(function(c) { return c.id === id; }) || null) : null;
+    const c = editingCliente;
+    const tipo = c ? cliTipo(c) : (tipoDef === 'prospecto' ? 'prospecto' : 'cliente');
+    $('#modal-cliente-title').textContent =
+      (c ? 'Editar ' : 'Nuevo ') + (tipo === 'prospecto' ? 'prospecto' : 'cliente');
+    $('#cl-nombre').value = c ? (c.nombre || '') : '';
+    $('#cl-empresa').value = c ? (c.empresa || '') : '';
+    $('#cl-email').value = c ? (c.email || '') : '';
+    $('#cl-telefono').value = c ? (c.telefono || '') : '';
+    $('#cl-direccion').value = c ? (c.direccion || '') : '';
+    $('#cl-estado').value = (c && c.estado) || 'nuevo';
+    $('#cl-notas').value = c ? (c.notas || '') : '';
+    setCliTipo(tipo);
+    $('#modal-cliente').classList.add('open');
+    setTimeout(function() { const n = $('#cl-nombre'); if (n) n.focus(); }, 80);
+  }
+
+  function saveClienteFromModal() {
+    const g = function(id) { const el = $('#' + id); return el ? el.value.trim() : ''; };
+    const nombre = g('cl-nombre');
+    if (!nombre) {
+      toast('Escribe el nombre del contacto');
+      const n = $('#cl-nombre'); if (n) n.focus();
+      return;
+    }
+    const now = Date.now();
+    let c = editingCliente;
+    const esNuevo = !c;
+    if (esNuevo) {
+      c = { id: window.uid(), createdAt: now };
+      clientes.push(c);
+    }
+    c.tipo = cliModalTipo;
+    c.nombre = nombre;
+    c.empresa = g('cl-empresa');
+    c.email = g('cl-email');
+    c.telefono = g('cl-telefono');
+    c.direccion = g('cl-direccion');
+    c.notas = g('cl-notas');
+    c.estado = cliModalTipo === 'prospecto' ? ($('#cl-estado').value || 'nuevo') : '';
+    c.updatedAt = now;
+
+    storeSet('mc_clientes', clientes); // también avisa al sincronizador
+    $('#modal-cliente').classList.remove('open');
+    editingCliente = null;
+    if (mainView === 'clientes') renderClientes();
+    refreshMenuCounts();
+    toast((cliModalTipo === 'prospecto' ? 'Prospecto' : 'Cliente') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
+  }
+
   /* ================= EDITOR ================= */
   function showEditor(doc) {
     editing = JSON.parse(JSON.stringify(doc));
@@ -601,7 +744,7 @@
           <div class="client-pick">
             <select id="f-cliente">
               <option value="">— Sin guardar / nuevo —</option>
-              ${clientes.map((c) => `<option value="${c.id}" ${c.id === selectedClientId ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}
+              ${clientes.map((c) => `<option value="${c.id}" ${c.id === selectedClientId ? 'selected' : ''}>${esc(c.nombre)}${cliTipo(c) === 'prospecto' ? ' · prosp.' : ''}</option>`).join('')}
             </select>
             <button class="btn small outline" data-action="save-client" title="Guardar los datos actuales como cliente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
             <button class="btn small danger" data-action="del-client" title="Eliminar cliente seleccionado"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 3h4a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1Z"/></svg></button>
@@ -1059,7 +1202,7 @@
           cli.nombre = nombre; cli.telefono = editing.telefono || ''; cli.email = editing.email || '';
           cli.updatedAt = Date.now();
         } else {
-          cli = { id: window.uid(), nombre, telefono: editing.telefono || '', email: editing.email || '', updatedAt: Date.now() };
+          cli = { id: window.uid(), tipo: 'cliente', nombre, telefono: editing.telefono || '', email: editing.email || '', updatedAt: Date.now() };
           clientes.push(cli);
         }
         storeSet('mc_clientes', clientes);
@@ -1086,6 +1229,29 @@
         storeSet('mc_clientes', clientes);
         if (window.SYNC) window.SYNC.tombstone('clientes', btn.dataset.id);
         openSettings();
+        break;
+      }
+      /* ------ Directorio de clientes / prospectos ------ */
+      case 'new-cliente': openClienteModal(null, 'cliente'); break;
+      case 'new-prospecto': openClienteModal(null, 'prospecto'); break;
+      case 'edit-cliente': openClienteModal(btn.dataset.id); break;
+      case 'set-cli-tipo': setCliTipo(btn.dataset.cliTipo); break;
+      case 'close-cliente-modal':
+        $('#modal-cliente').classList.remove('open');
+        editingCliente = null;
+        break;
+      case 'save-cliente': saveClienteFromModal(); break;
+      case 'del-cliente-card': {
+        const cc = clientes.find((x) => x.id === btn.dataset.id);
+        if (!cc) break;
+        if (!confirm('¿Eliminar a «' + (cc.nombre || 'este contacto') + '»? (No borra sus documentos)')) break;
+        clientes = clientes.filter((x) => x.id !== cc.id);
+        storeSet('mc_clientes', clientes);
+        if (window.SYNC) window.SYNC.tombstone('clientes', cc.id);
+        if (selectedClientId === cc.id) selectedClientId = null;
+        renderClientes();
+        refreshMenuCounts();
+        toast('Contacto eliminado');
         break;
       }
       case 'settings': openSettings(); break;
@@ -1244,6 +1410,13 @@
   if (searchCxp) searchCxp.addEventListener('input', function(e) { cxpQuery = e.target.value; renderCxP(); });
   $$('.chip[data-cxp-filter]').forEach(function(c) {
     c.addEventListener('click', function() { cxpFilter = c.dataset.cxpFilter; renderCxP(); });
+  });
+
+  // Búsqueda y filtros del directorio (clientes / prospectos)
+  var searchCli = $('#search-cli');
+  if (searchCli) searchCli.addEventListener('input', function(e) { cliQuery = e.target.value; renderClientes(); });
+  $$('.chip[data-cli-filter]').forEach(function(c) {
+    c.addEventListener('click', function() { cliFilter = c.dataset.cliFilter; renderClientes(); });
   });
 
   // Input events para modal CxP
