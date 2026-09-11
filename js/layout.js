@@ -1,79 +1,143 @@
 /* ============================================================
    LAYOUT — especificación única del diseño del documento
    Todas las medidas en puntos (pt). Página Letter 612 x 792 pt.
-   Extraídas fielmente del PDF de diseño proporcionado.
+   Rediseño 2026: cabecera a una línea, columna de totales con
+   DESCUENTO / POR PAGAR, bloque P.O. TRACK con estado, PAGOS +
+   TÉRMINOS a dos columnas y pie de página con datos de contacto.
    ============================================================ */
 window.LAYOUT = {
   pageW: 612,
   pageH: 792,
 
-  brand: [43, 94, 171],      // #2B5EAB
-  brandHex: '#2B5EAB',
-  light: [238, 244, 251],    // #EEF4FB
-  lightHex: '#EEF4FB',
+  /* ---------- Paleta ---------- */
+  brand:     [31, 61, 143],   // #1F3D8F  azul profundo (títulos)
+  brandHex:  '#1F3D8F',
+  steel:     [64, 100, 162],  // #4064A2  azul acero (etiquetas)
+  steelHex:  '#4064A2',
+  turq:      [73, 194, 190],  // #49C2BE  turquesa (tipo de documento)
+  turqHex:   '#49C2BE',
+  grey:      [154, 163, 178], // #9AA3B2  gris (subtítulos, P.O. TRACK)
+  greyHex:   '#9AA3B2',
+  body:      [51, 58, 71],    // #333A47  texto de términos
+  bodyHex:   '#333A47',
+  lineArt:   [205, 231, 230], // #CDE7E6  fondo de líneas
+  lineArtHex:'#CDE7E6',
+  rule:      [143, 163, 196], // #8FA3C4  reglas finas
+  ruleHex:   '#8FA3C4',
+  light:     [232, 242, 248],
+  lightHex:  '#E8F2F8',
 
-  contentL: 61,
-  contentR: 553,
+  // márgenes laterales simétricos: 34pt a cada lado
+  contentL: 34,
+  contentR: 578,
 
-  /* ---------- Encabezado ---------- */
-  watermark: { x: 0, y: 0, w: 612, h: 792 },        // marca de agua (extraída del PDF original)
-  logoBox:   { x: 60.8, y: 67.7, w: 76.4, h: 51.1 },   // logo azul (marca)
-  brandLine1: { x: 143.9, y: 84.1, size: 21.8 },        // "Mono Cromat & Co."
-  brandSlash: { x: 349, y: 84.1, size: 16 },          // "/"
-  brandLine2: { x: 143.9, y: 101.4, size: 16 },         // "Estudio Creativo"
-  contact: { right: 553, ys: [76.5, 90.8, 105.1, 119.4], size: 11, gap: 14.3 },
+  /* ---------- Marca de agua + fondo de líneas ---------- */
+  // Lettering pálido anclado arriba a la derecha (se recorta con la hoja).
+  // Se dibuja con el propio logo escalado y muy poca opacidad: el PNG
+  // antiguo traía el texto del diseño anterior incrustado.
+  watermark: { x: 330, y: -54, w: 430, h: 281, opacity: 0.055 },
+  // string-art: envolvente de rectas, esquina inferior izquierda
+  lineArtBox: { x: -30, y: 340, w: 672, h: 460 },
 
-  /* ---------- Título y fecha ---------- */
-  title: { x: 59.8, y: 163.2, size: 20 },
-  date:  { x: 377.9, y: 156.6, size: 11 },
-  vigencia: { x: 377.9, y: 173, size: 11 },
+  /* ---------- Cabecera ---------- */
+  logoBox:    { x: 34, y: 26, w: 78, h: 60 },
+  brandLine1: { x: 183, y: 50, size: 20.5 },   // "MONO CROMAT & CO."
+  brandSlash: { x: 183, y: 50, size: 16.5 },   // "// estudio creativo" (x se calcula)
+  // Bloque de folio (arriba a la derecha). No se imprime "RECIBO" /
+  // "COTIZACIÓN": el prefijo del folio ya lo identifica (PO = recibo,
+  // RQ = cotización), así que sólo van el código de barras y el número.
+  folioBox: { right: 578, y: 58, w: 150, h: 22, size: 8.5, gap: 11 },
 
-  /* ---------- Datos del cliente ---------- */
-  clientX: 60.8, clientValueX: 150, clientSize: 11,
-  clientYs: { proyecto: 197.5, representante: 211.8, telefono: 226.1, email: 240.4 },
+  /* ---------- Datos (dos columnas) ---------- */
+  metaSize: 10.5,
+  metaLeftX: 34, metaRightX: 300,
+  metaYs: { fecha: 112, representante: 128, proyecto: 112, telefono: 128, email: 144 },
 
   /* ---------- Tabla de conceptos ---------- */
-  tableHeaderY: 289.5, tableHeaderSize: 11,
-  colDesc: 61, colQ: 283.1, colPrecio: 368.8, colSubtotal: 475.5,
-  qtyAlignX: 302, priceAlignX: 460, subtotalAlignX: 553,
-  headerLineY: 300.4, headerLineW: 2.13,
-  itemsStartY: 318, rowH: 21, itemsMaxBottom: 432, itemSize: 11,
-  itemsShiftBudget: 48,   // máx. puntos que se empuja el bloque inferior por descripciones largas
+  headRuleY: 163, headRuleW: 0.9,
+  tableHeaderY: 177, tableHeaderSize: 10.5,
+  colDesc: 34, colQ: 352, colPrecio: 418, colSubtotal: 500,
+  qtyAlignX: 370, priceAlignX: 462, subtotalAlignX: 578,
+  itemsStartY: 196, rowH: 17, itemsMaxBottom: 380, itemSize: 10,
+  itemsShiftBudget: 12,
+  // Sólo el bloque de totales acompaña a una tabla larga. Todo lo que va
+  // debajo (P.O. TRACK, PAGOS, TÉRMINOS, pie) queda anclado, para que
+  // nunca se monte sobre la regla del pie.
+  totalsShiftMax: 12,
 
-  /* ---------- Totales ---------- */
-  totalsAlignX: 553,
-  totalsYs: { subtotal: 436, iva: 453, total: 470 },
-  totalsSize: 11, totalSize: 12,
+  /* ---------- Totales (columna derecha) ---------- */
+  // interlineado de 12pt entre conceptos y 20pt de aire antes de POR PAGAR
+  totalsLabelX: 400, totalsAlignX: 578, totalsSize: 10.5,
+  totalsYs: { subtotal: 396, iva: 408, total: 420, descuento: 432, porPagar: 452 },
+  porPagarSize: 11.5,
 
-  sectionLineY: 479,
+  /* ---------- P.O. TRACK ---------- */
+  trackDashY: 472,
+  trackTitle: { x: 34, y: 488, size: 17 },
+  trackHeaderY: 504, trackSize: 9.5,
+  // columnas repartidas en cuartos del ancho útil (34 → 560)
+  trackFechaX: 34, trackAbonoX: 214, trackSaldoX: 370, trackEstadoX: 500,
+  trackStartY: 519, trackRowH: 13, trackMax: 4,
+  // la regla deja 10pt de aire bajo la última fila (519 + 3*13 = 558)
+  trackRuleY: 568,
 
-  /* ---------- Datos para pagos ---------- */
-  qrBox: { x: 61.1, y: 495, w: 61.1, h: 61.1, r: 8 },
-  pagosTitle: { x: 131.1, y: 502, size: 10 },
-  pagosLabelX: 131.1, pagosValueX: 202, pagosSize: 9.9,
-  pagosYs: { cuenta: 515, clabe: 528, beneficiario: 541, banco: 554 },
+  /* ---------- Pagos (columna izquierda) ---------- */
+  // ambas columnas arrancan a la misma altura (583) para que PAGOS y
+  // TÉRMINOS queden a ras por arriba
+  pagosTitle:  { x: 34, y: 588, size: 22 },
+  pagosSubt:   { x: 34, y: 604, size: 9.5 },
+  pagosLabelX: 34, pagosSize: 9.5,
+  pagosYs: { cuenta: 620, clabe: 631, beneficiario: 642, banco: 653 },
+  qrBox: { x: 34, y: 661, w: 42, h: 42, r: 7 },
 
-  /* ---------- Condiciones de entrega (columna derecha) ---------- */
-  condX: 368.5,
-  condIcon1: { x: 370, y: 500 },   // reloj
-  condIcon2: { x: 370, y: 534 },   // paquete
-  condLineY: 519,
-  entregaClockText: { labelX: 387, valueX: 470, y: 503, size: 9, maxW: 83 },
-  entregaBoxText:  { labelX: 387, valueX: 470, y: 537, size: 9, maxW: 83 },
-  condTitle: { x: 368.5, y: 592, size: 10 },
-  condTextY: 605, condTextW: 184, condTextSize: 9,
-
-  /* ---------- Abonos ---------- */
-  abonosHeaderY: 591, abonosSize: 10,
-  abonosFechaX: 62.6, abonosAbonoX: 159.5, abonosSaldoX: 260.9,
-  abonosStartY: 606, abonosRowH: 16, abonosMax: 4,
+  /* ---------- Términos (columna derecha) ---------- */
+  termsTitle: { x: 300, y: 588, size: 9.5 },
+  termsX: 300, termsY: 601, termsW: 278, termsSize: 6.6, termsLineH: 1.36,
+  termsMaxLines: 14,
+  // ninguna línea puede pisar la regla del pie (deja 8pt de aire)
+  termsBottom: 704,
 
   /* ---------- Pie ---------- */
-  footerLineY: 668,
-  terminosTitle: { x: 56.8, y: 687.5, size: 10 },
-  terminosY: 700.5, terminosW: 490, terminosSize: 9,
+  // 26pt de margen arriba (logo) y ~26pt abajo tras la última línea
+  footRuleY: 712, footRuleW: 2.2,
+  footSize: 8,
+  footYs: [726, 737],
+  footColL: 34, footColM: 300, footColR: 578,
+
+  /* compat: claves antiguas que aún consultan algunos helpers */
+  clientX: 34, clientValueX: 300, clientSize: 10.5,
+  condX: 300, condTextW: 278, condTextSize: 7.4,
+  abonosMax: 5,
+  terminosW: 278, terminosSize: 7.4,
 };
 
+/* ================== Fondo string-art ==================
+   La envolvente curva del diseño es un haz de rectas que unen dos
+   segmentos rectos (string art). Se genera una sola vez y se dibuja
+   igual en la vista previa (SVG) y en el PDF (jsPDF). */
+window.lineArtSegments = function () {
+  var B = window.LAYOUT.lineArtBox;
+  var out = [];
+  function fan(ax, ay, bx, by, cx, cy, dx, dy, n) {
+    for (var i = 0; i <= n; i++) {
+      var t = i / n;
+      out.push([
+        ax + (bx - ax) * t, ay + (by - ay) * t,
+        cx + (dx - cx) * t, cy + (dy - cy) * t
+      ]);
+    }
+  }
+  var L = B.x, R = B.x + B.w, T = B.y, Bo = B.y + B.h;
+  // Haces contenidos en la mitad izquierda / borde inferior para que
+  // la curva no cruce el bloque de términos ni el pie.
+  // haz principal: envolvente que baja por la izquierda y se abre
+  fan(L, T,       L, Bo,        L, Bo,      R - 90, Bo, 58);
+  // haz secundario: densifica el interior de la curva
+  fan(L, T + 70,  L + 55, Bo,   L + 25, Bo, R - 260, Bo, 42);
+  // haz de cierre: rectas que insinúan la segunda curva
+  fan(L, T + 165, L, Bo - 55,   L + 130, Bo, R - 40, Bo, 30);
+  return out;
+};
 /* ================== Iconos SVG minimalistas ================== */
 // Stroke-only, sin relleno, estilo Lucide/Feather
 window.ICONS = (function() {
@@ -172,7 +236,7 @@ window.uid = function () {
 /* ================== Texto multi-línea ================== */
 // Divide un texto en líneas que caben en maxW (ancho estimado por nº de caracteres)
 window.wrapText = function (text, maxW, size) {
-  const charW = size * 0.575;                 // factor medido de Space Grotesk + margen
+  const charW = size * 0.50;                  // ancho medio de Archivo (0.463 em) + margen
   const maxChars = Math.max(6, Math.floor(maxW / charW));
   const words = String(text == null ? '' : text).trim().split(/\s+/);
   if (!words.length || !words[0]) return [''];
@@ -325,8 +389,8 @@ window.layoutItems = function (doc) {
   const budget = L.itemsShiftBudget;
 
   function build(size) {
-    const lineH = Math.round(size * 1.18 * 10) / 10;
-    const baseRow = size + 10;
+    const lineH = Math.round(size * 1.22 * 10) / 10;
+    const baseRow = Math.max(L.rowH, size + 7);
     const rows = items.map((it) => ({
       desc: String(it.desc || '').trim(),
       q: Number(it.q) || 0,
@@ -340,8 +404,8 @@ window.layoutItems = function (doc) {
     return { rows, size, lineH, delta, clipped: false };
   }
 
-  let res = build(11);
-  for (const size of [10, 9]) {
+  let res = build(L.itemSize);
+  for (const size of [9.2, 8.5, 8]) {
     if (res.delta <= budget) break;
     res = build(size);
   }
@@ -371,4 +435,40 @@ window.layoutItems = function (doc) {
   }
   res.startY = L.itemsStartY;
   return res;
+};
+
+/* ================== Totales del documento ==================
+   Fuente única de verdad para app, vista previa y PDF.
+   subtotal → IVA → descuento → total → abonos → por pagar. */
+window.docTotals = function (doc, settings) {
+  var s = settings || {};
+  var items = (doc.items || []).filter(function (it) { return it.desc && String(it.desc).trim(); });
+  var subtotal = items.reduce(function (a, it) {
+    return a + (Number(it.q) || 0) * (Number(it.precioU) || 0);
+  }, 0);
+  var ivaRate = (doc.conIva === false) ? 0 : (Number(doc.iva != null ? doc.iva : s.iva) || 0);
+  var iva = subtotal * ivaRate / 100;
+  var descuento = Math.max(0, Number(doc.descuento) || 0);
+  var total = Math.max(0, subtotal + iva - descuento);
+  var abonado = (doc.abonos || []).reduce(function (a, x) { return a + (Number(x.monto) || 0); }, 0);
+  // si se abonó de más, el saldo se muestra en cero (no en negativo)
+  var porPagar = Math.max(0, total - abonado);
+  return {
+    n: items.length,
+    subtotal: subtotal,
+    ivaRate: ivaRate,
+    iva: iva,
+    descuento: descuento,
+    total: total,
+    abonado: abonado,
+    porPagar: porPagar,
+    // saldado con tolerancia de medio centavo
+    pagado: abonado > 0 && porPagar <= 0.005
+  };
+};
+
+/* Estado de cada abono para la columna ESTADO de P.O. TRACK */
+window.abonoEstado = function (saldoDespues, index) {
+  if (saldoDespues <= 0.005) return 'LIQUIDADO';
+  return index === 0 ? 'ANTICIPO' : 'PARCIAL';
 };

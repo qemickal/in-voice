@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v12';
+const CACHE = 'mc-pwa-v19';
 const ASSETS = [
   './',
   './index.html',
@@ -10,13 +10,15 @@ const ASSETS = [
   './js/sync.js',
   './js/app.js',
   './assets/js/jspdf.umd.min.js',
-  './assets/fonts/spacegrotesk-latin.woff2',
-  './assets/fonts/SpaceGrotesk-Light.ttf',
-  './assets/fonts/SpaceGrotesk-Regular.ttf',
-  './assets/fonts/SpaceGrotesk-Medium.ttf',
-  './assets/fonts/SpaceGrotesk-Bold.ttf',
+  './assets/fonts/archivo-latin-300.woff2',
+  './assets/fonts/archivo-latin-400.woff2',
+  './assets/fonts/archivo-latin-500.woff2',
+  './assets/fonts/archivo-latin-700.woff2',
+  './assets/fonts/Archivo-Light.ttf',
+  './assets/fonts/Archivo-Regular.ttf',
+  './assets/fonts/Archivo-Medium.ttf',
+  './assets/fonts/Archivo-Bold.ttf',
   './assets/img/logo-blue.png',
-  './assets/img/watermark.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
