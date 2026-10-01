@@ -5,13 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Recibos &amp; Cotizaciones — Mono Cromat &amp; Co.</title>
   <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
-  <meta name="theme-color" content="#f2f3f4">
+  <meta name="theme-color" content="#eef1f8" id="meta-theme">
+  <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="stylesheet" href="css/app.css">
+  <script>
+    /* Tema antes del primer pintado (evita el destello blanco). */
+    (function () {
+      var mode = 'auto', dark = false;
+      try {
+        var s = JSON.parse(localStorage.getItem('mc_settings') || '{}');
+        if (s && s.theme) mode = s.theme;
+      } catch (e) { /* sin preferencias guardadas */ }
+      if (mode === 'auto') {
+        dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } else {
+        dark = mode === 'dark';
+      }
+      var root = document.documentElement;
+      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      root.setAttribute('data-theme-mode', mode);
+    })();
+  </script>
 </head>
 <body class="tab-datos">
+
+  <div class="sync-bar" id="sync-bar" aria-hidden="true"></div>
 
   <!-- ===== Masthead ===== -->
   <header id="topbar">
@@ -26,17 +47,108 @@
       <span id="sync-pill" class="sync-pill sync-off" title="Sincronización entre dispositivos">Sin cuenta</span>
       <div class="topbar-actions">
         <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar</button>
+        <button class="icon-btn" data-action="cycle-theme" aria-label="Cambiar tema" title="Claro / Oscuro / Automático"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></button>
         <button class="icon-btn" data-action="settings" aria-label="Ajustes" title="Ajustes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1 1 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
       </div>
     </div>
   </header>
 
   <main>
+    <!-- ===== Vista: panel de inicio ===== -->
+    <section id="view-inicio">
+      <div class="hero">
+        <div class="hero-inner">
+          <div class="hero-row">
+            <div>
+              <p class="kicker" id="hero-kicker">Panel general</p>
+              <h1 class="hero-title" id="hero-title">Buen día</h1>
+              <p class="hero-sub" id="hero-sub">Este es el estado de tu estudio hoy.</p>
+            </div>
+            <div class="hero-chips" id="hero-chips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="quick-grid">
+        <button class="quick" style="--i:0" data-action="new-cotizacion">
+          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg></span>
+          <span class="quick-body">
+            <span class="quick-title">Nueva cotización</span>
+            <span class="quick-desc">Propuesta lista en un minuto</span>
+          </span>
+        </button>
+        <button class="quick" style="--i:1" data-action="new-recibo">
+          <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2Z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
+          <span class="quick-body">
+            <span class="quick-title">Nuevo recibo</span>
+            <span class="quick-desc">Cobra un trabajo entregado</span>
+          </span>
+        </button>
+        <button class="quick" style="--i:2" data-action="new-cliente">
+          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="quick-body">
+            <span class="quick-title">Nuevo cliente</span>
+            <span class="quick-desc">Guárdalo para reutilizarlo</span>
+          </span>
+        </button>
+        <button class="quick" style="--i:3" data-action="new-cxp">
+          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+          <span class="quick-body">
+            <span class="quick-title">Registrar gasto</span>
+            <span class="quick-desc">Cuenta por pagar</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="panel-grid">
+        <div>
+          <div class="panel" style="--i:0">
+            <div class="panel-head">
+              <h2 class="panel-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Últimos 6 meses
+              </h2>
+            </div>
+            <div class="chart-legend">
+              <span><i class="chart-dot"></i> Facturado</span>
+              <span><i class="chart-dot accent"></i> Cobrado</span>
+            </div>
+            <div id="chart-host" class="chart"></div>
+          </div>
+
+          <div class="panel" style="--i:1">
+            <div class="panel-head">
+              <h2 class="panel-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Requiere tu atención
+              </h2>
+            </div>
+            <div id="alert-host" class="alert-list"></div>
+          </div>
+        </div>
+
+        <div class="panel" style="--i:2">
+          <div class="panel-head">
+            <h2 class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Actividad reciente
+            </h2>
+            <button class="panel-link" data-action="go-docs">Ver todo
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+          <div id="activity-host" class="act-list"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Vista: lista ===== -->
-    <section id="view-list">
+    <section id="view-list" hidden>
       <div class="list-head">
         <div>
-          <p class="kicker">01 · Archivo general</p>
+          <p class="kicker">02 · Archivo general</p>
           <h1>Documentos</h1>
         </div>
         <div class="list-head-actions">
@@ -59,12 +171,12 @@
     <section id="view-cxc" hidden>
       <div class="list-head">
         <div>
-          <p class="kicker">02 · Cuentas por cobrar</p>
+          <p class="kicker">03 · Cuentas por cobrar</p>
           <h1>Por cobrar</h1>
         </div>
         <div class="list-head-actions">
           <div class="cxc-summary">
-            <div class="summary-card">
+            <div class="summary-card summary-danger">
               <span class="summary-label">Total por cobrar</span>
               <strong id="cxc-total" class="summary-value">$0.00</strong>
             </div>
@@ -85,7 +197,7 @@
     <section id="view-cxp" hidden>
       <div class="list-head">
         <div>
-          <p class="kicker">03 · Cuentas por pagar</p>
+          <p class="kicker">04 · Cuentas por pagar</p>
           <h1>Por pagar</h1>
         </div>
         <div class="list-head-actions">
@@ -122,7 +234,7 @@
     <section id="view-clientes" hidden>
       <div class="list-head">
         <div>
-          <p class="kicker">04 · Clientes y prospectos</p>
+          <p class="kicker">05 · Clientes y prospectos</p>
           <h1>Directorio</h1>
         </div>
         <div class="list-head-actions">
@@ -174,12 +286,15 @@
     </section>
   </main>
 
-  <!-- ===== Botón flotante: abre el índice ===== -->
+  <!-- ===== Botón flotante: abre el menú ===== -->
   <button id="menu-fab" class="menu-fab" data-action="toggle-menu" aria-label="Abrir índice general" aria-expanded="false">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="15" y2="17"/></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+      <line class="ic-bar b1" x1="4" y1="9" x2="20" y2="9"/>
+      <line class="ic-bar b2" x1="4" y1="15" x2="20" y2="15"/>
+    </svg>
   </button>
 
-  <!-- ===== Menú pantalla completa: arco numerado ===== -->
+  <!-- ===== Menú pantalla completa ===== -->
   <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-label="Índice general">
     <div class="menu-head">
       <div class="menu-brand">
@@ -189,17 +304,19 @@
       <button class="icon-btn" data-action="close-menu" aria-label="Cerrar menú"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
-    <div class="menu-stage" id="menu-stage">
-      <div id="menu-arc" aria-hidden="true"></div>
-      <button class="menu-active" id="menu-active" data-action="menu-enter" title="Entrar a esta sección">
-        <span class="menu-active-num" id="menu-active-num">01</span>
-        <span class="menu-active-body">
-          <span class="menu-active-name" id="menu-active-name">Documentos</span>
-          <span class="menu-active-desc" id="menu-active-desc">Archivo general</span>
-          <span class="menu-active-meta" id="menu-active-meta"></span>
-          <span class="menu-active-hint">Entrar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
-        </span>
-      </button>
+    <div class="menu-body">
+      <nav class="menu-index" id="menu-index" aria-label="Secciones"></nav>
+
+      <aside class="menu-panel" id="menu-panel">
+        <span class="menu-panel-num" id="menu-panel-num">01</span>
+        <h2 class="menu-panel-name" id="menu-panel-name">Inicio</h2>
+        <p class="menu-panel-desc" id="menu-panel-desc">Tu panel general.</p>
+        <div class="menu-panel-stats" id="menu-panel-stats"></div>
+        <button class="menu-enter" data-action="menu-enter" id="menu-enter">
+          <span id="menu-enter-label">Entrar</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </aside>
     </div>
 
     <div class="menu-foot">

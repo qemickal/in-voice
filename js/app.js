@@ -31,6 +31,7 @@
     web: 'www.monocromatyco.com',
     ciudad: 'CDMX',
     iva: 16,
+    theme: 'auto',   // 'auto' | 'light' | 'dark'
     pagos: { cuenta: '', clabe: '', beneficiario: '', banco: '' },
     condiciones: 'Entrega de 7 a 10 días hábiles después de confirmar el pago.',
     // Formato "Título: texto" por línea (el PDF resalta el título en negrita)
@@ -63,8 +64,8 @@
   let cliFilter = 'todos';  // 'todos' | 'cliente' | 'prospecto'
   let cliQuery = '';
   let cliModalTipo = 'cliente'; // tipo seleccionado en el modal de contacto
-  let mainView = 'docs';  // 'docs' | 'cxc' | 'cxp' | 'clientes'
-  let previousView = 'docs'; // vista antes de entrar al editor
+  let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes'
+  let previousView = 'inicio'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
   let cxcQuery = '';
@@ -136,12 +137,7 @@
 
   /* ================= LISTA ================= */
   function showList() {
-    $('#view-list').hidden = false;
-    $('#view-editor').hidden = true;
-    $('#topbar').classList.remove('hidden');
-    document.body.classList.remove('in-editor');
-    closeMenu();
-    renderList();
+    switchMainView('inicio');
   }
 
   function renderList() {
@@ -170,13 +166,13 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map((d) => {
+    wrap.innerHTML = filtered.map((d, i) => {
       const t = computeTotals(d);
       const stamp = d.tipo === 'cotizacion'
         ? '<span class="pill ghost">Cotización</span>'
         : '<span class="pill solid">Recibo</span>';
       return `
-      <div class="card">
+      <div class="card" style="--i:${Math.min(i, 14)}">
         <div class="card-top">
           ${stamp}
           <span class="card-num">${esc(d.numero)}</span>
@@ -199,9 +195,10 @@
     refreshMenuCounts();
   }
 
-  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ARCO ================= */
+  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
   function switchMainView(view) {
     mainView = view;
+    $('#view-inicio').hidden = view !== 'inicio';
     $('#view-list').hidden = view !== 'docs';
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
@@ -210,6 +207,7 @@
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
     closeMenu();
+    if (view === 'inicio') renderInicio();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
     if (view === 'cxp') renderCxP();
@@ -217,70 +215,124 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- Menú pantalla completa: arco numerado ----------
-     Cinco posiciones fijas sobre un arco; el elemento activo se
-     muestra grande al centro con su descripción. Tocar un número
-     del arco lo activa; tocar el bloque grande entra a la vista. */
+  /* ---------- Menú pantalla completa ----------
+     Índice numerado a la izquierda + ficha lateral con las cifras
+     vivas de la sección activa. Tocar una fila entra directo. */
   const MENU_VIEWS = [
-    { view: 'docs',     num: '01', name: 'Documentos',    desc: 'Recibos y cotizaciones del archivo.' },
-    { view: 'cxc',      num: '02', name: 'Por cobrar',    desc: 'Saldos pendientes de tus clientes.' },
-    { view: 'cxp',      num: '03', name: 'Por pagar',     desc: 'Gastos y facturas por liquidar.' },
-    { view: 'clientes', num: '04', name: 'Clientes',      desc: 'Directorio de clientes y prospectos.' },
-    { view: 'logout',   num: '05', name: 'Cerrar sesión', desc: 'Sincronización entre dispositivos.' }
+    { view: 'inicio',   num: '01', name: 'Inicio',          desc: 'El estado de tu estudio de un vistazo: por cobrar, por pagar y actividad reciente.' },
+    { view: 'docs',     num: '02', name: 'Documentos',      desc: 'Todo tu archivo de recibos y cotizaciones, listo para editar, duplicar o imprimir.' },
+    { view: 'cxc',      num: '03', name: 'Por cobrar',      desc: 'Saldos pendientes agrupados por cliente, con el avance de cada cobro.' },
+    { view: 'cxp',      num: '04', name: 'Por pagar',       desc: 'Gastos y facturas por liquidar, con abonos parciales y avisos de vencimiento.' },
+    { view: 'clientes', num: '05', name: 'Clientes',        desc: 'Directorio de clientes y prospectos con su estado de seguimiento.' },
+    { view: 'logout',   num: '06', name: 'Cerrar sesión',   desc: 'Corta la sincronización en este dispositivo. Tus datos locales no se borran.' }
   ];
-  let menuActive = 'docs';
+  let menuActive = 'inicio';
+
+  function cxpStats() {
+    var pendientes = 0, total = 0;
+    cuentasXPagar.forEach(function (x) {
+      var ab = (x.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      var saldo = (Number(x.monto) || 0) - ab;
+      if (saldo > 0.005) { pendientes++; total += saldo; }
+    });
+    return { pendientes: pendientes, total: total };
+  }
 
   function menuMeta(view) {
     switch (view) {
+      case 'inicio': {
+        var c = getCxCData().reduce(function (s, x) { return s + x.saldoTotal; }, 0);
+        return window.fmtMoney(c) + ' por cobrar';
+      }
       case 'docs': return docs.length + (docs.length === 1 ? ' documento' : ' documentos');
       case 'cxc': return getCxCData().length + ' clientes con saldo';
-      case 'cxp': {
-        var pen = 0;
-        cuentasXPagar.forEach(function (x) {
-          var ab = (x.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
-          if (x.monto - ab > 0.005) pen++;
-        });
-        return pen + ' pendientes';
-      }
+      case 'cxp': return cxpStats().pendientes + ' pendientes';
       case 'clientes': return clientes.length + (clientes.length === 1 ? ' contacto' : ' contactos');
       case 'logout': return (window.SYNC && window.SYNC.accountEmail()) || 'sin cuenta';
     }
     return '';
   }
 
-  function renderMenuArc() {
-    const stage = $('#menu-stage');
-    const arc = $('#menu-arc');
-    if (!stage || !arc) return;
-    const W = stage.clientWidth, H = stage.clientHeight;
-    const R = Math.max(H * 0.62, 300);
-    const ax = W * 0.30;
-    const cx = ax - R, cy = H * 0.5;
-    const angles = [-52, -26, 0, 26, 52];
-
-    let h = '<div class="menu-circle" style="left:' + cx.toFixed(1) + 'px;top:' + (cy - R).toFixed(1) + 'px;width:' + (2 * R).toFixed(1) + 'px;height:' + (2 * R).toFixed(1) + 'px"></div>';
-    MENU_VIEWS.forEach(function (v, i) {
-      const a = angles[i] * Math.PI / 180;
-      const x = (cx + R * Math.cos(a)).toFixed(1);
-      const y = (cy + R * Math.sin(a)).toFixed(1);
-      h += '<span class="menu-dot' + (v.view === menuActive ? ' on' : '') + '" style="left:' + x + 'px;top:' + y + 'px"></span>';
-      h += '<button class="menu-arcnum' + (v.view === menuActive ? ' off' : '') + '"'
-        + ' data-menu-view="' + v.view + '"'
-        + ' style="left:' + x + 'px;top:' + y + 'px;--rot:' + angles[i] + 'deg"'
-        + ' aria-label="' + v.name + '">' + v.num + '</button>';
-    });
-    arc.innerHTML = h;
-    stage.style.setProperty('--ax', Math.round(ax + 56) + 'px');
+  /* Cifras grandes de la ficha lateral */
+  function menuStats(view) {
+    var cxcTotal = getCxCData().reduce(function (s, x) { return s + x.saldoTotal; }, 0);
+    switch (view) {
+      case 'inicio': return [
+        { n: window.fmtMoney(cxcTotal), l: 'Por cobrar' },
+        { n: window.fmtMoney(cxpStats().total), l: 'Por pagar' },
+        { n: String(docs.length), l: 'Documentos' }
+      ];
+      case 'docs': {
+        var r = docs.filter(function (d) { return d.tipo !== 'cotizacion'; }).length;
+        return [
+          { n: String(r), l: 'Recibos' },
+          { n: String(docs.length - r), l: 'Cotizaciones' },
+          { n: String(docs.length), l: 'Total' }
+        ];
+      }
+      case 'cxc': {
+        var d0 = getCxCData();
+        var nDocs = d0.reduce(function (s, x) { return s + x.docs.length; }, 0);
+        return [
+          { n: window.fmtMoney(cxcTotal), l: 'Pendiente' },
+          { n: String(d0.length), l: 'Clientes' },
+          { n: String(nDocs), l: 'Documentos' }
+        ];
+      }
+      case 'cxp': {
+        var st = cxpStats();
+        var pagadas = cuentasXPagar.length - st.pendientes;
+        return [
+          { n: window.fmtMoney(st.total), l: 'Por pagar' },
+          { n: String(st.pendientes), l: 'Pendientes' },
+          { n: String(pagadas), l: 'Pagadas' }
+        ];
+      }
+      case 'clientes': {
+        var pros = clientes.filter(function (c) { return cliTipo(c) === 'prospecto'; }).length;
+        return [
+          { n: String(clientes.length - pros), l: 'Clientes' },
+          { n: String(pros), l: 'Prospectos' },
+          { n: String(clientes.length), l: 'Total' }
+        ];
+      }
+      case 'logout': return [{ n: (window.SYNC && window.SYNC.accountEmail()) || '—', l: 'Cuenta' }];
+    }
+    return [];
   }
 
-  function renderMenuActive(animate) {
+  function renderMenuIndex() {
+    const host = $('#menu-index');
+    if (!host) return;
+    host.innerHTML = MENU_VIEWS.map(function (v, i) {
+      return '<button class="menu-row' + (v.view === menuActive ? ' on' : '') + '"'
+        + ' style="--i:' + i + '" data-action="menu-enter" data-menu-view="' + v.view + '"'
+        + ' aria-current="' + (v.view === menuActive ? 'true' : 'false') + '">'
+        + '<span class="menu-row-num">' + v.num + '</span>'
+        + '<span class="menu-row-body">'
+        + '<span class="menu-row-name">' + v.name + '</span>'
+        + '<span class="menu-row-desc">' + menuMeta(v.view) + '</span>'
+        + '</span>'
+        + '<span class="menu-row-side">'
+        + '<span class="menu-row-meta">' + menuMeta(v.view) + '</span>'
+        + '<span class="menu-row-go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>'
+        + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  function renderMenuPanel(animate) {
     const v = MENU_VIEWS.find(function (x) { return x.view === menuActive; }) || MENU_VIEWS[0];
-    $('#menu-active-num').textContent = v.num;
-    $('#menu-active-name').textContent = v.name;
-    $('#menu-active-desc').textContent = v.desc;
-    $('#menu-active-meta').textContent = menuMeta(v.view);
+    $('#menu-panel-num').textContent = v.num;
+    $('#menu-panel-name').textContent = v.name;
+    $('#menu-panel-desc').textContent = v.desc;
+    $('#menu-panel-stats').innerHTML = menuStats(v.view).map(function (s) {
+      return '<div class="menu-panel-stat"><b>' + s.n + '</b><span>' + s.l + '</span></div>';
+    }).join('');
+    const go = $('#menu-enter-label');
+    if (go) go.textContent = v.view === 'logout' ? 'Cerrar sesión' : 'Entrar a ' + v.name.toLowerCase();
     if (animate) {
-      const el = $('#menu-active');
+      const el = $('#menu-panel');
       el.classList.remove('swap');
       void el.offsetWidth;
       el.classList.add('swap');
@@ -290,34 +342,429 @@
   function setMenuActive(view) {
     if (view === menuActive) return;
     menuActive = view;
-    renderMenuArc();
-    renderMenuActive(true);
+    $$('#menu-index .menu-row').forEach(function (r) {
+      const on = r.dataset.menuView === view;
+      r.classList.toggle('on', on);
+      r.setAttribute('aria-current', on ? 'true' : 'false');
+    });
+    renderMenuPanel(true);
   }
 
   function refreshMenuCounts() {
     if ($('#menu-overlay').classList.contains('open')) {
-      renderMenuArc();
-      renderMenuActive(false);
+      renderMenuIndex();
+      renderMenuPanel(false);
     }
   }
 
   function openMenu() {
     menuActive = mainView;
     $('#menu-overlay').classList.add('open');
+    document.body.classList.add('menu-open');
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
-    renderMenuArc();
-    renderMenuActive(true);
+    renderMenuIndex();
+    renderMenuPanel(true);
+    const first = $('#menu-index .menu-row.on') || $('#menu-index .menu-row');
+    if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
   }
 
   function closeMenu() {
     var o = $('#menu-overlay');
     if (!o || !o.classList.contains('open')) return;
     o.classList.remove('open');
+    document.body.classList.remove('menu-open');
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
+  }
+
+  /* ================= TEMA (claro / oscuro / automático) ================= */
+  const THEME_MODES = ['auto', 'light', 'dark'];
+  const THEME_LABEL = { auto: 'Automático', light: 'Claro', dark: 'Oscuro' };
+
+  function currentThemeMode() {
+    return THEME_MODES.indexOf(settings.theme) >= 0 ? settings.theme : 'auto';
+  }
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function applyTheme(mode) {
+    const m = THEME_MODES.indexOf(mode) >= 0 ? mode : 'auto';
+    const dark = m === 'dark' || (m === 'auto' && systemPrefersDark());
+    const root = document.documentElement;
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    root.setAttribute('data-theme-mode', m);
+    const meta = $('#meta-theme');
+    if (meta) meta.setAttribute('content', dark ? '#0a0e1a' : '#eef1f8');
+    const btn = document.querySelector('[data-action="cycle-theme"]');
+    if (btn) btn.setAttribute('title', 'Tema: ' + THEME_LABEL[m] + (m === 'auto' ? ' (según tu sistema)' : '') + ' · clic para cambiar');
+  }
+  function saveTheme(mode) {
+    settings.theme = mode;
+    settings.updatedAt = Date.now();
+    storeSet('mc_settings', settings);
+    applyTheme(mode);
+  }
+  function cycleTheme() {
+    const m = currentThemeMode();
+    const next = m === 'auto' ? 'light' : (m === 'light' ? 'dark' : 'auto');
+    saveTheme(next);
+    toast('Tema: ' + THEME_LABEL[next]);
+  }
+
+  /* ================= PANEL DE INICIO ================= */
+  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  function monthKeyOf(iso) { return String(iso || '').slice(0, 7); }
+  function lastMonths(n) {
+    const out = [];
+    const now = new Date();
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push({
+        key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
+        label: MESES[d.getMonth()],
+        year: d.getFullYear()
+      });
+    }
+    return out;
+  }
+  function relTime(ts) {
+    if (!ts) return '';
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'ahora';
+    if (mins < 60) return 'hace ' + mins + ' min';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return 'hace ' + hours + ' h';
+    const days = Math.floor(hours / 24);
+    if (days < 7) return 'hace ' + days + ' d';
+    const d = new Date(ts);
+    return d.getDate() + ' ' + MESES[d.getMonth()];
+  }
+  function daysBetween(isoA, isoB) {
+    const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
+    if (isNaN(a) || isNaN(b)) return 0;
+    return Math.round((a - b) / 86400000);
+  }
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function countUp(el, to, money) {
+    if (!el) return;
+    const val = Number(to) || 0;
+    const show = (v) => { el.textContent = money ? window.fmtMoney(v) : String(Math.round(v)); };
+    if (prefersReducedMotion() || !val || typeof requestAnimationFrame !== 'function') {
+      show(val);
+      return;
+    }
+    const dur = 680, t0 = performance.now();
+    let done = false;
+    // red de seguridad: el número final siempre acaba pintado
+    const finish = () => { if (!done) { done = true; show(val); } };
+    function step(t) {
+      if (done) return;
+      const k = Math.min(1, (t - t0) / dur);
+      show(val * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step); else finish();
+    }
+    requestAnimationFrame(step);
+    setTimeout(finish, dur + 250);
+  }
+
+  /* Resumen mensual: facturado y cobrado de los últimos N meses */
+  function monthlySeries(n) {
+    const months = lastMonths(n);
+    const idx = {};
+    months.forEach(function (m, i) { idx[m.key] = i; });
+    const facturado = months.map(function () { return 0; });
+    const cobrado = months.map(function () { return 0; });
+
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      const k = monthKeyOf(d.fecha || '');
+      if (k in idx) facturado[idx[k]] += t.total;
+      (d.abonos || []).forEach(function (a) {
+        const ak = monthKeyOf(a.fecha || d.fecha || '');
+        if (ak in idx) cobrado[idx[ak]] += (Number(a.monto) || 0);
+      });
+    });
+    return { months: months, facturado: facturado, cobrado: cobrado };
+  }
+
+  function buildChart(series) {
+    const fact = series.facturado, cob = series.cobrado;
+    const maxV = Math.max.apply(null, fact.concat(cob).concat([1]));
+    const W = 540, H = 196, padL = 6, padR = 6, padT = 16, padB = 28;
+    const plotH = H - padT - padB;
+    const groupW = (W - padL - padR) / fact.length;
+    const barW = Math.min(22, groupW * 0.28);
+    const step = 3;
+
+    // La retícula es sólo referencia visual: basta con dejar un 12% de aire
+    const top = maxV * 1.12;
+
+    let g = '';
+    // retícula
+    for (let i = 1; i <= step; i++) {
+      const y = padT + plotH - (plotH * i / step);
+      g += '<line class="chart-grid" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"/>';
+    }
+    let bars = '', labels = '';
+    series.months.forEach(function (m, i) {
+      const cx = padL + groupW * i + groupW / 2;
+      [[fact[i], '', -1], [cob[i], ' cobrado', 1]].forEach(function (pair) {
+        const v = pair[0], mod = pair[1], side = pair[2];
+        const h = top > 0 ? Math.max(v > 0 ? 3 : 0, (v / top) * plotH) : 0;
+        const x = cx + (side < 0 ? -barW - 1.5 : 1.5);
+        const y = padT + plotH - h;
+        bars += '<rect class="chart-bar' + mod + '" style="--i:' + (i * 2 + (side < 0 ? 0 : 1)) + '"'
+          + ' x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '"></rect>';
+      });
+      labels += '<text class="chart-label" x="' + cx.toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + m.label + '</text>';
+    });
+    return '<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Facturado y cobrado de los últimos 6 meses">'
+      + g + bars + labels + '</svg>';
+  }
+
+  function statCardHtml(o) {
+    return '<div class="stat-card tone-' + (o.tone || 'brand') + '" style="--i:' + (o.i || 0) + '">'
+      + '<div class="stat-head"><span class="stat-ico">' + o.icon + '</span>'
+      + '<span class="stat-label">' + o.label + '</span></div>'
+      + '<div class="stat-value" data-count="' + o.value + '" data-money="' + (o.money ? 1 : 0) + '">'
+      + (o.money ? window.fmtMoney(0) : '0') + '</div>'
+      + '<div class="stat-foot">' + (o.foot || '') + '</div>'
+      + '</div>';
+  }
+
+  function renderInicio() {
+    const host = $('#stat-grid');
+    if (!host) return;
+
+    const cxcData = getCxCData();
+    const cxcTotal = cxcData.reduce(function (s, c) { return s + c.saldoTotal; }, 0);
+    const cxp = cxpStats();
+    const series = monthlySeries(6);
+    const last = series.months.length - 1;
+    const prev = series.months.length - 2;
+
+    const factMes = series.facturado[last];
+    const factPrev = series.facturado[prev];
+    const cobMes = series.cobrado[last];
+    const cobPrev = series.cobrado[prev];
+
+    /* ---------- Encabezado ---------- */
+    const now = new Date();
+    const hoy = window.todayISO();
+    $('#hero-kicker').textContent = DIAS_LARGOS[now.getDay()] + ', ' + now.getDate() + ' de ' + MESES_LARGOS[now.getMonth()] + ' de ' + now.getFullYear();
+    const h = now.getHours();
+    $('#hero-title').textContent = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+
+    const saldados = docs.filter(function (d) { return computeTotals(d).pagado; }).length;
+    let sub;
+    if (!docs.length && !cuentasXPagar.length && !clientes.length) {
+      sub = 'Aún no hay nada registrado. Crea tu primer recibo o cotización y el panel se llena solo.';
+    } else if (cxcTotal > 0 && cxp.total > 0) {
+      sub = 'Tienes ' + window.fmtMoney(cxcTotal) + ' por cobrar de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' y ' + window.fmtMoney(cxp.total) + ' por pagar.';
+    } else if (cxcTotal > 0) {
+      sub = 'Tienes ' + window.fmtMoney(cxcTotal) + ' por cobrar de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + '. Nada pendiente de pago.';
+    } else if (cxp.total > 0) {
+      sub = 'Estás al día con tus cobros. Quedan ' + window.fmtMoney(cxp.total) + ' por pagar.';
+    } else {
+      sub = 'Todo en orden: sin saldos por cobrar ni por pagar. Buen momento para prospectar.';
+    }
+    $('#hero-sub').textContent = sub;
+
+    const vencidasCxp = cuentasXPagar.filter(function (c) {
+      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      return c.vencimiento && c.vencimiento < hoy && ((Number(c.monto) || 0) - ab) > 0.005;
+    }).length;
+
+    $('#hero-chips').innerHTML = [
+      '<span class="hero-chip"><b>' + window.fmtMoney(cxcTotal) + '</b> por cobrar</span>',
+      '<span class="hero-chip"><b>' + window.fmtMoney(cxp.total) + '</b> por pagar</span>',
+      '<span class="hero-chip"><b>' + docs.length + '</b> documentos</span>',
+      vencidasCxp
+        ? '<span class="hero-chip"><b>' + vencidasCxp + '</b> pago' + (vencidasCxp !== 1 ? 's' : '') + ' vencido' + (vencidasCxp !== 1 ? 's' : '') + '</span>'
+        : '<span class="hero-chip is-ok">Al día</span>'
+    ].join('');
+
+    /* ---------- Indicadores ---------- */
+    function delta(actual, anterior) {
+      // A comienzos de mes todavía no hay movimientos: no tiene sentido
+      // pintar un −100% en rojo, así que se avisa en tono neutro.
+      if (actual <= 0) return '<span class="stat-delta flat">sin movimientos aún</span>';
+      if (anterior <= 0) return '<span class="stat-delta up">nuevo</span>';
+      const pct = ((actual - anterior) / anterior) * 100;
+      if (Math.abs(pct) < 1) return '<span class="stat-delta flat">= igual que el mes pasado</span>';
+      const up = pct > 0;
+      const arrow = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'
+        + (up ? '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>'
+              : '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>')
+        + '</svg>';
+      return '<span class="stat-delta ' + (up ? 'up' : 'down') + '">' + arrow + Math.abs(Math.round(pct)) + '%</span>'
+        + '<span>vs. mes pasado</span>';
+    }
+
+    const ICONO = {
+      cobrar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>',
+      pagar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      factura: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="13" y2="18"/></svg>',
+      cobrado: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+    };
+
+    host.innerHTML =
+      statCardHtml({
+        i: 0, tone: 'brand', icon: ICONO.cobrar, label: 'Por cobrar',
+        value: cxcTotal, money: true,
+        foot: cxcData.length
+          ? '<span>' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' con saldo</span>'
+          : '<span>Sin saldos pendientes</span>'
+      }) +
+      statCardHtml({
+        i: 1, tone: 'warn', icon: ICONO.pagar, label: 'Por pagar',
+        value: cxp.total, money: true,
+        foot: '<span>' + cxp.pendientes + ' pendiente' + (cxp.pendientes !== 1 ? 's' : '') + '</span>'
+          + (vencidasCxp ? ' · <span style="color:var(--danger);font-weight:700">' + vencidasCxp + ' vencida' + (vencidasCxp !== 1 ? 's' : '') + '</span>' : '')
+      }) +
+      statCardHtml({
+        i: 2, tone: 'accent', icon: ICONO.factura, label: 'Facturado · ' + MESES_LARGOS[now.getMonth()],
+        value: factMes, money: true, foot: delta(factMes, factPrev)
+      }) +
+      statCardHtml({
+        i: 3, tone: 'ok', icon: ICONO.cobrado, label: 'Cobrado · ' + MESES_LARGOS[now.getMonth()],
+        value: cobMes, money: true,
+        foot: delta(cobMes, cobPrev) + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : '')
+      });
+
+    $$('#stat-grid .stat-value').forEach(function (el) {
+      countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
+    });
+
+    /* ---------- Gráfica ---------- */
+    const chartHost = $('#chart-host');
+    const hayDatos = series.facturado.some(function (v) { return v > 0; }) || series.cobrado.some(function (v) { return v > 0; });
+    chartHost.innerHTML = hayDatos
+      ? buildChart(series)
+      : '<div class="chart-empty">'
+        + '<p style="margin:0">Todavía no hay movimientos en los últimos 6 meses.</p>'
+        + '<span class="hint">Los montos de tus documentos aparecerán aquí.</span></div>';
+
+    /* ---------- Alertas ---------- */
+    const alerts = [];
+    cuentasXPagar.forEach(function (c) {
+      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      const saldo = (Number(c.monto) || 0) - ab;
+      if (saldo <= 0.005) return;
+      if (c.vencimiento && c.vencimiento < hoy) {
+        const d = Math.abs(daysBetween(hoy, c.vencimiento));
+        alerts.push({
+          tone: 'danger', action: 'edit-cxp', id: c.id,
+          title: 'Pago vencido: ' + (c.proveedor || 'sin proveedor'),
+          desc: 'Venció hace ' + d + ' día' + (d !== 1 ? 's' : '') + ' · ' + window.fmtDate(c.vencimiento),
+          amt: window.fmtMoney(saldo)
+        });
+      } else if (c.vencimiento) {
+        const d = daysBetween(c.vencimiento, hoy);
+        if (d <= 7) {
+          alerts.push({
+            tone: 'warn', action: 'edit-cxp', id: c.id,
+            title: 'Por vencer: ' + (c.proveedor || 'sin proveedor'),
+            desc: d === 0 ? 'Vence hoy' : 'Vence en ' + d + ' día' + (d !== 1 ? 's' : ''),
+            amt: window.fmtMoney(saldo)
+          });
+        }
+      }
+    });
+
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      if (t.total <= 0 || t.porPagar <= 0.005) return;
+      const antig = d.fecha ? daysBetween(hoy, d.fecha) : 0;
+      if (antig >= 30) {
+        alerts.push({
+          tone: 'info', action: 'edit', id: d.id,
+          title: 'Saldo con ' + antig + ' días: ' + (d.proyecto || d.numero || 'documento'),
+          desc: (d.representante || 'Sin cliente') + ' · ' + window.fmtMoney(t.porPagar) + ' pendiente de ' + window.fmtMoney(t.total),
+          amt: window.fmtDate(d.fecha)
+        });
+      }
+      if (d.tipo === 'cotizacion' && d.vigencia && d.vigencia < hoy && !t.pagado) {
+        alerts.push({
+          tone: 'warn', action: 'edit', id: d.id,
+          title: 'Cotización vencida: ' + d.numero,
+          desc: 'La vigencia terminó el ' + window.fmtDate(d.vigencia) + ' · ' + (d.representante || 'sin cliente'),
+          amt: window.fmtMoney(t.total)
+        });
+      }
+    });
+
+    const ALERT_ICON = {
+      danger: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+      warn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+      info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+      ok: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    };
+    const order = { danger: 0, warn: 1, info: 2 };
+    alerts.sort(function (a, b) { return order[a.tone] - order[b.tone]; });
+
+    $('#alert-host').innerHTML = alerts.length
+      ? alerts.slice(0, 6).map(function (a) {
+          return '<button class="alert ' + a.tone + '" data-action="' + a.action + '" data-id="' + a.id + '">'
+            + '<span class="alert-ico">' + ALERT_ICON[a.tone] + '</span>'
+            + '<span class="alert-body"><span class="alert-title">' + esc(a.title) + '</span>'
+            + '<span class="alert-desc">' + esc(a.desc) + '</span></span>'
+            + '<span class="alert-amt">' + esc(a.amt) + '</span>'
+            + '</button>';
+        }).join('')
+      : '<div class="alert ok"><span class="alert-ico">' + ALERT_ICON.ok + '</span>'
+        + '<span class="alert-body"><span class="alert-title">Todo en orden</span>'
+        + '<span class="alert-desc">No hay vencimientos ni saldos que reclamen tu atención.</span></span></div>';
+
+    /* ---------- Actividad reciente ---------- */
+    const act = [];
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      act.push({
+        ts: d.updatedAt || d.createdAt || 0,
+        action: 'edit', id: d.id,
+        cot: d.tipo === 'cotizacion',
+        title: d.proyecto || d.numero || 'Documento',
+        meta: (d.representante || 'Sin cliente') + ' · ' + (d.tipo === 'cotizacion' ? 'Cotización' : 'Recibo') + ' ' + (d.numero || ''),
+        amt: window.fmtMoney(t.total)
+      });
+    });
+    cuentasXPagar.forEach(function (c) {
+      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      const saldo = (Number(c.monto) || 0) - ab;
+      act.push({
+        ts: c.updatedAt || c.createdAt || 0,
+        action: 'edit-cxp', id: c.id,
+        cot: true,
+        title: c.proveedor || 'Cuenta por pagar',
+        meta: (c.concepto || 'Gasto') + ' · ' + (saldo <= 0.005 ? 'Pagada' : 'Por pagar'),
+        amt: window.fmtMoney(saldo <= 0.005 ? (Number(c.monto) || 0) : saldo)
+      });
+    });
+    act.sort(function (a, b) { return b.ts - a.ts; });
+
+    const ACT_ICON_DOC = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+    const ACT_ICON_COT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>';
+
+    $('#activity-host').innerHTML = act.length
+      ? act.slice(0, 6).map(function (a) {
+          return '<button class="act" data-action="' + a.action + '" data-id="' + a.id + '">'
+            + '<span class="act-ico' + (a.cot ? ' cot' : '') + '">' + (a.cot ? ACT_ICON_COT : ACT_ICON_DOC) + '</span>'
+            + '<span class="act-body"><span class="act-title">' + esc(a.title) + '</span>'
+            + '<span class="act-meta">' + esc(a.meta) + '</span></span>'
+            + '<span class="act-amt">' + esc(a.amt) + '<small>' + relTime(a.ts) + '</small></span>'
+            + '</button>';
+        }).join('')
+      : '<div class="chart-empty"><p style="margin:0">Sin movimientos todavía.</p>'
+        + '<span class="hint">Aquí verás lo último que edites.</span></div>';
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -378,7 +825,7 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c) {
+    wrap.innerHTML = filtered.map(function(c, ci) {
       var docsHtml = c.docs.map(function(d) {
         var badge = d.tipo === 'cotizacion'
           ? '<span class="pill mini ghost">COT</span>'
@@ -395,7 +842,7 @@
       var pctTotal = c.docs.reduce(function(s, d) { return s + d.total; }, 0);
       var pct = pctTotal > 0 ? Math.min(100, (pctGlobal / pctTotal) * 100) : 0;
 
-      return '<div class="card-cxc" data-cliente="' + esc(c.cliente) + '">'
+      return '<div class="card-cxc" style="--i:' + Math.min(ci, 14) + '" data-cliente="' + esc(c.cliente) + '">'
         + '<div class="card-top">'
         + '<span class="pill mini warn">Pendiente</span>'
         + '<div class="card-title">' + esc(c.cliente) + '</div>'
@@ -468,7 +915,7 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c) {
+    wrap.innerHTML = filtered.map(function(c, ci) {
       var abonosTotal = (c.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
       var saldo = c.monto - abonosTotal;
       var status, statusClass, statusPill;
@@ -484,7 +931,7 @@
         servicios: 'Servicios', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro'
       };
 
-      return '<div class="card-cxp ' + statusClass + '">'
+      return '<div class="card-cxp ' + statusClass + '" style="--i:' + Math.min(ci, 14) + '">'
         + '<div class="card-top">'
         + '<span class="pill mini ' + statusPill + '">' + status + '</span>'
         + '<span class="card-categoria">' + (catLabels[c.categoria] || c.categoria) + '</span>'
@@ -646,7 +1093,7 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c) {
+    wrap.innerHTML = filtered.map(function(c, ci) {
       const tipo = cliTipo(c);
       const stamp = tipo === 'prospecto'
         ? '<span class="pill ghost">Prospecto</span>'
@@ -656,7 +1103,7 @@
         : '';
       const contacto = [c.email, c.telefono].filter(Boolean).map(esc).join(' · ');
       return `
-      <div class="card card-cli">
+      <div class="card card-cli" style="--i:${Math.min(ci, 14)}">
         <div class="card-top">
           ${stamp}${estado}
           <span class="card-date">${fmtCliFecha(c.updatedAt)}</span>
@@ -747,9 +1194,11 @@
     }
     selectedClientId = match ? match.id : null;
     previousView = mainView;
+    $('#view-inicio').hidden = true;
     $('#view-list').hidden = true;
     $('#view-cxc').hidden = true;
     $('#view-cxp').hidden = true;
+    $('#view-clientes').hidden = true;
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
     document.body.classList.add('in-editor');
@@ -1043,7 +1492,8 @@
     docs = docs.filter((x) => x.id !== id);
     storeSet('mc_docs', docs);
     if (window.SYNC) window.SYNC.tombstone('docs', id);
-    showList();
+    switchMainView(mainView);
+    toast('Documento eliminado');
   }
 
   function printDoc() {
@@ -1134,7 +1584,18 @@
   /* ---------------- Ajustes ---------------- */
   function openSettings() {
     const s = settings;
+    const modo = currentThemeMode();
     $('#settings-body').innerHTML = `
+      <h3 style="margin-top:0">Apariencia</h3>
+      <div class="theme-pick">
+        ${THEME_MODES.map((m) => `
+          <button type="button" class="theme-opt ${modo === m ? 'on' : ''}" data-action="set-theme" data-theme-mode="${m}">
+            <span class="theme-swatch ${m}"></span>
+            <span class="theme-opt-name">${THEME_LABEL[m]}</span>
+            <span class="theme-opt-desc">${m === 'auto' ? 'Sigue a tu sistema' : m === 'light' ? 'Siempre claro' : 'Siempre oscuro'}</span>
+          </button>`).join('')}
+      </div>
+      <h3>Datos del estudio</h3>
       <div class="sgrid">
         <label>Empresa (línea 1)
           <input id="s-empresa" type="text" value="${esc(s.empresa)}"></label>
@@ -1228,7 +1689,9 @@
           const copy = JSON.parse(JSON.stringify(src));
           copy.id = window.uid(); copy.numero = nextNumero(src.tipo);
           copy.createdAt = copy.updatedAt = Date.now();
-          docs.push(copy); storeSet('mc_docs', docs); renderList();
+          docs.push(copy); storeSet('mc_docs', docs);
+          switchMainView(mainView);
+          toast('Documento duplicado ✓');
         }
         break;
       }
@@ -1311,6 +1774,15 @@
       }
       case 'settings': openSettings(); break;
       case 'save-settings': saveSettings(); break;
+      case 'cycle-theme': cycleTheme(); break;
+      case 'set-theme': {
+        saveTheme(btn.dataset.themeMode);
+        $$('.theme-opt').forEach(function (o) {
+          o.classList.toggle('on', o.dataset.themeMode === currentThemeMode());
+        });
+        break;
+      }
+      case 'go-docs': switchMainView('docs'); break;
       case 'close-settings': $('#modal-settings').classList.remove('open'); break;
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
@@ -1323,15 +1795,17 @@
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
 
-      /* --- Menú pantalla completa (arco) --- */
+      /* --- Menú pantalla completa --- */
       case 'toggle-menu':
         if ($('#menu-overlay').classList.contains('open')) closeMenu(); else openMenu();
         break;
       case 'close-menu': closeMenu(); break;
-      case 'menu-enter':
-        if (menuActive === 'logout') { closeMenu(); if (window.SYNC) window.SYNC.logout(); }
-        else switchMainView(menuActive);
+      case 'menu-enter': {
+        const target = btn.dataset.menuView || menuActive;
+        if (target === 'logout') { closeMenu(); if (window.SYNC) window.SYNC.logout(); }
+        else switchMainView(target);
         break;
+      }
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -1448,8 +1922,12 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Menú pantalla completa: tocar un número del arco lo activa
-  $('#menu-overlay').addEventListener('click', function(e) {
+  // Menú: al pasar el cursor o enfocar una fila se adelanta la ficha lateral
+  $('#menu-overlay').addEventListener('pointerover', function(e) {
+    var b = e.target.closest('[data-menu-view]');
+    if (b && !b.classList.contains('on')) setMenuActive(b.dataset.menuView);
+  });
+  $('#menu-overlay').addEventListener('focusin', function(e) {
     var b = e.target.closest('[data-menu-view]');
     if (b) setMenuActive(b.dataset.menuView);
   });
@@ -1460,12 +1938,18 @@
     var i = MENU_VIEWS.findIndex(function (v) { return v.view === menuActive; });
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();
-      setMenuActive(MENU_VIEWS[(i + 1) % MENU_VIEWS.length].view);
+      moveMenuFocus((i + 1) % MENU_VIEWS.length);
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
       e.preventDefault();
-      setMenuActive(MENU_VIEWS[(i - 1 + MENU_VIEWS.length) % MENU_VIEWS.length].view);
+      moveMenuFocus((i - 1 + MENU_VIEWS.length) % MENU_VIEWS.length);
     }
   });
+
+  function moveMenuFocus(i) {
+    setMenuActive(MENU_VIEWS[i].view);
+    var row = $('#menu-index .menu-row.on');
+    if (row) { try { row.focus({ preventScroll: true }); } catch (err) { row.focus(); } }
+  }
 
   // Búsqueda CxC
   var searchCxc = $('#search-cxc');
@@ -1495,8 +1979,38 @@
 
   window.addEventListener('resize', () => {
     if (!$('#view-editor').hidden) autoscale();
-    if ($('#menu-overlay').classList.contains('open')) renderMenuArc();
   });
+
+  // El tema «automático» reacciona al cambio de preferencia del sistema
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onScheme = () => { if (currentThemeMode() === 'auto') applyTheme('auto'); };
+    if (mq.addEventListener) mq.addEventListener('change', onScheme);
+    else if (mq.addListener) mq.addListener(onScheme);
+  }
+
+  /* Barra superior de sincronización: refleja el estado de la píldora */
+  (function watchSync() {
+    const pill = $('#sync-pill');
+    const bar = $('#sync-bar');
+    if (!pill || !bar) return;
+    let doneTimer = null;
+    function paint() {
+      const busy = pill.classList.contains('sync-busy');
+      const err = pill.classList.contains('sync-err');
+      clearTimeout(doneTimer);
+      bar.classList.toggle('on', busy || err);
+      bar.classList.toggle('done', false);
+      if (busy) return;
+      if (bar.classList.contains('on')) {
+        bar.classList.remove('on');
+        bar.classList.add('done');
+        doneTimer = setTimeout(() => bar.classList.remove('done'), 500);
+      }
+    }
+    new MutationObserver(paint).observe(pill, { attributes: true, attributeFilter: ['class'] });
+    paint();
+  })();
 
   /* ---------------- PWA install ---------------- */
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -1516,6 +2030,7 @@
     if (changed.has('mc_settings')) {
       settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
       settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
+      applyTheme(currentThemeMode());
     }
     if (changed.has('mc_docs')) docs = storeGet('mc_docs', []);
     if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
@@ -1551,6 +2066,7 @@
 
   /* ---------------- Init ---------------- */
   async function init() {
+    applyTheme(currentThemeMode());
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
