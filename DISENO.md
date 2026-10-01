@@ -98,8 +98,14 @@ Si cambias `css/app.css` o `js/*.js`, sube la versión del caché en `sw.js`
 
 ---
 
-## 7. Pendiente conocido
+## 7. Limpieza (2026-10)
 
-La carpeta `in-voice/` dentro del repositorio es una copia antigua sin
-mantenimiento (el sitio se sirve desde la raíz). Conviene eliminarla para no
-confundir a futuro.
+Se eliminó la carpeta `in-voice/` que vivía dentro del repositorio: era una
+copia obsoleta de la app (sin las vistas de Por cobrar, Por pagar ni Clientes)
+y nada la referenciaba. El sitio se sirve siempre desde la raíz del
+repositorio. Si alguien tenía guardada la URL antigua `/in-voice/pwa/`, ya no
+existe; la app está en la raíz.
+
+Queda pendiente, como mejora aparte, sustituir los cuatro `.ttf` de Space
+Grotesk por su versión `.woff2`: pesa menos, pero conviene revisar antes la
+vista previa del PDF, que mide el ancho del texto con la fuente real.
