@@ -158,12 +158,12 @@
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty">
-          <span class="stamp empty-stamp">${docs.length ? 'Sin coincidencias' : 'Sin registros'}</span>
+          <span class="empty-icon">${window.ICONS.docs('ic-lg')}</span>
           <h3>${docs.length ? 'No hay documentos que coincidan' : 'Aún no hay documentos'}</h3>
           <p>${docs.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primer recibo o cotización y guárdalo en este dispositivo.'}</p>
           <div class="empty-actions">
-            <button class="btn primary" data-action="new-recibo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
-            <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
+            <button class="btn primary" data-action="new-recibo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
+            <button class="btn outline" data-action="new-cotizacion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
           </div>
         </div>`;
       refreshMenuCounts();
@@ -173,13 +173,13 @@
     wrap.innerHTML = filtered.map((d) => {
       const t = computeTotals(d);
       const stamp = d.tipo === 'cotizacion'
-        ? '<span class="stamp">Cotización</span>'
-        : '<span class="stamp solid">Recibo</span>';
+        ? '<span class="pill ghost">Cotización</span>'
+        : '<span class="pill solid">Recibo</span>';
       return `
       <div class="card">
         <div class="card-top">
           ${stamp}
-          <span class="card-num">Nº ${esc(d.numero)}</span>
+          <span class="card-num">${esc(d.numero)}</span>
           <span class="card-date">${window.fmtDate(d.fecha)}</span>
         </div>
         <div class="card-title">${esc(d.proyecto || 'Sin proyecto')}</div>
@@ -188,7 +188,6 @@
         <div class="card-foot">
           <strong>${window.fmtMoney(t.total)}</strong>
           <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
-          <span class="barcode card-bc">${window.barcodeSVG(d.numero, 104, 20)}</span>
         </div>
         <div class="card-actions">
           <button class="btn small outline" data-action="edit" data-id="${d.id}">Editar</button>
@@ -200,12 +199,9 @@
     refreshMenuCounts();
   }
 
-  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
+  /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ARCO ================= */
   function switchMainView(view) {
     mainView = view;
-    $$('#menu-overlay .menu-item').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.view === view);
-    });
     $('#view-list').hidden = view !== 'docs';
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
@@ -221,28 +217,98 @@
     window.scrollTo(0, 0);
   }
 
-  function refreshMenuCounts() {
-    var d = $('#menu-count-docs');
-    if (d) d.textContent = docs.length + ' EXP.';
-    var c = $('#menu-count-cxc');
-    if (c) c.textContent = getCxCData().length + ' CLT';
-    var pen = 0;
-    cuentasXPagar.forEach(function(x) {
-      var ab = (x.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
-      if (x.monto - ab > 0.005) pen++;
+  /* ---------- Menú pantalla completa: arco numerado ----------
+     Cinco posiciones fijas sobre un arco; el elemento activo se
+     muestra grande al centro con su descripción. Tocar un número
+     del arco lo activa; tocar el bloque grande entra a la vista. */
+  const MENU_VIEWS = [
+    { view: 'docs',     num: '01', name: 'Documentos',    desc: 'Recibos y cotizaciones del archivo.' },
+    { view: 'cxc',      num: '02', name: 'Por cobrar',    desc: 'Saldos pendientes de tus clientes.' },
+    { view: 'cxp',      num: '03', name: 'Por pagar',     desc: 'Gastos y facturas por liquidar.' },
+    { view: 'clientes', num: '04', name: 'Clientes',      desc: 'Directorio de clientes y prospectos.' },
+    { view: 'logout',   num: '05', name: 'Cerrar sesión', desc: 'Sincronización entre dispositivos.' }
+  ];
+  let menuActive = 'docs';
+
+  function menuMeta(view) {
+    switch (view) {
+      case 'docs': return docs.length + (docs.length === 1 ? ' documento' : ' documentos');
+      case 'cxc': return getCxCData().length + ' clientes con saldo';
+      case 'cxp': {
+        var pen = 0;
+        cuentasXPagar.forEach(function (x) {
+          var ab = (x.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+          if (x.monto - ab > 0.005) pen++;
+        });
+        return pen + ' pendientes';
+      }
+      case 'clientes': return clientes.length + (clientes.length === 1 ? ' contacto' : ' contactos');
+      case 'logout': return (window.SYNC && window.SYNC.accountEmail()) || 'sin cuenta';
+    }
+    return '';
+  }
+
+  function renderMenuArc() {
+    const stage = $('#menu-stage');
+    const arc = $('#menu-arc');
+    if (!stage || !arc) return;
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const R = Math.max(H * 0.62, 300);
+    const ax = W * 0.30;
+    const cx = ax - R, cy = H * 0.5;
+    const angles = [-52, -26, 0, 26, 52];
+
+    let h = '<div class="menu-circle" style="left:' + cx.toFixed(1) + 'px;top:' + (cy - R).toFixed(1) + 'px;width:' + (2 * R).toFixed(1) + 'px;height:' + (2 * R).toFixed(1) + 'px"></div>';
+    MENU_VIEWS.forEach(function (v, i) {
+      const a = angles[i] * Math.PI / 180;
+      const x = (cx + R * Math.cos(a)).toFixed(1);
+      const y = (cy + R * Math.sin(a)).toFixed(1);
+      h += '<span class="menu-dot' + (v.view === menuActive ? ' on' : '') + '" style="left:' + x + 'px;top:' + y + 'px"></span>';
+      h += '<button class="menu-arcnum' + (v.view === menuActive ? ' off' : '') + '"'
+        + ' data-menu-view="' + v.view + '"'
+        + ' style="left:' + x + 'px;top:' + y + 'px;--rot:' + angles[i] + 'deg"'
+        + ' aria-label="' + v.name + '">' + v.num + '</button>';
     });
-    var p = $('#menu-count-cxp');
-    if (p) p.textContent = pen + ' PEN';
-    var cli = $('#menu-count-cli');
-    if (cli) cli.textContent = clientes.length + ' CTES.';
+    arc.innerHTML = h;
+    stage.style.setProperty('--ax', Math.round(ax + 56) + 'px');
+  }
+
+  function renderMenuActive(animate) {
+    const v = MENU_VIEWS.find(function (x) { return x.view === menuActive; }) || MENU_VIEWS[0];
+    $('#menu-active-num').textContent = v.num;
+    $('#menu-active-name').textContent = v.name;
+    $('#menu-active-desc').textContent = v.desc;
+    $('#menu-active-meta').textContent = menuMeta(v.view);
+    if (animate) {
+      const el = $('#menu-active');
+      el.classList.remove('swap');
+      void el.offsetWidth;
+      el.classList.add('swap');
+    }
+  }
+
+  function setMenuActive(view) {
+    if (view === menuActive) return;
+    menuActive = view;
+    renderMenuArc();
+    renderMenuActive(true);
+  }
+
+  function refreshMenuCounts() {
+    if ($('#menu-overlay').classList.contains('open')) {
+      renderMenuArc();
+      renderMenuActive(false);
+    }
   }
 
   function openMenu() {
-    refreshMenuCounts();
+    menuActive = mainView;
     $('#menu-overlay').classList.add('open');
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
+    renderMenuArc();
+    renderMenuActive(true);
   }
 
   function closeMenu() {
@@ -252,13 +318,6 @@
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
-  }
-
-  function paintBarcodes() {
-    var tb = $('#topbar-barcode');
-    if (tb) tb.innerHTML = window.barcodeSVG('MONO CROMAT & CO. · ARCHIVO', 128, 22);
-    var mb = $('#menu-barcode');
-    if (mb) mb.innerHTML = window.barcodeSVG('MC-ARCHIVO-2026', 220, 34);
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -312,7 +371,7 @@
 
     var wrap = $('#cxc-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (data.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
+      wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.coin('ic-lg') + '</span>'
         + '<h3>' + (data.length ? 'No hay coincidencias' : 'No hay cuentas por cobrar') + '</h3>'
         + '<p>' + (data.length ? 'Prueba con otra búsqueda.' : 'Los saldos pendientes de tus recibos y cotizaciones aparecerán aquí automáticamente.') + '</p></div>';
       refreshMenuCounts();
@@ -322,11 +381,10 @@
     wrap.innerHTML = filtered.map(function(c) {
       var docsHtml = c.docs.map(function(d) {
         var badge = d.tipo === 'cotizacion'
-          ? '<span class="stamp mini">COT</span>'
-          : '<span class="stamp mini solid">REC</span>';
-        var pct = d.total > 0 ? Math.min(100, (d.abonado / d.total) * 100) : 0;
+          ? '<span class="pill mini ghost">COT</span>'
+          : '<span class="pill mini solid">REC</span>';
         return '<div class="card-doc-item">'
-          + '<div>' + badge + ' <span>Nº ' + esc(d.numero) + '</span>'
+          + '<div>' + badge + ' <span>' + esc(d.numero) + '</span>'
           + (d.proyecto ? ' <span class="muted">— ' + esc(d.proyecto) + '</span>' : '')
           + '</div>'
           + '<div><strong>' + window.fmtMoney(d.saldo) + '</strong> <span class="muted">de ' + window.fmtMoney(d.total) + '</span></div>'
@@ -339,17 +397,14 @@
 
       return '<div class="card-cxc" data-cliente="' + esc(c.cliente) + '">'
         + '<div class="card-top">'
-        + '<span class="stamp mini">Pendiente</span>'
-        + '<span style="width:20px;height:20px;display:inline-flex">' + window.ICONS.user() + '</span>'
-        + '<div><div style="font-weight:700;font-size:16px">' + esc(c.cliente) + '</div>'
-        + (c.email ? '<div class="muted">' + esc(c.email) + '</div>' : '')
-        + '</div>'
+        + '<span class="pill mini warn">Pendiente</span>'
+        + '<div class="card-title">' + esc(c.cliente) + '</div>'
         + '<div style="margin-left:auto;text-align:right">'
         + '<div class="card-cxc-saldo">' + window.fmtMoney(c.saldoTotal) + '</div>'
-        + '<div class="card-total-orig">DE ' + window.fmtMoney(pctTotal) + '</div>'
+        + '<div class="card-total-orig">de ' + window.fmtMoney(pctTotal) + '</div>'
         + '</div>'
         + '</div>'
-        + '<div class="perf"></div>'
+        + (c.email ? '<div class="card-sub">' + esc(c.email) + '</div>' : '')
         + '<div class="card-progress"><div class="card-progress-bar" style="width:' + pct.toFixed(1) + '%"></div></div>'
         + '<div class="card-docs">' + docsHtml + '</div>'
         + '<div class="card-actions">'
@@ -405,7 +460,7 @@
 
     var wrap = $('#cxp-list');
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><span class="stamp empty-stamp">' + (cuentasXPagar.length ? 'Sin coincidencias' : 'Sin registros') + '</span>'
+      wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.clipboard('ic-lg') + '</span>'
         + '<h3>' + (cuentasXPagar.length ? 'No hay coincidencias' : 'No hay cuentas por pagar') + '</h3>'
         + '<p>' + (cuentasXPagar.length ? 'Prueba con otra búsqueda o filtro.' : 'Registra tus gastos y facturas pendientes de pago.') + '</p>'
         + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
@@ -416,10 +471,10 @@
     wrap.innerHTML = filtered.map(function(c) {
       var abonosTotal = (c.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
       var saldo = c.monto - abonosTotal;
-      var status, statusClass;
-      if (saldo <= 0.005) { status = 'PAGADA'; statusClass = 'pagada'; }
-      else if (abonosTotal > 0) { status = 'PARCIAL'; statusClass = 'parcial'; }
-      else { status = 'PENDIENTE'; statusClass = 'pendiente'; }
+      var status, statusClass, statusPill;
+      if (saldo <= 0.005) { status = 'Pagada'; statusClass = 'pagada'; statusPill = 'ok'; }
+      else if (abonosTotal > 0) { status = 'Parcial'; statusClass = 'parcial'; statusPill = 'warn'; }
+      else { status = 'Pendiente'; statusClass = 'pendiente'; statusPill = 'ghost'; }
 
       var pct = c.monto > 0 ? Math.min(100, (abonosTotal / c.monto) * 100) : 0;
       var vencida = c.vencimiento && c.vencimiento < window.todayISO() && saldo > 0.005;
@@ -431,12 +486,12 @@
 
       return '<div class="card-cxp ' + statusClass + '">'
         + '<div class="card-top">'
-        + '<span class="cxp-status ' + statusClass + '">' + status + '</span>'
+        + '<span class="pill mini ' + statusPill + '">' + status + '</span>'
         + '<span class="card-categoria">' + (catLabels[c.categoria] || c.categoria) + '</span>'
-        + (c.folio ? '<span class="muted" style="font-size:12px">' + esc(c.folio) + '</span>' : '')
+        + (c.folio ? '<span class="card-num">' + esc(c.folio) + '</span>' : '')
         + (vencida ? '<span class="cxp-vencida">' + window.ICONS.warning() + ' Vencida ' + window.fmtDate(c.vencimiento) + '</span>' : '')
         + '</div>'
-        + '<div style="font-weight:700;font-size:15px">' + esc(c.proveedor || 'Sin proveedor') + '</div>'
+        + '<div class="card-title">' + esc(c.proveedor || 'Sin proveedor') + '</div>'
         + '<div class="card-sub">' + esc(c.concepto || 'Sin concepto') + '</div>'
         + '<div class="card-foot">'
         + '<span class="card-saldo">' + window.fmtMoney(saldo) + '</span>'
@@ -580,7 +635,7 @@
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty">
-          <span class="stamp empty-stamp">${clientes.length ? 'Sin coincidencias' : 'Directorio vacío'}</span>
+          <span class="empty-icon">${window.ICONS.user('ic-lg')}</span>
           <h3>${clientes.length ? 'Ningún contacto coincide' : 'Aún no hay clientes ni prospectos'}</h3>
           <p>${clientes.length ? 'Prueba con otra búsqueda o quita los filtros.' : 'Agrega tu primer contacto: lo reutilizarás en recibos y cotizaciones con un toque.'}</p>
           <div class="empty-actions">
@@ -594,8 +649,8 @@
     wrap.innerHTML = filtered.map(function(c) {
       const tipo = cliTipo(c);
       const stamp = tipo === 'prospecto'
-        ? '<span class="stamp dashed">Prospecto</span>'
-        : '<span class="stamp solid">Cliente</span>';
+        ? '<span class="pill ghost">Prospecto</span>'
+        : '<span class="pill solid">Cliente</span>';
       const estado = (tipo === 'prospecto' && c.estado)
         ? `<span class="cli-estado" data-estado="${esc(c.estado)}">${esc(CLI_ESTADOS[c.estado] || c.estado)}</span>`
         : '';
@@ -607,7 +662,7 @@
           <span class="card-date">${fmtCliFecha(c.updatedAt)}</span>
         </div>
         <div class="card-title">${esc(c.nombre || 'Sin nombre')}</div>
-        ${c.empresa ? `<div class="cli-line" style="font-weight:700;color:var(--ink)">${esc(c.empresa)}</div>` : ''}
+        ${c.empresa ? `<div class="cli-line cli-empresa">${esc(c.empresa)}</div>` : ''}
         ${contacto ? `<div class="cli-line">${contacto}</div>` : ''}
         ${c.direccion ? `<div class="cli-line">${esc(c.direccion)}</div>` : ''}
         <div class="perf"></div>
@@ -1268,11 +1323,15 @@
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
 
-      /* --- Menú inferior (índice general) --- */
+      /* --- Menú pantalla completa (arco) --- */
       case 'toggle-menu':
         if ($('#menu-overlay').classList.contains('open')) closeMenu(); else openMenu();
         break;
       case 'close-menu': closeMenu(); break;
+      case 'menu-enter':
+        if (menuActive === 'logout') { closeMenu(); if (window.SYNC) window.SYNC.logout(); }
+        else switchMainView(menuActive);
+        break;
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -1389,16 +1448,23 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Menú inferior: índice general (pantalla completa)
-  $$('#menu-overlay .menu-item').forEach(function(b) {
-    b.addEventListener('click', function() {
-      if (!b.dataset.view) return; // items sin vista (cuenta/salir)
-      closeMenu();
-      switchMainView(b.dataset.view);
-    });
+  // Menú pantalla completa: tocar un número del arco lo activa
+  $('#menu-overlay').addEventListener('click', function(e) {
+    var b = e.target.closest('[data-menu-view]');
+    if (b) setMenuActive(b.dataset.menuView);
   });
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeMenu();
+    var menuOpen = $('#menu-overlay').classList.contains('open');
+    if (e.key === 'Escape') { closeMenu(); return; }
+    if (!menuOpen) return;
+    var i = MENU_VIEWS.findIndex(function (v) { return v.view === menuActive; });
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      setMenuActive(MENU_VIEWS[(i + 1) % MENU_VIEWS.length].view);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setMenuActive(MENU_VIEWS[(i - 1 + MENU_VIEWS.length) % MENU_VIEWS.length].view);
+    }
   });
 
   // Búsqueda CxC
@@ -1427,7 +1493,10 @@
     }
   });
 
-  window.addEventListener('resize', () => { if (!$('#view-editor').hidden) autoscale(); });
+  window.addEventListener('resize', () => {
+    if (!$('#view-editor').hidden) autoscale();
+    if ($('#menu-overlay').classList.contains('open')) renderMenuArc();
+  });
 
   /* ---------------- PWA install ---------------- */
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -1476,16 +1545,12 @@
     clientes = storeGet('mc_clientes', []);
     cuentasXPagar = storeGet('mc_cxp', []);
     const acc = $('#sync-account');
-    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
+    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'sin cuenta';
     showList();
-    $$('#menu-overlay .menu-item').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.view === mainView);
-    });
   }
 
   /* ---------------- Init ---------------- */
   async function init() {
-    paintBarcodes();
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Recibos &amp; Cotizaciones — Mono Cromat &amp; Co.</title>
   <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
-  <meta name="theme-color" content="#173588">
+  <meta name="theme-color" content="#f2f3f4">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -19,15 +19,14 @@
       <img src="assets/img/logo-blue.png" alt="logo" class="brand-logo">
       <div class="brand-text">
         <strong>Recibos &amp; Cotizaciones</strong>
-        <span>Archivo · Mono Cromat &amp; Co.</span>
+        <span>Mono Cromat &amp; Co.</span>
       </div>
     </div>
     <div class="topbar-right">
-      <div class="barcode topbar-bc" id="topbar-barcode" aria-hidden="true"></div>
       <span id="sync-pill" class="sync-pill sync-off" title="Sincronización entre dispositivos">Sin cuenta</span>
       <div class="topbar-actions">
-        <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar app</button>
-        <button class="btn small outline" data-action="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</button>
+        <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar</button>
+        <button class="icon-btn" data-action="settings" aria-label="Ajustes" title="Ajustes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1 1 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
       </div>
     </div>
   </header>
@@ -41,8 +40,8 @@
           <h1>Documentos</h1>
         </div>
         <div class="list-head-actions">
-          <button class="btn primary" data-action="new-recibo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
-          <button class="btn outline" data-action="new-cotizacion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
+          <button class="btn primary" data-action="new-recibo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
+          <button class="btn outline" data-action="new-cotizacion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
         </div>
       </div>
       <div class="list-tools">
@@ -61,7 +60,7 @@
       <div class="list-head">
         <div>
           <p class="kicker">02 · Cuentas por cobrar</p>
-          <h1>Por Cobrar</h1>
+          <h1>Por cobrar</h1>
         </div>
         <div class="list-head-actions">
           <div class="cxc-summary">
@@ -87,7 +86,7 @@
       <div class="list-head">
         <div>
           <p class="kicker">03 · Cuentas por pagar</p>
-          <h1>Por Pagar</h1>
+          <h1>Por pagar</h1>
         </div>
         <div class="list-head-actions">
           <div class="cxp-summary">
@@ -104,7 +103,7 @@
               <strong id="cxp-pendientes" class="summary-value">0</strong>
             </div>
           </div>
-          <button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button>
+          <button class="btn primary" data-action="new-cxp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button>
         </div>
       </div>
       <div class="list-tools">
@@ -127,8 +126,8 @@
           <h1>Directorio</h1>
         </div>
         <div class="list-head-actions">
-          <button class="btn primary" data-action="new-cliente"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo cliente</button>
-          <button class="btn outline" data-action="new-prospecto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo prospecto</button>
+          <button class="btn primary" data-action="new-cliente"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo cliente</button>
+          <button class="btn outline" data-action="new-prospecto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo prospecto</button>
         </div>
       </div>
       <div class="list-tools">
@@ -150,11 +149,11 @@
           <span id="editor-mode-label">Documento</span>
         </div>
         <div class="editor-bar-actions">
-          <button class="btn small" data-action="save"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
-          <button class="btn small" data-action="print"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> PDF / Imprimir</button>
-          <button class="btn small" data-action="email"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg> Enviar</button>
-          <button class="btn small" data-action="share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>
-          <button class="btn small danger" data-action="delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 3h4a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1Z"/></svg></button>
+          <button class="btn small primary" data-action="save"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
+          <button class="btn small outline" data-action="print"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> PDF / Imprimir</button>
+          <button class="btn small outline" data-action="email"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg> Enviar</button>
+          <button class="btn small outline" data-action="share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>
+          <button class="btn small danger" data-action="delete" aria-label="Eliminar documento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 3h4a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1Z"/></svg></button>
         </div>
       </div>
 
@@ -175,63 +174,38 @@
     </section>
   </main>
 
-  <!-- ===== Menú inferior: Índice general (pantalla completa) ===== -->
+  <!-- ===== Botón flotante: abre el índice ===== -->
   <button id="menu-fab" class="menu-fab" data-action="toggle-menu" aria-label="Abrir índice general" aria-expanded="false">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
-    <span>Menú</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="15" y2="17"/></svg>
   </button>
 
+  <!-- ===== Menú pantalla completa: arco numerado ===== -->
   <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-label="Índice general">
     <div class="menu-head">
-      <span class="menu-head-kicker">Índice general · 2026</span>
-      <button class="icon-btn" data-action="close-menu" aria-label="Cerrar menú"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="menu-brand">
+        <img src="assets/img/logo-blue.png" alt="Mono Cromat &amp; Co." class="menu-logo">
+        <span class="menu-wordmark">Mono Cromat</span>
+      </div>
+      <button class="icon-btn" data-action="close-menu" aria-label="Cerrar menú"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <nav class="menu-items">
-      <button class="menu-item" data-view="docs">
-        <span class="menu-idx">01</span>
-        <span class="menu-body">
-          <span class="menu-name">Documentos</span>
-          <span class="menu-kicker">Archivo general</span>
+
+    <div class="menu-stage" id="menu-stage">
+      <div id="menu-arc" aria-hidden="true"></div>
+      <button class="menu-active" id="menu-active" data-action="menu-enter" title="Entrar a esta sección">
+        <span class="menu-active-num" id="menu-active-num">01</span>
+        <span class="menu-active-body">
+          <span class="menu-active-name" id="menu-active-name">Documentos</span>
+          <span class="menu-active-desc" id="menu-active-desc">Archivo general</span>
+          <span class="menu-active-meta" id="menu-active-meta"></span>
+          <span class="menu-active-hint">Entrar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
         </span>
-        <span class="menu-meta" id="menu-count-docs">0 EXP.</span>
       </button>
-      <button class="menu-item" data-view="cxc">
-        <span class="menu-idx">02</span>
-        <span class="menu-body">
-          <span class="menu-name">Por cobrar</span>
-          <span class="menu-kicker">Cuentas por cobrar</span>
-        </span>
-        <span class="menu-meta" id="menu-count-cxc">0 CLT</span>
-      </button>
-      <button class="menu-item" data-view="cxp">
-        <span class="menu-idx">03</span>
-        <span class="menu-body">
-          <span class="menu-name">Por pagar</span>
-          <span class="menu-kicker">Cuentas por pagar</span>
-        </span>
-        <span class="menu-meta" id="menu-count-cxp">0 PEN</span>
-      </button>
-      <button class="menu-item" data-view="clientes">
-        <span class="menu-idx">04</span>
-        <span class="menu-body">
-          <span class="menu-name">Clientes</span>
-          <span class="menu-kicker">Directorio y prospectos</span>
-        </span>
-        <span class="menu-meta" id="menu-count-cli">0 CTES.</span>
-      </button>
-      <button class="menu-item menu-item-account" data-action="logout">
-        <span class="menu-idx">05</span>
-        <span class="menu-body">
-          <span class="menu-name">Cerrar sesión</span>
-          <span class="menu-kicker" id="sync-account">Sincronización de cuenta</span>
-        </span>
-        <span class="menu-meta">SALIR</span>
-      </button>
-    </nav>
+    </div>
+
     <div class="menu-foot">
-      <img src="assets/img/logo-blue.png" alt="Mono Cromat &amp; Co." class="menu-logo">
-      <div class="barcode menu-bc" id="menu-barcode" aria-hidden="true"></div>
-      <span class="menu-foot-label">Mono Cromat &amp; Co. · Estudio Creativo · CDMX</span>
+      <span id="sync-account">sin cuenta</span>
+      <span class="menu-foot-line" aria-hidden="true"></span>
+      <strong>Mono Cromat &amp; Co. · Estudio creativo · CDMX</strong>
     </div>
   </div>
 
@@ -239,8 +213,8 @@
   <div id="modal-settings" class="modal">
     <div class="modal-box">
       <div class="modal-head">
-        <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg> Ajustes</h2>
-        <button class="icon-btn" data-action="close-settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <h2>Ajustes</h2>
+        <button class="icon-btn" data-action="close-settings" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div id="settings-body" class="modal-body"></div>
       <div class="modal-foot">
@@ -255,7 +229,7 @@
     <div class="modal-box">
       <div class="modal-head">
         <h2 id="modal-cxp-title">Nueva cuenta por pagar</h2>
-        <button class="icon-btn" data-action="close-cxp-modal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="icon-btn" data-action="close-cxp-modal" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="modal-body">
         <div class="sgrid">
@@ -313,7 +287,7 @@
     <div class="modal-box">
       <div class="modal-head">
         <h2>Detalle de cuenta por cobrar</h2>
-        <button class="icon-btn" data-action="close-cxc-detail"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="icon-btn" data-action="close-cxc-detail" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div id="cxc-detail-body" class="modal-body"></div>
       <div class="modal-foot">
@@ -379,9 +353,8 @@
     <div class="auth-card">
       <div class="auth-brand">
         <img src="assets/img/logo-blue.png" alt="Mono Cromat &amp; Co." class="auth-logo">
-        <div class="barcode auth-bc" id="auth-barcode" aria-hidden="true"></div>
       </div>
-      <p class="kicker auth-kicker">Archivo · Sincronización</p>
+      <p class="kicker auth-kicker">Sincronización</p>
       <h1 class="auth-title">Tus datos, en todos tus equipos</h1>
       <p class="auth-sub">Crea una cuenta o ingresa para que recibos, clientes y ajustes viajen entre tu celular y tu computadora.</p>
       <div class="auth-tabs">
@@ -396,7 +369,7 @@
           <input id="auth-login-password" type="password" autocomplete="current-password" placeholder="••••••••" required>
         </label>
         <p id="auth-login-error" class="auth-error"></p>
-        <button class="btn primary wide" type="submit">Ingresar al archivo</button>
+        <button class="btn primary wide" type="submit">Ingresar</button>
       </form>
       <form id="auth-form-register" novalidate hidden>
         <label>Email
