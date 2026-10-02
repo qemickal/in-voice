@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v22';
+const CACHE = 'mc-pwa-v23';
 const ASSETS = [
   './',
   './index.html',
@@ -14,10 +14,6 @@ const ASSETS = [
   './assets/fonts/archivo-latin-400.woff2',
   './assets/fonts/archivo-latin-500.woff2',
   './assets/fonts/archivo-latin-700.woff2',
-  './assets/fonts/SpaceGrotesk-Light.ttf',
-  './assets/fonts/SpaceGrotesk-Regular.ttf',
-  './assets/fonts/SpaceGrotesk-Medium.ttf',
-  './assets/fonts/SpaceGrotesk-Bold.ttf',
   './assets/img/logo-blue.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

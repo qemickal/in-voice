@@ -397,7 +397,7 @@
     root.setAttribute('data-theme', dark ? 'dark' : 'light');
     root.setAttribute('data-theme-mode', m);
     const meta = $('#meta-theme');
-    if (meta) meta.setAttribute('content', dark ? '#0a0e1a' : '#eef1f8');
+    if (meta) meta.setAttribute('content', dark ? '#11161c' : '#f6f7f9');
     const btn = document.querySelector('[data-action="cycle-theme"]');
     if (btn) btn.setAttribute('title', 'Tema: ' + THEME_LABEL[m] + (m === 'auto' ? ' (según tu sistema)' : '') + ' · clic para cambiar');
   }
