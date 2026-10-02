@@ -1,25 +1,27 @@
-# Diseño de la interfaz — v2 «Vivo»
+# Diseño de la interfaz — v3 «Calma»
 
-Notas del rediseño de octubre 2026. Todo vive en `css/app.css` (tokens y
-componentes) y `js/app.js` (panel de inicio, menú y tema). **No se tocó
-`js/render.js` ni `js/pdf.js`**: el PDF y la vista previa del documento salen
-exactamente igual que antes.
+Notas del rediseño visual de octubre 2026. La capa `17 · Interfaz — Calma` de
+`css/app.css` establece la paleta, tipografía Archivo, superficies claras, radios
+y espacios; `js/app.js` mantiene los datos y el tema. **No se tocaron
+`js/render.js` ni `js/pdf.js`**: el PDF y su vista previa permanecen intactos.
 
 ---
 
 ## 1. Paleta y tokens
 
-Los colores, radios, sombras y tiempos están en `:root` al inicio de
-`css/app.css`. Para cambiar el acento de toda la app basta con esos tokens.
+Los tokens de la interfaz están en la capa `17 · Interfaz — Calma` al final de
+`css/app.css`. El sistema usa Archivo en todos los componentes, superficies
+claras, bordes suaves y un acento azul sobrio; el tema oscuro tiene su propia
+paleta y conserva contraste.
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--brand` | `#173588` | Azul de marca: superficies, degradados, foco |
-| `--brand-500` | `#2b52c7` | Azul legible para texto/íconos sobre fondo claro |
-| `--accent` | `#49c2be` | Turquesa del documento (gráfica, realces) |
-| `--grad-brand` | degradado azul | Hero, botón primario, menú, FAB |
-| `--grad-brand-soft` | azul/turquesa translúcido | Fondos suaves de iconos |
-| `--brand-ink` | `#173588` / `#8fb0ff` | **Texto e íconos** en azul, por tema |
+| `--brand` | `#294d7b` | Azul de marca para acciones y foco |
+| `--brand-500` | `#3b6ca7` | Azul de apoyo para cifras e íconos |
+| `--accent` | `#5bb5ad` | Turquesa del documento (gráfica, realces) |
+| `--grad-brand` | color sólido | Acciones principales, sin degradados llamativos |
+| `--r-lg` | `18px` | Esquinas de tarjetas y paneles |
+| `--sans` / `--display` | `Archivo` | Tipografía única de la interfaz |
 
 > Regla práctica: para **pintar** usa `--brand`; para **escribir** en azul usa
 > `--brand-ink` (cambia solo según el tema y garantiza contraste).
@@ -72,7 +74,8 @@ seguridad (`setTimeout`) para que la cifra final siempre quede pintada.
 
 ## 4. Menú a pantalla completa
 
-Se eliminó el arco numerado. Ahora:
+Se eliminó el arco numerado. El menú mantiene su índice numerado, ahora con una
+superficie clara y el mismo lenguaje visual sobrio que el resto de la app:
 
 - El **botón flotante** (abajo a la derecha) abre el menú y se transforma en aspa.
 - El menú muestra un **índice numerado** con la cifra viva de cada sección y una
@@ -86,7 +89,8 @@ Se eliminó el arco numerado. Ahora:
 ## 5. Movimiento
 
 - Entrada escalonada: las tarjetas usan `--i` (0, 1, 2…) para el retardo.
-- El fondo «aurora» y el latido del FAB son animaciones ambientales.
+- El fondo es plano y el botón flotante ya no tiene pulso; el movimiento queda
+  reservado para indicar cambios o respuestas de la interfaz.
 - Todo respeta `@media (prefers-reduced-motion: reduce)`.
 
 ---
@@ -105,7 +109,3 @@ copia obsoleta de la app (sin las vistas de Por cobrar, Por pagar ni Clientes)
 y nada la referenciaba. El sitio se sirve siempre desde la raíz del
 repositorio. Si alguien tenía guardada la URL antigua `/in-voice/pwa/`, ya no
 existe; la app está en la raíz.
-
-Queda pendiente, como mejora aparte, sustituir los cuatro `.ttf` de Space
-Grotesk por su versión `.woff2`: pesa menos, pero conviene revisar antes la
-vista previa del PDF, que mide el ancho del texto con la fuente real.
