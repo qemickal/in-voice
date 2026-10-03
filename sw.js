@@ -1,5 +1,5 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v23';
+const CACHE = 'mc-pwa-v24';
 const ASSETS = [
   './',
   './index.html',

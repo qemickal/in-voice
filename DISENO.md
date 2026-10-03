@@ -47,10 +47,38 @@ paleta y conserva contraste.
 | 03 | Por cobrar | `#view-cxc` | Saldos por cliente |
 | 04 | Por pagar | `#view-cxp` | Gastos y facturas |
 | 05 | Clientes | `#view-clientes` | Clientes y prospectos |
+| 06 | Catálogo | `#view-productos` | Productos y servicios del catálogo |
 
 La navegación se hace con `switchMainView(vista)`. Para añadir una sección:
 agrega la `<section>` en `index.html`, súmala a `MENU_VIEWS` en `js/app.js` y
 añade su caso en `switchMainView`.
+
+---
+
+## 2.1 Catálogo de productos y servicios
+
+Es la sección **06 · Catálogo** (`#view-productos`). Guarda lo que vendes para
+no tener que teclearlo dos veces:
+
+| Campo | Uso |
+|---|---|
+| Tipo | Producto o servicio (cambia la píldora de la tarjeta y el grupo del selector) |
+| Nombre | Se copia como descripción del concepto |
+| Precio por unidad | Se copia en «Precio U» |
+| Unidad de medida | Se copia en «Unidad» y se imprime junto a la cantidad (`500 pza`) |
+| Características | Una por línea; se imprimen bajo la descripción, en cuerpo menor |
+| Clave / SKU y notas | Referencia interna; las notas **no** se imprimen |
+
+- Los datos viven en `mc_productos` y **viajan con la sincronización**.
+- Desde el editor de recibos y cotizaciones, el selector «Agregar del catálogo»
+  inserta un concepto con esos datos. Si el documento sólo tenía el renglón
+  vacío inicial, ese renglón se reemplaza.
+- El concepto queda como copia: editar el catálogo después **no** modifica los
+  documentos ya hechos.
+- En el documento (vista previa y PDF): la unidad acompaña a la columna Q y se
+  imprimen hasta 4 características (`LAYOUT.itemFeatsMax`). Si la tabla se
+  llena, el motor recorta primero características y luego la descripción,
+  igual que ya hacía antes.
 
 ---
 
@@ -83,6 +111,19 @@ superficie clara y el mismo lenguaje visual sobrio que el resto de la app:
 - Al pasar el cursor o enfocar una fila se adelanta la ficha.
 - Teclado: flechas para recorrer, `Esc` para cerrar; el foco entra en la fila
   activa al abrir.
+
+---
+
+## 4.1 Barra del editor
+
+Acciones del documento, de izquierda a derecha:
+*Volver* → *Guardar* → *PDF / Imprimir* → *Enviar* → *Eliminar*.
+
+- **Enviar** genera el PDF y hace lo mejor que permite el dispositivo: abre el
+  panel nativo de compartir (si el navegador acepta archivos) o descarga el PDF
+  y abre el correo con el asunto y el cuerpo ya escritos.
+- Antes había también un botón **Compartir**; hacía exactamente lo mismo que
+  *Enviar*, así que se eliminó para no duplicar la acción.
 
 ---
 

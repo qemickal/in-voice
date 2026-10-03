@@ -18,7 +18,8 @@
     docs:     { key: 'mc_docs',     array: true },
     settings: { key: 'mc_settings', array: false },
     clientes: { key: 'mc_clientes', array: true },
-    cxp:      { key: 'mc_cxp',      array: true }
+    cxp:      { key: 'mc_cxp',      array: true },
+    productos:{ key: 'mc_productos',array: true }
   };
 
   /* ---------------- localStorage (mismas llaves que app.js) ---------------- */

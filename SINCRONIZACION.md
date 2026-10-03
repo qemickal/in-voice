@@ -1,7 +1,8 @@
 # Sincronización entre dispositivos
 
-Tu app ya sincroniza **recibos y cotizaciones, clientes, cuentas por pagar y ajustes**
-entre todos los equipos donde entres con la misma cuenta (celular ⇄ compu).
+Tu app ya sincroniza **recibos y cotizaciones, clientes, cuentas por pagar, el
+catálogo de productos y servicios, y los ajustes** entre todos los equipos donde
+entres con la misma cuenta (celular ⇄ compu).
 
 - **Offline-first**: la app funciona sin internet. Los cambios se guardan local y se
   sincronizan solos al volver a estar en línea.
@@ -68,11 +69,16 @@ que instala `pg` (dependencia nueva) y despliega 3 funciones:
 | `api/sync.js` | `GET /api/sync?since=` · `POST /api/sync` | Pull incremental / push con guarda "solo si es más nuevo" |
 | `js/sync.js` | cliente | Cola de cambios, pull+push, merge last-write-wins, tumbas, píldora de estado |
 | `js/app.js` | hooks | Notifica cambios/borrados al sincronizador; refresca vistas al llegar remoto |
-| `sw.js` v12 | PWA | Cachea `js/sync.js` |
+| `sw.js` v24 | PWA | Cachea `js/sync.js` |
 
 **Esquema:** `app_records(owner_email, kind, record_id, data JSONB, updated_at BIGINT,
 deleted BOOL, PK(owner_email, kind, record_id))` — cada fila es un documento, cliente,
-cuenta por pagar, o los ajustes (id `_`).
+cuenta por pagar, producto del catálogo, o los ajustes (id `_`).
+
+**Colecciones que viajan** (`COLLECTIONS` en `js/sync.js` · `KINDS` en `api/_lib.js`):
+`docs`, `settings`, `clientes`, `cxp` y `productos` (`localStorage: mc_productos`).
+Para añadir una colección hay que darla de alta en los dos lados: si el `kind` no
+está en `KINDS`, el servidor rechaza el registro silenciosamente.
 
 **Reglas de merge:**
 
