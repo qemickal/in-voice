@@ -60,6 +60,9 @@ window.LAYOUT = {
   qtyAlignX: 370, priceAlignX: 462, subtotalAlignX: 578,
   itemsStartY: 196, rowH: 17, itemsMaxBottom: 380, itemSize: 10,
   itemsShiftBudget: 12,
+  // características del concepto impresas bajo la descripción
+  itemFeatsMax: 4,
+  itemFeatDrop: 1.1,      // cuánto baja el cuerpo respecto al de la descripción
   // Sólo el bloque de totales acompaña a una tabla larga. Todo lo que va
   // debajo (P.O. TRACK, PAGOS, TÉRMINOS, pie) queda anclado, para que
   // nunca se monte sobre la regla del pie.
@@ -202,9 +205,28 @@ window.ICONS = (function() {
     },
     search: function(cls) {
       return wrap(18, 18, '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', cls);
+    },
+    box: function(cls) {
+      return wrap(18, 18, '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>', cls);
     }
   };
 })();
+
+/* ================== Características de un concepto ==================
+   Un concepto guarda sus características como arreglo de textos, pero
+   también se acepta el formato heredado de un solo texto (separado por
+   saltos de línea, comas, punto y coma o barras). */
+window.itemCaracteristicas = function (it) {
+  var c = (it && it.caracteristicas);
+  if (!c) return [];
+  var arr = Array.isArray(c) ? c : String(c).split(/[\r\n,;|]+/);
+  var out = [];
+  for (var i = 0; i < arr.length; i++) {
+    var s = String(arr[i] == null ? '' : arr[i]).trim();
+    if (s) out.push(s);
+  }
+  return out;
+};
 
 /* ================== Helpers de formato ================== */
 window.fmtMoney = function (n) {
@@ -385,23 +407,57 @@ window.layoutItems = function (doc) {
   const L = window.LAYOUT;
   const items = (doc.items || []).filter((it) => it.desc && it.desc.trim());
   const maxDescW = L.qtyAlignX - 6 - L.colDesc;
+  // cuando el concepto lleva unidad («500 pza») la columna Q se ensancha:
+  // se reserva ese aire para que la descripción no lo alcance
+  const qtySpace = L.qtyAlignX - L.colDesc;   // de la descripción al borde de Q
   const avail = L.itemsMaxBottom - L.itemsStartY;
   const budget = L.itemsShiftBudget;
+
+  // Características del concepto: se imprimen en líneas propias, en un
+  // cuerpo menor, bajo la descripción. Se limita la cantidad para que un
+  // ítem muy detallado no se coma la tabla completa.
+  function featLines(it, size, descW) {
+    const lista = window.itemCaracteristicas(it);
+    if (!lista.length) return [];
+    const fsize = featSizeOf(size);
+    const top = lista.slice(0, L.itemFeatsMax);
+    let texto = top.map((c) => '· ' + c).join('   ');
+    if (lista.length > L.itemFeatsMax) texto += '  · …';
+    return window.wrapText(texto, descW, fsize);
+  }
+  function featSizeOf(size) { return Math.max(6.4, Math.round((size - L.itemFeatDrop) * 10) / 10); }
+  // total de renglones que ocupa una fila (descripción + características)
+  function nLines(r) { return r.lines.length + r.featLines.length; }
 
   function build(size) {
     const lineH = Math.round(size * 1.22 * 10) / 10;
     const baseRow = Math.max(L.rowH, size + 7);
-    const rows = items.map((it) => ({
-      desc: String(it.desc || '').trim(),
-      q: Number(it.q) || 0,
-      pu: Number(it.precioU) || 0,
-      lines: window.wrapText(it.desc, maxDescW, size),
-      rowH: 0,
-    }));
-    rows.forEach((r) => { r.rowH = baseRow + (r.lines.length - 1) * lineH; });
+    const rows = items.map((it) => {
+      const q = Number(it.q) || 0;
+      // la unidad viaja con la cantidad ("3 pza"); se recorta para no
+      // invadir la columna de precio unitario
+      const unidad = String((it && it.unidad) || '').trim().slice(0, 10);
+      // estimación del ancho de «500 pza» (0.5 em por carácter, como wrapText)
+      const qtyW = (String(q) + ' ' + unidad).length * size * 0.5;
+      const descW = unidad
+        ? Math.max(120, Math.min(maxDescW, qtySpace - qtyW - 8))
+        : maxDescW;
+      return {
+        desc: String(it.desc || '').trim(),
+        q: q,
+        pu: Number(it.precioU) || 0,
+        unidad: unidad,
+        qtyLabel: unidad ? (String(q) + ' ' + unidad) : String(q),
+        descW: descW,
+        lines: window.wrapText(it.desc, descW, size),
+        featLines: featLines(it, size, descW),
+        rowH: 0,
+      };
+    });
+    rows.forEach((r) => { r.rowH = baseRow + (nLines(r) - 1) * lineH; });
     const totalH = rows.reduce((a, r) => a + r.rowH, 0);
     const delta = Math.max(0, L.itemsStartY + totalH - L.itemsMaxBottom);
-    return { rows, size, lineH, delta, clipped: false };
+    return { rows, size, lineH, featSize: featSizeOf(size), delta, clipped: false };
   }
 
   let res = build(L.itemSize);
@@ -413,22 +469,27 @@ window.layoutItems = function (doc) {
   if (res.delta > budget) {
     const { rows, lineH } = res;
     const target = avail + budget;
-    rows.forEach((r) => { r.rowH = lineH * r.lines.length; });
+    rows.forEach((r) => { r.rowH = lineH * nLines(r); });
     let totalH = rows.reduce((a, r) => a + r.rowH, 0);
     if (totalH > target) {
       res.clipped = true;
       while (true) {
-        const cur = rows.reduce((a, r) => a + lineH * r.lines.length, 0);
+        const cur = rows.reduce((a, r) => a + lineH * nLines(r), 0);
         if (cur <= target) break;
         let removed = false;
         for (let i = rows.length - 1; i >= 0; i--) {
+          // primero se recortan las características, luego la descripción
+          if (rows[i].featLines.length) { rows[i].featLines.pop(); removed = true; break; }
           if (rows[i].lines.length > 1) { rows[i].lines.pop(); removed = true; break; }
         }
         if (!removed) break;
       }
-      rows.forEach((r) => { r.rowH = lineH * r.lines.length; });
+      rows.forEach((r) => { r.rowH = lineH * nLines(r); });
       const last = rows[rows.length - 1];
-      if (last && last.lines.length) last.lines[last.lines.length - 1] += '…';
+      if (last) {
+        if (last.featLines.length) last.featLines[last.featLines.length - 1] += '…';
+        else if (last.lines.length) last.lines[last.lines.length - 1] += '…';
+      }
       totalH = rows.reduce((a, r) => a + r.rowH, 0);
     }
     res.delta = Math.max(0, L.itemsStartY + totalH - L.itemsMaxBottom);

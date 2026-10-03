@@ -178,10 +178,19 @@
 
     let y = LAY.itemsStartY;
     const descMaxW = LAY.qtyAlignX - 10 - LAY.colDesc;
+    const featSize = table.featSize || Math.max(6.4, itemSize - LAY.itemFeatDrop);
     table.rows.forEach((r) => {
       F('regular'); pdf.setFontSize(itemSize); C(BODY);
       r.lines.forEach((ln, li) => pdf.text(ln, LAY.colDesc, y + li * table.lineH));
-      if (r.q) pdf.text(String(r.q), LAY.qtyAlignX, y, { align: 'right' });
+      // características del concepto: cuerpo menor, bajo la descripción
+      if (r.featLines && r.featLines.length) {
+        F('regular'); pdf.setFontSize(featSize); C(GREY);
+        r.featLines.forEach((ln, li) =>
+          pdf.text(fitText(pdf, ln, r.descW || descMaxW), LAY.colDesc, y + (r.lines.length + li) * table.lineH));
+        // se vuelve al cuerpo normal antes de las cifras
+        F('regular'); pdf.setFontSize(itemSize); C(BODY);
+      }
+      if (r.q) pdf.text(fitText(pdf, r.qtyLabel || String(r.q), 52), LAY.qtyAlignX, y, { align: 'right' });
       if (r.pu) pdf.text(window.fmtMoney(r.pu), LAY.priceAlignX, y, { align: 'right' });
       F('medium'); C(BLUE);
       pdf.text(window.fmtMoney(r.q * r.pu), LAY.subtotalAlignX, y, { align: 'right' });

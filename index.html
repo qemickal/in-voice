@@ -100,6 +100,13 @@
             <span class="quick-desc">Cuenta por pagar</span>
           </span>
         </button>
+        <button class="quick" style="--i:4" data-action="new-producto">
+          <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+          <span class="quick-body">
+            <span class="quick-title">Nuevo producto</span>
+            <span class="quick-desc">Precio, unidad y detalles</span>
+          </span>
+        </button>
       </div>
 
       <div class="panel-grid">
@@ -253,6 +260,29 @@
       <div id="cli-list" class="doc-list"></div>
     </section>
 
+    <!-- ===== Vista: Productos y servicios ===== -->
+    <section id="view-productos" hidden>
+      <div class="list-head">
+        <div>
+          <p class="kicker">06 · Catálogo</p>
+          <h1>Productos y servicios</h1>
+        </div>
+        <div class="list-head-actions">
+          <button class="btn primary" data-action="new-producto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo producto</button>
+          <button class="btn outline" data-action="new-servicio"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo servicio</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search-prod" type="search" placeholder="Buscar por nombre, clave, unidad, característica…">
+        <div class="chips">
+          <button class="chip active" data-prod-filter="todos">Todos</button>
+          <button class="chip" data-prod-filter="producto">Productos</button>
+          <button class="chip" data-prod-filter="servicio">Servicios</button>
+        </div>
+      </div>
+      <div id="prod-list" class="doc-list"></div>
+    </section>
+
     <!-- ===== Vista: editor ===== -->
     <section id="view-editor" hidden>
       <div class="editor-bar">
@@ -264,7 +294,6 @@
           <button class="btn small primary" data-action="save"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
           <button class="btn small outline" data-action="print"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> PDF / Imprimir</button>
           <button class="btn small outline" data-action="email"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg> Enviar</button>
-          <button class="btn small outline" data-action="share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>
           <button class="btn small danger" data-action="delete" aria-label="Eliminar documento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 3h4a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1Z"/></svg></button>
         </div>
       </div>
@@ -464,6 +493,73 @@
       </div>
     </div>
   </div>
+
+  <!-- ===== Modal: Producto / Servicio del catálogo ===== -->
+  <div id="modal-producto" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-producto-title">Nuevo producto</h2>
+        <button class="icon-btn" data-action="close-producto-modal" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <label>Tipo de ítem</label>
+        <div class="seg" id="prod-tipo-seg">
+          <button type="button" class="seg-btn on" data-action="set-prod-tipo" data-prod-tipo="producto">Producto</button>
+          <button type="button" class="seg-btn" data-action="set-prod-tipo" data-prod-tipo="servicio">Servicio</button>
+        </div>
+        <label>Nombre *
+          <input id="pr-nombre" type="text" placeholder="Ej. Tarjeta de presentación" autocomplete="off">
+        </label>
+        <div class="sgrid">
+          <label>Precio por unidad *
+            <input id="pr-precio" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>Unidad de medida
+            <input id="pr-unidad" type="text" list="unidades-list" placeholder="Ej. pza" autocomplete="off">
+          </label>
+        </div>
+        <label>Características <span class="hint">una por línea</span>
+          <textarea id="pr-caracteristicas" rows="4" placeholder="Papel couché 300 g&#10;Full color ambos lados&#10;Acabado mate"></textarea>
+        </label>
+        <label>Clave / SKU <span class="hint">(opcional)</span>
+          <input id="pr-sku" type="text" placeholder="Ej. TAR-300" autocomplete="off">
+        </label>
+        <label>Notas <span class="hint">(opcional, no se imprimen)</span>
+          <textarea id="pr-notas" rows="2" placeholder="Proveedor, márgenes, tiempos…"></textarea>
+        </label>
+        <p class="hint">Al agregarlo a un recibo o cotización se copian el precio por unidad, la unidad de medida y las características. Las características se imprimen debajo del concepto.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-producto-modal">Cancelar</button>
+        <button class="btn primary" data-action="save-producto">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Unidades de medida sugeridas ===== -->
+  <datalist id="unidades-list">
+    <option value="pza"></option>
+    <option value="pieza"></option>
+    <option value="servicio"></option>
+    <option value="proyecto"></option>
+    <option value="hora"></option>
+    <option value="día"></option>
+    <option value="mes"></option>
+    <option value="sesión"></option>
+    <option value="kg"></option>
+    <option value="g"></option>
+    <option value="litro"></option>
+    <option value="m"></option>
+    <option value="m²"></option>
+    <option value="cm"></option>
+    <option value="hoja"></option>
+    <option value="juego"></option>
+    <option value="lote"></option>
+    <option value="caja"></option>
+    <option value="paquete"></option>
+    <option value="rollo"></option>
+    <option value="juego de archivos"></option>
+  </datalist>
 
   <!-- ===== Puerta de cuenta (sincronización) ===== -->
   <div id="auth-gate" class="auth-gate" hidden>

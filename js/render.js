@@ -170,11 +170,21 @@
 
     let y = L.itemsStartY;
     const maxDescW = L.qtyAlignX - 10 - L.colDesc;
+    const featSize = table.featSize || Math.max(6.4, itemSize - L.itemFeatDrop);
     table.rows.forEach((r) => {
+      // si el concepto lleva unidad la descripción se queda más corta
+      const descW = r.descW || maxDescW;
       r.lines.forEach((ln, li) => {
-        h += txt(L.colDesc, y + li * table.lineH, itemSize, 400, ln, { ellipsis: true, w: maxDescW, color: BODY });
+        h += txt(L.colDesc, y + li * table.lineH, itemSize, 400, ln, { ellipsis: true, w: descW, color: BODY });
       });
-      if (r.q) h += txt(L.qtyAlignX, y, itemSize, 400, String(r.q), { align: 'right', w: 40, color: BODY });
+      // características del concepto: cuerpo menor, bajo la descripción
+      if (r.featLines && r.featLines.length) {
+        r.featLines.forEach((ln, li) => {
+          h += txt(L.colDesc, y + (r.lines.length + li) * table.lineH, featSize, 400, ln,
+            { ellipsis: true, w: descW, color: GREY });
+        });
+      }
+      if (r.q) h += txt(L.qtyAlignX, y, itemSize, 400, r.qtyLabel, { align: 'right', w: 56, color: BODY });
       if (r.pu) h += txt(L.priceAlignX, y, itemSize, 400, window.fmtMoney(r.pu), { align: 'right', w: 92, color: BODY });
       h += txt(L.subtotalAlignX, y, itemSize, 500, window.fmtMoney(r.q * r.pu), { align: 'right', w: 92, color: BLUE });
       y += r.rowH;

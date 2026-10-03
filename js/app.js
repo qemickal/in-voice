@@ -17,7 +17,7 @@
     _memStore[k] = v;
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento no disponible */ }
     // notificar al sincronizador (colecciones que viajan)
-    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp') {
+    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp' || k === 'mc_productos') {
       if (window.SYNC) window.SYNC.localChanged();
     }
   }
@@ -54,9 +54,11 @@
   let docs = storeGet('mc_docs', []);
   let clientes = storeGet('mc_clientes', []);
   let cuentasXPagar = storeGet('mc_cxp', []);
+  let productos = storeGet('mc_productos', []);  // catálogo: productos y servicios
   let editing = null;   // copia de trabajo
   let editingCxp = null; // copia de trabajo para cuenta por pagar
   let editingCliente = null; // referencia al contacto en edición (null = nuevo)
+  let editingProducto = null; // referencia al ítem del catálogo en edición (null = nuevo)
   let selectedClientId = null;
   let images = null;    // dataURLs pre-cargados para el PDF
   let listFilter = 'todos';
@@ -64,7 +66,10 @@
   let cliFilter = 'todos';  // 'todos' | 'cliente' | 'prospecto'
   let cliQuery = '';
   let cliModalTipo = 'cliente'; // tipo seleccionado en el modal de contacto
-  let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes'
+  let prodFilter = 'todos'; // 'todos' | 'producto' | 'servicio'
+  let prodQuery = '';
+  let prodModalTipo = 'producto'; // tipo seleccionado en el modal del catálogo
+  let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes' | 'productos'
   let previousView = 'inicio'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
@@ -91,7 +96,7 @@
       id: window.uid(), tipo, numero: nextNumero(tipo),
       fecha: window.todayISO(), vigencia: '',
       proyecto: '', representante: '', telefono: '', email: '',
-      items: [{ desc: '', q: 1, precioU: 0 }],
+      items: [{ desc: '', q: 1, precioU: 0, unidad: '', caracteristicas: [] }],
       conIva: true, iva: settings.iva, descuento: 0,
       pagos: { cuenta: settings.pagos.cuenta, clabe: settings.pagos.clabe, beneficiario: settings.pagos.beneficiario, banco: settings.pagos.banco },
       abonos: [], condiciones: settings.condiciones, terminos: settings.terminos,
@@ -102,6 +107,14 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  /* Características de productos, servicios y conceptos: se guardan como
+     arreglo, pero se acepta texto suelto (líneas, comas, punto y coma). */
+  function splitCaract(v) {
+    if (v == null) return [];
+    return window.itemCaracteristicas({ caracteristicas: v });
+  }
+  function joinCaractLines(v) { return splitCaract(v).join('\n'); }   // textarea del catálogo
+  function joinCaractInline(v) { return splitCaract(v).join(', '); }  // campo del concepto
   function fileName(doc) {
     const tipo = doc.tipo === 'cotizacion' ? 'Cotizacion' : 'Recibo';
     return `${tipo}-${doc.numero || 'sin-numero'}-${(settings.empresa || 'doc').replace(/[^a-z0-9]+/gi, '-')}.pdf`.replace(/--+/g, '-');
@@ -203,6 +216,7 @@
     $('#view-cxc').hidden = view !== 'cxc';
     $('#view-cxp').hidden = view !== 'cxp';
     $('#view-clientes').hidden = view !== 'clientes';
+    $('#view-productos').hidden = view !== 'productos';
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
@@ -212,6 +226,7 @@
     if (view === 'cxc') renderCxC();
     if (view === 'cxp') renderCxP();
     if (view === 'clientes') renderClientes();
+    if (view === 'productos') renderProductos();
     window.scrollTo(0, 0);
   }
 
@@ -224,7 +239,8 @@
     { view: 'cxc',      num: '03', name: 'Por cobrar',      desc: 'Saldos pendientes agrupados por cliente, con el avance de cada cobro.' },
     { view: 'cxp',      num: '04', name: 'Por pagar',       desc: 'Gastos y facturas por liquidar, con abonos parciales y avisos de vencimiento.' },
     { view: 'clientes', num: '05', name: 'Clientes',        desc: 'Directorio de clientes y prospectos con su estado de seguimiento.' },
-    { view: 'logout',   num: '06', name: 'Cerrar sesión',   desc: 'Corta la sincronización en este dispositivo. Tus datos locales no se borran.' }
+    { view: 'productos', num: '06', name: 'Catálogo',       desc: 'Productos y servicios con su precio por unidad, unidad de medida y características, listos para agregar a tus documentos.' },
+    { view: 'logout',   num: '07', name: 'Cerrar sesión',   desc: 'Corta la sincronización en este dispositivo. Tus datos locales no se borran.' }
   ];
   let menuActive = 'inicio';
 
@@ -248,6 +264,7 @@
       case 'cxc': return getCxCData().length + ' clientes con saldo';
       case 'cxp': return cxpStats().pendientes + ' pendientes';
       case 'clientes': return clientes.length + (clientes.length === 1 ? ' contacto' : ' contactos');
+      case 'productos': return productos.length + (productos.length === 1 ? ' ítem' : ' ítems');
       case 'logout': return (window.SYNC && window.SYNC.accountEmail()) || 'sin cuenta';
     }
     return '';
@@ -294,6 +311,14 @@
           { n: String(clientes.length - pros), l: 'Clientes' },
           { n: String(pros), l: 'Prospectos' },
           { n: String(clientes.length), l: 'Total' }
+        ];
+      }
+      case 'productos': {
+        var servs = productos.filter(function (p) { return prodTipo(p) === 'servicio'; }).length;
+        return [
+          { n: String(productos.length - servs), l: 'Productos' },
+          { n: String(servs), l: 'Servicios' },
+          { n: String(productos.length), l: 'En catálogo' }
         ];
       }
       case 'logout': return [{ n: (window.SYNC && window.SYNC.accountEmail()) || '—', l: 'Cuenta' }];
@@ -1182,6 +1207,185 @@
     toast((cliModalTipo === 'prospecto' ? 'Prospecto' : 'Cliente') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
   }
 
+  /* ================= CATÁLOGO: PRODUCTOS Y SERVICIOS =================
+     Cada ítem guarda nombre, precio por unidad, unidad de medida y
+     características. Desde el editor de recibos y cotizaciones se
+     agregan como conceptos copiando esos datos. */
+  function prodTipo(p) { return (p && p.tipo === 'servicio') ? 'servicio' : 'producto'; }
+
+  function renderProductos() {
+    const wrap = $('#prod-list');
+    if (!wrap) return;
+    const q = prodQuery.trim().toLowerCase();
+    const filtered = productos.filter(function (p) {
+      const okTipo = prodFilter === 'todos' || prodTipo(p) === prodFilter;
+      const okQ = !q || [p.nombre, p.sku, p.unidad, p.notas, splitCaract(p.caracteristicas).join(' ')]
+        .join(' ').toLowerCase().includes(q);
+      return okTipo && okQ;
+    }).sort(function (a, b) {
+      return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
+    });
+
+    $$('.chip[data-prod-filter]').forEach(function (c) {
+      c.classList.toggle('active', c.dataset.prodFilter === prodFilter);
+    });
+
+    if (!filtered.length) {
+      wrap.innerHTML = `
+        <div class="empty">
+          <span class="empty-icon">${window.ICONS.box('ic-lg')}</span>
+          <h3>${productos.length ? 'Nada coincide con la búsqueda' : 'Tu catálogo está vacío'}</h3>
+          <p>${productos.length
+            ? 'Prueba con otro término o quita los filtros.'
+            : 'Guarda lo que vendes con su precio por unidad, unidad de medida y características. Después los agregas a un recibo o cotización con un toque.'}</p>
+          <div class="empty-actions">
+            <button class="btn primary" data-action="new-producto">Nuevo producto</button>
+            <button class="btn outline" data-action="new-servicio">Nuevo servicio</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    wrap.innerHTML = filtered.map(function (p, i) {
+      const tipo = prodTipo(p);
+      const feats = splitCaract(p.caracteristicas);
+      return `
+      <div class="card card-prod" style="--i:${Math.min(i, 14)}">
+        <div class="card-top">
+          <span class="pill ${tipo === 'servicio' ? 'ghost' : 'solid'}">${tipo === 'servicio' ? 'Servicio' : 'Producto'}</span>
+          ${p.sku ? `<span class="card-num">${esc(p.sku)}</span>` : ''}
+          <span class="card-date">${fmtCliFecha(p.updatedAt)}</span>
+        </div>
+        <div class="card-title">${esc(p.nombre || 'Sin nombre')}</div>
+        <div class="prod-price">
+          <b>${window.fmtMoney(p.precio)}</b>
+          <span>${p.unidad ? 'por ' + esc(p.unidad) : 'por unidad'}</span>
+        </div>
+        ${feats.length ? `<ul class="prod-feats">${feats.slice(0, 4).map((f) => `<li>${esc(f)}</li>`).join('')}${feats.length > 4 ? `<li class="prod-feat-more">+${feats.length - 4} más</li>` : ''}</ul>` : ''}
+        ${p.notas ? `<div class="cli-notas">${esc(p.notas)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn small outline" data-action="edit-producto" data-id="${p.id}">Editar</button>
+          <button class="btn small outline" data-action="dup-producto" data-id="${p.id}">Duplicar</button>
+          <button class="btn small danger" data-action="del-producto" data-id="${p.id}">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function setProdTipo(t) {
+    prodModalTipo = t === 'servicio' ? 'servicio' : 'producto';
+    $$('#prod-tipo-seg .seg-btn').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.prodTipo === prodModalTipo);
+    });
+    const title = $('#modal-producto-title');
+    if (title) {
+      title.textContent = (editingProducto ? 'Editar ' : 'Nuevo ')
+        + (prodModalTipo === 'servicio' ? 'servicio' : 'producto');
+    }
+  }
+
+  function openProductoModal(id, tipoDef) {
+    editingProducto = id ? (productos.find(function (p) { return p.id === id; }) || null) : null;
+    const p = editingProducto;
+    const tipo = p ? prodTipo(p) : (tipoDef === 'servicio' ? 'servicio' : 'producto');
+    $('#pr-nombre').value = p ? (p.nombre || '') : '';
+    $('#pr-precio').value = p && p.precio != null ? p.precio : '';
+    $('#pr-unidad').value = p ? (p.unidad || '') : '';
+    $('#pr-caracteristicas').value = p ? joinCaractLines(p.caracteristicas) : '';
+    $('#pr-sku').value = p ? (p.sku || '') : '';
+    $('#pr-notas').value = p ? (p.notas || '') : '';
+    setProdTipo(tipo);
+    $('#modal-producto').classList.add('open');
+    setTimeout(function () { const n = $('#pr-nombre'); if (n) n.focus(); }, 80);
+  }
+
+  function saveProducto() {
+    const g = function (id) { const el = $(id); return el ? el.value : ''; };
+    const nombre = g('#pr-nombre').trim();
+    if (!nombre) {
+      toast('Escribe el nombre del producto o servicio');
+      const n = $('#pr-nombre'); if (n) n.focus();
+      return;
+    }
+    const precioRaw = g('#pr-precio').trim();
+    const precio = precioRaw === '' ? 0 : Number(precioRaw);
+    if (!isFinite(precio) || precio < 0) {
+      toast('Escribe un precio por unidad válido');
+      const pr = $('#pr-precio'); if (pr) pr.focus();
+      return;
+    }
+    const now = Date.now();
+    let p = editingProducto;
+    const esNuevo = !p;
+    if (esNuevo) { p = { id: window.uid(), createdAt: now }; productos.push(p); }
+    p.tipo = prodModalTipo;
+    p.nombre = nombre;
+    p.precio = precio;
+    p.unidad = g('#pr-unidad').trim();
+    p.caracteristicas = splitCaract(g('#pr-caracteristicas'));
+    p.sku = g('#pr-sku').trim();
+    p.notas = g('#pr-notas').trim();
+    p.updatedAt = now;
+
+    storeSet('mc_productos', productos); // también avisa al sincronizador
+    $('#modal-producto').classList.remove('open');
+    editingProducto = null;
+    if (mainView === 'productos') renderProductos();
+    refreshMenuCounts();
+    toast((prodModalTipo === 'servicio' ? 'Servicio' : 'Producto') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
+  }
+
+  /* Selector del catálogo dentro del editor de documentos */
+  function catalogoPickerHtml() {
+    if (!productos.length) {
+      return `<div class="prod-pick-empty">
+        <p class="hint">Guarda productos y servicios en tu catálogo con su precio por unidad, unidad de medida y características: después los agregas aquí con un toque.</p>
+        <button class="btn small outline" data-action="go-productos">Ir al catálogo</button>
+      </div>`;
+    }
+    const grupos = [
+      { label: 'Productos', list: productos.filter((p) => prodTipo(p) === 'producto') },
+      { label: 'Servicios', list: productos.filter((p) => prodTipo(p) === 'servicio') }
+    ];
+    const opts = grupos.map(function (g) {
+      if (!g.list.length) return '';
+      return '<optgroup label="' + esc(g.label) + '">' + g.list.map(function (p) {
+        return `<option value="${esc(p.id)}">${esc(p.nombre)} · ${window.fmtMoney(p.precio)}${p.unidad ? '/' + esc(p.unidad) : ''}</option>`;
+      }).join('') + '</optgroup>';
+    }).join('');
+    return `<label class="prod-pick">Agregar del catálogo
+      <select id="f-catalogo">
+        <option value="">— Elige un producto o servicio —</option>
+        ${opts}
+      </select>
+    </label>`;
+  }
+
+  function addItemFromCatalog(pid) {
+    if (!editing) return;
+    syncForm();
+    const p = productos.find((x) => x.id === pid);
+    if (!p) { toast('Ese ítem ya no está en el catálogo'); return; }
+    // si el documento sólo tenía el renglón vacío inicial, se reemplaza
+    if (editing.items.length === 1) {
+      const solo = editing.items[0];
+      if (!String(solo.desc || '').trim() && !Number(solo.precioU) && !splitCaract(solo.caracteristicas).length) {
+        editing.items.length = 0;
+      }
+    }
+    editing.items.push({
+      desc: p.nombre || '',
+      q: 1,
+      precioU: Number(p.precio) || 0,
+      unidad: p.unidad || '',
+      caracteristicas: splitCaract(p.caracteristicas),
+      prodId: p.id
+    });
+    renderEditor();
+    renderPreview();
+    toast('Agregado ✓ ' + (p.nombre || ''));
+  }
+
   /* ================= EDITOR ================= */
   function showEditor(doc) {
     editing = JSON.parse(JSON.stringify(doc));
@@ -1199,6 +1403,7 @@
     $('#view-cxc').hidden = true;
     $('#view-cxp').hidden = true;
     $('#view-clientes').hidden = true;
+    $('#view-productos').hidden = true;
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
     document.body.classList.add('in-editor');
@@ -1272,6 +1477,7 @@
 
       <section class="fsec">
         <h2>Conceptos</h2>
+        ${catalogoPickerHtml()}
         <div id="items-list">
           ${(editing.items || []).map((it, i) => itemRow(it, i)).join('')}
         </div>
@@ -1346,9 +1552,13 @@
   function itemRow(it, i) {
     return `
     <div class="item-row" data-index="${i}">
-      <input class="i-desc" type="text" placeholder="Descripción del servicio" value="${esc(it.desc)}">
+      <div class="i-main">
+        <input class="i-desc" type="text" placeholder="Descripción del servicio" value="${esc(it.desc)}">
+        <input class="i-car" type="text" placeholder="Características (separadas por coma)" value="${esc(joinCaractInline(it.caracteristicas))}">
+      </div>
       <div class="i-nums">
         <label>Q<input class="i-q" type="number" min="0" step="1" value="${esc(it.q)}"></label>
+        <label>Unidad<input class="i-u" type="text" list="unidades-list" placeholder="pza" value="${esc(it.unidad || '')}"></label>
         <label>Precio U<input class="i-pu" type="number" min="0" step="0.01" value="${esc(it.precioU)}"></label>
         <span class="i-sub">${window.fmtMoney((Number(it.q) || 0) * (Number(it.precioU) || 0))}</span>
       </div>
@@ -1396,6 +1606,10 @@
       editing.items[i].desc = $('.i-desc', row).value;
       editing.items[i].q = $('.i-q', row).value;
       editing.items[i].precioU = $('.i-pu', row).value;
+      const uEl = $('.i-u', row);
+      if (uEl) editing.items[i].unidad = uEl.value.trim();
+      const cEl = $('.i-car', row);
+      if (cEl) editing.items[i].caracteristicas = splitCaract(cEl.value);
       const sub = (Number(editing.items[i].q) || 0) * (Number(editing.items[i].precioU) || 0);
       $('.i-sub', row).textContent = window.fmtMoney(sub);
     });
@@ -1561,26 +1775,6 @@
     }
   }
 
-  async function shareDoc() {
-    if (!editing) return;
-    syncForm();
-    const btn = $('[data-action="share"]');
-    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generando…';
-    try {
-      const file = await makePdfFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: file.name, text: file.name });
-      } else {
-        downloadBlob(file, file.name);
-        toast('PDF descargado (compartir archivos no está disponible en este navegador).');
-      }
-    } catch (err) {
-      if (!(err && err.name === 'AbortError')) toast('No se pudo compartir: ' + (err && err.message ? err.message : 'error'));
-    } finally {
-      btn.disabled = false; btn.textContent = old;
-    }
-  }
-
   /* ---------------- Ajustes ---------------- */
   function openSettings() {
     const s = settings;
@@ -1678,7 +1872,6 @@
       case 'save': saveDoc(false); break;
       case 'print': printDoc(); break;
       case 'email': sendEmail(); break;
-      case 'share': shareDoc(); break;
       case 'delete':
         if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView); } }
         break;
@@ -1700,11 +1893,11 @@
         if (editing) { editing.tipo = btn.dataset.tipo; renderEditor(); renderPreview(); }
         break;
       case 'add-item':
-        if (editing) { editing.items.push({ desc: '', q: 1, precioU: 0 }); renderEditor(); renderPreview(); }
+        if (editing) { editing.items.push({ desc: '', q: 1, precioU: 0, unidad: '', caracteristicas: [] }); renderEditor(); renderPreview(); }
         break;
       case 'del-item': {
         editing.items.splice(Number(btn.dataset.index), 1);
-        if (!editing.items.length) editing.items = [{ desc: '', q: 1, precioU: 0 }];
+        if (!editing.items.length) editing.items = [{ desc: '', q: 1, precioU: 0, unidad: '', caracteristicas: [] }];
         renderEditor(); renderPreview(); break;
       }
       case 'add-abono': { editing.abonos.push({ fecha: window.todayISO(), monto: 0 }); renderEditor(); renderPreview(); break; }
@@ -1759,6 +1952,49 @@
         editingCliente = null;
         break;
       case 'save-cliente': saveClienteFromModal(); break;
+
+      /* ------ Catálogo de productos y servicios ------ */
+      case 'new-producto': openProductoModal(null, 'producto'); break;
+      case 'new-servicio': openProductoModal(null, 'servicio'); break;
+      case 'edit-producto': openProductoModal(btn.dataset.id); break;
+      case 'set-prod-tipo': setProdTipo(btn.dataset.prodTipo); break;
+      case 'close-producto-modal':
+        $('#modal-producto').classList.remove('open');
+        editingProducto = null;
+        break;
+      case 'save-producto': saveProducto(); break;
+      case 'dup-producto': {
+        const src = productos.find((x) => x.id === btn.dataset.id);
+        if (src) {
+          const copy = JSON.parse(JSON.stringify(src));
+          copy.id = window.uid();
+          copy.nombre = (src.nombre || '') + ' (copia)';
+          copy.createdAt = copy.updatedAt = Date.now();
+          productos.push(copy);
+          storeSet('mc_productos', productos);
+          renderProductos();
+          refreshMenuCounts();
+          toast('Ítem duplicado ✓');
+        }
+        break;
+      }
+      case 'del-producto': {
+        const pp = productos.find((x) => x.id === btn.dataset.id);
+        if (!pp) break;
+        if (!confirm('¿Eliminar «' + (pp.nombre || 'este ítem') + '» del catálogo? (No borra los documentos donde ya se usa)')) break;
+        productos = productos.filter((x) => x.id !== pp.id);
+        storeSet('mc_productos', productos);
+        if (window.SYNC) window.SYNC.tombstone('productos', pp.id);
+        renderProductos();
+        refreshMenuCounts();
+        toast('Ítem eliminado');
+        break;
+      }
+      /* desde el editor: ir al catálogo guardando el documento en silencio */
+      case 'go-productos':
+        if (editing) saveDoc(true);
+        switchMainView('productos');
+        break;
       case 'del-cliente-card': {
         const cc = clientes.find((x) => x.id === btn.dataset.id);
         if (!cc) break;
@@ -1879,6 +2115,7 @@
         e.target.id === 'f-cuenta' || e.target.id === 'f-clabe' || e.target.id === 'f-beneficiario' || e.target.id === 'f-banco' ||
         e.target.id === 'f-iva' || e.target.id === 'f-descuento' ||
         e.target.classList.contains('i-desc') || e.target.classList.contains('i-q') || e.target.classList.contains('i-pu') ||
+        e.target.classList.contains('i-u') || e.target.classList.contains('i-car') ||
         e.target.classList.contains('a-fecha') || e.target.classList.contains('a-monto')) {
       syncForm();
       updateTotalsBox();
@@ -1888,6 +2125,9 @@
   });
 
   document.addEventListener('change', (e) => {
+    if (e.target.id === 'f-catalogo' && e.target.value) {
+      addItemFromCatalog(e.target.value);
+    }
     if (e.target.id === 'f-cliente') {
       const c = clientes.find((x) => x.id === e.target.value);
       selectedClientId = c ? c.id : null;
@@ -1969,6 +2209,13 @@
     c.addEventListener('click', function() { cliFilter = c.dataset.cliFilter; renderClientes(); });
   });
 
+  // Búsqueda y filtros del catálogo (productos y servicios)
+  var searchProd = $('#search-prod');
+  if (searchProd) searchProd.addEventListener('input', function(e) { prodQuery = e.target.value; renderProductos(); });
+  $$('.chip[data-prod-filter]').forEach(function(c) {
+    c.addEventListener('click', function() { prodFilter = c.dataset.prodFilter; renderProductos(); });
+  });
+
   // Input events para modal CxP
   document.addEventListener('input', function(e) {
     if (!$('#modal-cxp').classList.contains('open')) return;
@@ -2035,6 +2282,7 @@
     if (changed.has('mc_docs')) docs = storeGet('mc_docs', []);
     if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
     if (changed.has('mc_cxp')) cuentasXPagar = storeGet('mc_cxp', []);
+    if (changed.has('mc_productos')) productos = storeGet('mc_productos', []);
 
     const acc = $('#sync-account');
     if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
@@ -2059,6 +2307,7 @@
     docs = storeGet('mc_docs', []);
     clientes = storeGet('mc_clientes', []);
     cuentasXPagar = storeGet('mc_cxp', []);
+    productos = storeGet('mc_productos', []);
     const acc = $('#sync-account');
     if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'sin cuenta';
     showList();

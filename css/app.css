@@ -422,7 +422,7 @@ main {
 .list-head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .list-tools { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
-#search, #search-cxc, #search-cxp, #search-cli {
+#search, #search-cxc, #search-cxp, #search-cli, #search-prod {
   max-width: 480px;
   background: var(--surface);
   border-radius: 13px;
@@ -435,7 +435,8 @@ main {
 #search::-webkit-search-cancel-button,
 #search-cxc::-webkit-search-cancel-button,
 #search-cxp::-webkit-search-cancel-button,
-#search-cli::-webkit-search-cancel-button { -webkit-appearance: none; }
+#search-cli::-webkit-search-cancel-button,
+#search-prod::-webkit-search-cancel-button { -webkit-appearance: none; }
 
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
@@ -579,7 +580,7 @@ main {
 /* --- Acciones rápidas --- */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(198px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -885,18 +886,33 @@ p.hint { font-size: 12px; line-height: 1.6; margin: 0; }
 .seg-btn.on { background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow-1); }
 
 .item-row {
-  display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
+  /* la columna del formulario es estrecha: descripción y características
+     arriba; cantidad, unidad, precio y subtotal en su propia línea */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start;
   border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px;
   background: var(--field);
   transition: border-color var(--dur-1), background var(--dur-1), box-shadow var(--dur-1);
 }
 .item-row:hover { border-color: var(--line-2); }
 .item-row:focus-within { border-color: var(--brand-400); box-shadow: var(--ring); background: var(--surface); }
-.item-row .i-nums { display: flex; gap: 8px; align-items: center; }
-.item-row .i-nums label { flex-direction: row; align-items: center; gap: 5px; font-size: 10px; }
-.item-row .i-nums input { width: 68px; padding: 8px; }
-.item-row .i-desc { min-width: 120px; }
-.i-sub { font-family: var(--display); font-weight: 700; color: var(--ink); font-size: 13px; white-space: nowrap; padding: 0 4px; }
+.item-row .i-main { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+/* el botón de quitar acompaña a la descripción, arriba a la derecha */
+.item-row:not(.abono) > .icon-btn { grid-area: 1 / 2; justify-self: end; }
+.item-row .i-nums {
+  grid-area: 2 / 1 / 3 / -1;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.item-row .i-nums label {
+  flex: 1 1 auto; min-width: 0;
+  flex-direction: row; align-items: center; gap: 6px; font-size: 10px;
+}
+.item-row .i-nums input { width: 100%; min-width: 0; padding: 8px 10px; }
+.item-row .i-desc { min-width: 0; }
+.item-row .i-car { font-size: 12.5px; font-weight: 500; padding: 7px 10px; }
+.i-sub {
+  font-family: var(--display); font-weight: 700; color: var(--ink);
+  font-size: 13px; white-space: nowrap; padding: 0 4px; margin-left: auto;
+}
 .item-row.abono { grid-template-columns: 1fr 1fr auto auto; }
 
 /* ---------- Control de IVA ---------- */
@@ -926,6 +942,27 @@ p.hint { font-size: 12px; line-height: 1.6; margin: 0; }
 }
 .client-item:hover { border-color: var(--line-2); }
 .client-item .muted { font-size: 12.5px; }
+
+/* ---------- Catálogo de productos y servicios ---------- */
+.card-prod .card-title { margin-bottom: -4px; }
+.prod-price { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.prod-price b { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.prod-price span { font-size: 12px; color: var(--ink-3); }
+.prod-feats { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.prod-feats li {
+  font-size: 11.5px; line-height: 1.35; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 10px 3px;
+}
+.prod-feats li.prod-feat-more { color: var(--ink-3); background: transparent; border-style: dashed; }
+.prod-pick { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.prod-pick-empty {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  border: 1px dashed var(--line-2); border-radius: var(--r-md);
+  padding: 12px 14px; margin-bottom: 12px; background: var(--surface-2);
+}
+.prod-pick-empty .hint { margin: 0; flex: 1; min-width: 200px; }
 
 /* ---------- Saldo de abonos ---------- */
 .a-saldo { font-family: var(--display); font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap; text-align: right; min-width: 76px; }
@@ -1683,19 +1720,18 @@ main > section:not([hidden]) { animation: view-in .38s var(--ease-out) both; }
   .editor-bar-actions { display: flex; flex-wrap: wrap; gap: 6px; }
   .editor-bar-actions .btn { min-width: 0; }
 
-  .item-row,
+  .item-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
   .item-row.abono,
   .cxp-abono-row {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  .item-row .i-nums { flex-wrap: wrap; }
-  .item-row .i-nums label { flex: 1; min-width: 0; }
-  .item-row .i-nums input { width: 100%; min-width: 0; }
-  .item-row .i-desc { min-width: 0; }
+  .item-row .i-nums { flex-wrap: wrap; gap: 8px; }
+  .item-row .i-nums label { flex: 1 1 40%; }
   .i-sub { text-align: right; }
   .item-row > .icon-btn,
   .item-row.abono > .icon-btn { justify-self: end; }
+  .item-row:not(.abono) > .icon-btn { grid-area: 1 / 2; }
 
   .preview-caption { gap: 10px; font-size: 9px; letter-spacing: .1em; }
 
@@ -1964,7 +2000,7 @@ main {
 .list-head h1 { margin-top: 2px; }
 .list-head-actions { gap: 8px; }
 .list-tools { gap: 14px; margin-bottom: 26px; }
-#search, #search-cxc, #search-cxp, #search-cli {
+#search, #search-cxc, #search-cxp, #search-cli, #search-prod {
   max-width: 520px;
   min-height: 42px;
   padding: 10px 14px 10px 40px;
