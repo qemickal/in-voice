@@ -2700,3 +2700,250 @@ button.alert:hover { transform: none; border-color: var(--line); }
 .card-foot,
 .card-actions { flex-wrap: wrap; }
 
+
+/* ============================================================
+   20 · DIRECTORIO — tabla compacta y adaptable
+   ============================================================ */
+.cli-list { width: 100%; min-width: 0; }
+.cli-list > .empty { width: 100%; }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.cli-table-shell {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.cli-table-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 9px 14px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+}
+.cli-table-summary strong { color: var(--ink); font-weight: 700; }
+.cli-table-hint { color: var(--ink-3); font-size: 10.5px; }
+.cli-table-scroll { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.cli-table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+.cli-col-person { width: 26%; }
+.cli-col-contact { width: 27%; }
+.cli-col-status { width: 18%; }
+.cli-col-date { width: 13%; }
+.cli-col-actions { width: 16%; }
+.cli-table th {
+  padding: 10px 12px;
+  color: var(--ink-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  line-height: 1.3;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cli-table th:last-child { text-align: right; }
+.cli-table td {
+  min-width: 0;
+  padding: 11px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+.cli-table tbody tr:first-child td { border-top: 0; }
+.cli-table tbody tr { transition: background var(--dur-1); }
+.cli-table tbody tr:hover { background: var(--surface-2); }
+
+.cli-person { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.cli-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  color: var(--brand-ink);
+  background: var(--brand-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.cli-person-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cli-name,
+.cli-company,
+.cli-note {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cli-name { color: var(--ink); font-size: 12.5px; font-weight: 700; }
+.cli-company { color: var(--ink-2); font-size: 11px; }
+.cli-note { color: var(--ink-3); font-size: 10.5px; font-style: italic; }
+.cli-contact-lines { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cli-contact-item {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cli-contact-empty { color: var(--ink-3); font-size: 11.5px; }
+.cli-statuses { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.cli-type { font-size: 9px; letter-spacing: .06em; }
+.cli-table .cli-estado {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  letter-spacing: .04em;
+  text-overflow: ellipsis;
+}
+.cli-cell-date { color: var(--ink-3) !important; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cli-actions { display: flex; align-items: center; justify-content: flex-end; gap: 5px; white-space: nowrap; }
+.cli-actions .btn { flex: 0 0 auto; }
+.cli-actions .btn.outline { padding: 7px 10px; font-size: 11px; }
+.cli-actions .cli-delete {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.cli-actions .cli-delete:hover { border-color: var(--danger); background: var(--danger-soft); }
+
+@media (max-width: 860px) {
+  /* La cuenta se separa de la firma para no empujar ni montarse sobre el menú. */
+  .menu-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+  }
+  .menu-foot #sync-account,
+  .menu-foot strong {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+  .menu-foot .menu-foot-line { display: none; }
+}
+
+@media (min-width: 861px) {
+  .menu-foot { flex-wrap: nowrap; min-width: 0; }
+  .menu-foot #sync-account {
+    flex: 0 1 250px;
+    min-width: 0;
+    max-width: 250px;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+  .menu-foot .menu-foot-line { flex: 0 0 34px; width: 34px; }
+  .menu-foot strong {
+    flex: 0 1 360px;
+    min-width: 0;
+    max-width: 360px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 760px) {
+  .cli-table-shell {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .cli-table-summary {
+    margin-bottom: 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+  .cli-table-scroll { overflow: visible; }
+  .cli-table { display: block; min-width: 0; }
+  .cli-table thead { position: absolute; left: -10000px; }
+  .cli-table tbody { display: grid; gap: 8px; }
+  .cli-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    animation: rise-in var(--dur-3) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
+  }
+  .cli-table tbody tr:hover { background: var(--surface); }
+  .cli-table td,
+  .cli-table tbody tr:first-child td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .cli-cell-main { grid-column: 1 / -1; grid-row: 1; }
+  .cli-cell-status { grid-column: 1 / -1; grid-row: 2; }
+  .cli-cell-contact {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--line) !important;
+  }
+  .cli-cell-date { grid-column: 1; grid-row: 4; align-self: center; }
+  .cli-cell-actions { grid-column: 2; grid-row: 4; justify-self: end; }
+  .cli-statuses { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .cli-contact-lines { flex-direction: row; flex-wrap: wrap; gap: 5px 12px; }
+  .cli-contact-item { overflow-wrap: anywhere; white-space: normal; }
+}
+
+@media (max-width: 420px) {
+  .cli-table-summary { padding: 9px 12px; }
+  .cli-table-hint { display: none; }
+  .cli-table tbody tr { gap: 8px 9px; padding: 11px; }
+  .cli-person { gap: 8px; }
+  .cli-avatar { width: 31px; height: 31px; flex-basis: 31px; }
+}

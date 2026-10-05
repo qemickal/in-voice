@@ -265,7 +265,7 @@
       case 'cxp': return cxpStats().pendientes + ' pendientes';
       case 'clientes': return clientes.length + (clientes.length === 1 ? ' contacto' : ' contactos');
       case 'productos': return productos.length + (productos.length === 1 ? ' ítem' : ' ítems');
-      case 'logout': return (window.SYNC && window.SYNC.accountEmail()) || 'sin cuenta';
+      case 'logout': return window.SYNC && window.SYNC.authed() ? 'Cuenta conectada' : 'Sin cuenta';
     }
     return '';
   }
@@ -321,7 +321,7 @@
           { n: String(productos.length), l: 'En catálogo' }
         ];
       }
-      case 'logout': return [{ n: (window.SYNC && window.SYNC.accountEmail()) || '—', l: 'Cuenta' }];
+      case 'logout': return [{ n: window.SYNC && window.SYNC.authed() ? 'Activa' : 'Sin cuenta', l: 'Sesión' }];
     }
     return [];
   }
@@ -1106,7 +1106,7 @@
 
     if (!filtered.length) {
       wrap.innerHTML = `
-        <div class="empty">
+        <div class="empty" role="status">
           <span class="empty-icon">${window.ICONS.user('ic-lg')}</span>
           <h3>${clientes.length ? 'Ningún contacto coincide' : 'Aún no hay clientes ni prospectos'}</h3>
           <p>${clientes.length ? 'Prueba con otra búsqueda o quita los filtros.' : 'Agrega tu primer contacto: lo reutilizarás en recibos y cotizaciones con un toque.'}</p>
@@ -1118,33 +1118,86 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c, ci) {
+    const plural = filtered.length === 1 ? 'contacto' : 'contactos';
+    const rows = filtered.map(function(c, ci) {
       const tipo = cliTipo(c);
+      const nombre = String(c.nombre || '').trim() || 'Sin nombre';
+      const initials = nombre.trim().split(/\s+/).filter(Boolean).slice(0, 2)
+        .map(function(part) { return part.charAt(0); }).join('').toUpperCase();
       const stamp = tipo === 'prospecto'
-        ? '<span class="pill ghost">Prospecto</span>'
-        : '<span class="pill solid">Cliente</span>';
+        ? '<span class="pill ghost mini cli-type">Prospecto</span>'
+        : '<span class="pill solid mini cli-type">Cliente</span>';
       const estado = (tipo === 'prospecto' && c.estado)
         ? `<span class="cli-estado" data-estado="${esc(c.estado)}">${esc(CLI_ESTADOS[c.estado] || c.estado)}</span>`
         : '';
-      const contacto = [c.email, c.telefono].filter(Boolean).map(esc).join(' · ');
+      const contactInfo = [
+        c.email ? { label: 'Correo', value: c.email } : null,
+        c.telefono ? { label: 'Teléfono', value: c.telefono } : null,
+        c.direccion ? { label: 'Dirección', value: c.direccion } : null
+      ].filter(Boolean);
+      const contactDetails = contactInfo.length
+        ? contactInfo.map(function(item) {
+            return `<span class="cli-contact-item" title="${esc(item.label + ': ' + item.value)}">${esc(item.value)}</span>`;
+          }).join('')
+        : '<span class="cli-contact-empty">Sin datos de contacto</span>';
+      const id = esc(c.id);
+      const safeName = esc(nombre);
+
       return `
-      <div class="card card-cli" style="--i:${Math.min(ci, 14)}">
-        <div class="card-top">
-          ${stamp}${estado}
-          <span class="card-date">${fmtCliFecha(c.updatedAt)}</span>
+        <tr style="--i:${Math.min(ci, 14)}">
+          <td class="cli-cell-main">
+            <div class="cli-person">
+              <span class="cli-avatar" aria-hidden="true">${esc(initials || '·')}</span>
+              <span class="cli-person-copy">
+                <span class="cli-name" title="${safeName}">${safeName}</span>
+                ${c.empresa ? `<span class="cli-company" title="${esc(c.empresa)}">${esc(c.empresa)}</span>` : ''}
+                ${c.notas ? `<span class="cli-note" title="${esc(c.notas)}">${esc(c.notas)}</span>` : ''}
+              </span>
+            </div>
+          </td>
+          <td class="cli-cell-contact"><span class="cli-contact-lines">${contactDetails}</span></td>
+          <td class="cli-cell-status">
+            <span class="cli-statuses">${stamp}${estado}</span>
+          </td>
+          <td class="cli-cell-date">${fmtCliFecha(c.updatedAt) || '—'}</td>
+          <td class="cli-cell-actions">
+            <span class="cli-actions">
+              <button class="btn small outline" data-action="edit-cliente" data-id="${id}" aria-label="Editar ${safeName}">Editar</button>
+              <button class="btn small danger cli-delete" data-action="del-cliente-card" data-id="${id}" aria-label="Eliminar ${safeName}" title="Eliminar contacto">${window.ICONS.trash()}</button>
+            </span>
+          </td>
+        </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="cli-table-shell">
+        <div class="cli-table-summary" role="status">
+          <span><strong>${filtered.length}</strong> ${plural}</span>
+          <span class="cli-table-hint">Ordenados alfabéticamente</span>
         </div>
-        <div class="card-title">${esc(c.nombre || 'Sin nombre')}</div>
-        ${c.empresa ? `<div class="cli-line cli-empresa">${esc(c.empresa)}</div>` : ''}
-        ${contacto ? `<div class="cli-line">${contacto}</div>` : ''}
-        ${c.direccion ? `<div class="cli-line">${esc(c.direccion)}</div>` : ''}
-        <div class="perf"></div>
-        ${c.notas ? `<div class="cli-notas">${esc(c.notas)}</div>` : ''}
-        <div class="card-actions">
-          <button class="btn small outline" data-action="edit-cliente" data-id="${c.id}">Editar</button>
-          <button class="btn small danger" data-action="del-cliente-card" data-id="${c.id}">Eliminar</button>
+        <div class="cli-table-scroll">
+          <table class="cli-table" aria-label="Directorio de clientes y prospectos">
+            <caption class="sr-only">Clientes y prospectos registrados, con sus datos de contacto y acciones.</caption>
+            <colgroup>
+              <col class="cli-col-person">
+              <col class="cli-col-contact">
+              <col class="cli-col-status">
+              <col class="cli-col-date">
+              <col class="cli-col-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">Contacto</th>
+                <th scope="col">Datos de contacto</th>
+                <th scope="col">Tipo / seguimiento</th>
+                <th scope="col">Actualizado</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
         </div>
       </div>`;
-    }).join('');
   }
 
   function setCliTipo(t) {
