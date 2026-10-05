@@ -1,9 +1,10 @@
 /* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v24';
+const CACHE = 'mc-pwa-v25';
 const ASSETS = [
   './',
   './index.html',
   './css/app.css',
+  './css/skin-cristal.css',
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',

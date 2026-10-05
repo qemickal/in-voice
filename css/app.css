@@ -2562,3 +2562,141 @@ button.alert:hover { transform: none; border-color: var(--line); }
   .quick-ico { width: 28px; height: 28px; }
   .chip { font-size: 10.5px; padding: 6px 9px; }
 }
+
+/* ============================================================
+   19 · QUE TODO QUEPA — nada se recorta en pantallas chicas
+   ------------------------------------------------------------
+   Causa medida (no supuesta): `grid-template-columns: 1fr` equivale a
+   `minmax(auto, 1fr)`, y ese `auto` es el ancho MÍNIMO del contenido.
+   Con textos en `white-space: nowrap` (títulos y montos de las filas,
+   pestañas, etc.) el mínimo crecía hasta 431px: en una pantalla de 360px
+   eso son 71px recortados por `overflow-x: hidden` del body.
+   Reproducido a 430 / 390 / 360 / 320 px en Inicio, Documentos, CxC,
+   CxP, Clientes, Catálogo y Editor.
+
+   Este bloque no cambia estética: solo permite que las cajas encojan y
+   que el texto ceda (puntos suspensivos) en vez de la cifra.
+   ============================================================ */
+
+/* 1 · Rejillas: el mínimo es 0, no "auto" */
+@media (max-width: 1080px) {
+  .panel-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 980px) {
+  .editor-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .item-row.abono,
+  .cxp-abono-row { grid-template-columns: minmax(0, 1fr); }
+  .item-row { grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (max-width: 560px) {
+  .grid2,
+  .sgrid,
+  .doc-list,
+  .quick-grid { grid-template-columns: minmax(0, 1fr); }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .theme-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 2 · Los hijos de una rejilla nunca imponen su mínimo */
+.panel-grid > *,
+.stat-grid > *,
+.quick-grid > *,
+.doc-list > *,
+.editor-layout > *,
+.grid2 > *,
+.sgrid > * { min-width: 0; }
+
+/* 3 · Filas con texto + cifra: el texto cede, la cifra no se recorta */
+.panel,
+.panel-head,
+.alert,
+.alert-body,
+.act,
+.act-body,
+.card,
+.card-top,
+.card-foot,
+.summary-card { min-width: 0; }
+
+.alert-title,
+.alert-desc,
+.act-title,
+.act-meta,
+.card-sub,
+.card-title,
+.panel-title,
+.alert-amt,
+.act-amt,
+.card-foot strong { min-width: 0; }
+
+.alert-amt,
+.act-amt,
+.card-foot strong { flex: 0 0 auto; }
+
+/* 4 · Con texto en una sola línea, el recorte se hace elegante */
+.alert-title,
+.alert-desc,
+.act-title,
+.act-meta,
+.card-sub,
+.card-title { overflow: hidden; text-overflow: ellipsis; }
+
+/* 5 · Palabras larguísimas (correos, SKU, URLs) no ensanchan la caja */
+.alert-title,
+.alert-desc,
+.act-title,
+.act-meta,
+.card-sub,
+.card-title,
+.panel-title,
+.hero-sub,
+.hero-title,
+.stat-foot,
+.preview-caption { overflow-wrap: anywhere; }
+
+/* 6 · Gráfica: se ajusta al ancho real, sin empujar */
+.chart,
+#chart-host,
+.chart-svg { max-width: 100%; min-width: 0; }
+
+/* 7 · Encabezado y barra del editor: los botones ceden antes que el título */
+#topbar > *,
+.brand,
+.brand-text,
+.editor-bar,
+.editor-bar-actions,
+.topbar-right { min-width: 0; }
+.brand-text strong { overflow: hidden; text-overflow: ellipsis; }
+
+/* 8 · Héroes y buscadores */
+.hero-inner,
+.hero-row,
+.hero-chips,
+.list-tools,
+#search,
+#search-cxc,
+#search-cxp,
+#search-cli,
+#search-prod { min-width: 0; }
+
+/* 9 · Vista previa del documento: el papel se escala, no se recorta */
+.preview-wrap,
+.editor-preview { min-width: 0; max-width: 100%; }
+
+/* 10 · Píldoras y etiquetas de estado: ceden antes que el monto */
+.card-cxp .cxp-vencida,
+.chip,
+.pill,
+.stat-delta { flex: 0 0 auto; }
+@media (max-width: 420px) {
+  .card-cxp .cxp-vencida { font-size: 9.5px; padding: 3px 7px 2px; letter-spacing: .04em; }
+}
+.card-top,
+.card-foot,
+.card-actions { flex-wrap: wrap; }
+

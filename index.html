@@ -11,6 +11,7 @@
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/skin-cristal.css">
   <script>
     /* Tema antes del primer pintado (evita el destello blanco). */
     (function () {
@@ -27,6 +28,10 @@
       var root = document.documentElement;
       root.setAttribute('data-theme', dark ? 'dark' : 'light');
       root.setAttribute('data-theme-mode', mode);
+      /* Capa 18 · «Cristal»: piel opcional (ver css/skin-cristal.css) */
+      var skin = 'cristal';
+      try { skin = localStorage.getItem('mc_skin') || 'cristal'; } catch (e) { }
+      root.setAttribute('data-skin', skin);
     })();
   </script>
 </head>
