@@ -1,5 +1,13 @@
-/* Service Worker — caché offline */
-const CACHE = 'mc-pwa-v29';
+/* Service Worker — caché offline.
+ *
+ * OJO: el HTML, el CSS y los JS se sirven «primero la red» (networkFirst).
+ * Antes eran cache-first, así que al actualizar la hoja de estilos el
+ * celular seguía mostrando la versión vieja (de ahí que un arreglo de
+ * diseño «no se viera nunca»). Con esto: si hay internet se baja la
+ * versión nueva y se refresca la caché; si no hay, se usa la caché.
+ * Los demás assets (fuentes, logo, íconos) siguen cache-first.
+ */
+const CACHE = 'mc-pwa-v30';
 const ASSETS = [
   './',
   './index.html',
@@ -22,6 +30,9 @@ const ASSETS = [
   './manifest.webmanifest',
 ];
 
+/* Lo que define la interfaz: siempre fresco cuando hay red. */
+const SIEMPRE_FRESCO = /(\.html$|\.css$|\.js$|^\/$|\/index\.html$)/i;
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
@@ -36,18 +47,34 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+function guardar(req, res) {
+  if (!res || res.status !== 200 || res.type !== 'basic') return;
+  const clone = res.clone();
+  caches.open(CACHE).then((c) => c.put(req, clone));
+}
+
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  let url;
+  try { url = new URL(req.url); } catch (err) { return; }
+  if (url.origin !== self.location.origin) return;   // externos: sin intervenir
+
+  if (req.mode === 'navigate' || SIEMPRE_FRESCO.test(url.pathname)) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => { guardar(req, res); return res; })
+        .catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then((hit) => {
+    caches.match(req).then((hit) => {
       if (hit) return hit;
-      return fetch(e.request).then((res) => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match('./index.html'));
+      return fetch(req).then((res) => { guardar(req, res); return res; })
+        .catch(() => caches.match('./index.html'));
     })
   );
 });
