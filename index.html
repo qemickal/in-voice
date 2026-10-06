@@ -64,55 +64,58 @@
       <div class="hero">
         <div class="hero-inner">
           <div class="hero-row">
-            <div>
+            <div class="hero-copy">
               <p class="kicker" id="hero-kicker">Panel general</p>
               <h1 class="hero-title" id="hero-title">Buen día</h1>
+              <div class="hero-balance">
+                <span class="hero-balance-label">Saldo por cobrar</span>
+                <strong id="hero-balance-value">$0.00</strong>
+              </div>
               <p class="hero-sub" id="hero-sub">Este es el estado de tu estudio hoy.</p>
             </div>
             <div class="hero-chips" id="hero-chips"></div>
+          </div>
+          <div class="quick-grid">
+            <button class="quick" style="--i:0" data-action="new-cotizacion">
+              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg></span>
+              <span class="quick-body">
+                <span class="quick-title">Cotizar</span>
+                <span class="quick-desc">Propuesta lista en un minuto</span>
+              </span>
+            </button>
+            <button class="quick" style="--i:1" data-action="new-recibo">
+              <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2Z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
+              <span class="quick-body">
+                <span class="quick-title">Recibo</span>
+                <span class="quick-desc">Cobra un trabajo entregado</span>
+              </span>
+            </button>
+            <button class="quick" style="--i:2" data-action="new-cliente">
+              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <span class="quick-body">
+                <span class="quick-title">Cliente</span>
+                <span class="quick-desc">Guárdalo para reutilizarlo</span>
+              </span>
+            </button>
+            <button class="quick" style="--i:3" data-action="new-cxp">
+              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+              <span class="quick-body">
+                <span class="quick-title">Gasto</span>
+                <span class="quick-desc">Cuenta por pagar</span>
+              </span>
+            </button>
+            <button class="quick" style="--i:4" data-action="new-producto">
+              <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+              <span class="quick-body">
+                <span class="quick-title">Producto</span>
+                <span class="quick-desc">Precio, unidad y detalles</span>
+              </span>
+            </button>
           </div>
         </div>
       </div>
 
       <div class="stat-grid" id="stat-grid"></div>
-
-      <div class="quick-grid">
-        <button class="quick" style="--i:0" data-action="new-cotizacion">
-          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg></span>
-          <span class="quick-body">
-            <span class="quick-title">Nueva cotización</span>
-            <span class="quick-desc">Propuesta lista en un minuto</span>
-          </span>
-        </button>
-        <button class="quick" style="--i:1" data-action="new-recibo">
-          <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2Z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
-          <span class="quick-body">
-            <span class="quick-title">Nuevo recibo</span>
-            <span class="quick-desc">Cobra un trabajo entregado</span>
-          </span>
-        </button>
-        <button class="quick" style="--i:2" data-action="new-cliente">
-          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-          <span class="quick-body">
-            <span class="quick-title">Nuevo cliente</span>
-            <span class="quick-desc">Guárdalo para reutilizarlo</span>
-          </span>
-        </button>
-        <button class="quick" style="--i:3" data-action="new-cxp">
-          <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-          <span class="quick-body">
-            <span class="quick-title">Registrar gasto</span>
-            <span class="quick-desc">Cuenta por pagar</span>
-          </span>
-        </button>
-        <button class="quick" style="--i:4" data-action="new-producto">
-          <span class="quick-ico accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
-          <span class="quick-body">
-            <span class="quick-title">Nuevo producto</span>
-            <span class="quick-desc">Precio, unidad y detalles</span>
-          </span>
-        </button>
-      </div>
 
       <div class="panel-grid">
         <div>
@@ -151,6 +154,11 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
+          <div class="activity-filters" role="group" aria-label="Filtrar actividad">
+            <button type="button" class="activity-filter active" data-action="activity-filter" data-activity-filter="all" aria-pressed="true">Todos</button>
+            <button type="button" class="activity-filter" data-action="activity-filter" data-activity-filter="docs" aria-pressed="false">Documentos</button>
+            <button type="button" class="activity-filter" data-action="activity-filter" data-activity-filter="expenses" aria-pressed="false">Gastos</button>
+          </div>
           <div id="activity-host" class="act-list"></div>
         </div>
       </div>
@@ -159,8 +167,14 @@
     <!-- ===== Vista: lista ===== -->
     <section id="view-list" hidden>
       <div class="list-head">
-        <div>
-          <p class="kicker">02 · Archivo general</p>
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">02 · Archivo general</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
           <h1>Documentos</h1>
         </div>
         <div class="list-head-actions">
@@ -182,8 +196,14 @@
     <!-- ===== Vista: Cuentas por Cobrar ===== -->
     <section id="view-cxc" hidden>
       <div class="list-head">
-        <div>
-          <p class="kicker">03 · Cuentas por cobrar</p>
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">03 · Cuentas por cobrar</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
           <h1>Por cobrar</h1>
         </div>
         <div class="list-head-actions">
@@ -208,8 +228,14 @@
     <!-- ===== Vista: Cuentas por Pagar ===== -->
     <section id="view-cxp" hidden>
       <div class="list-head">
-        <div>
-          <p class="kicker">04 · Cuentas por pagar</p>
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">04 · Cuentas por pagar</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
           <h1>Por pagar</h1>
         </div>
         <div class="list-head-actions">
@@ -245,8 +271,14 @@
     <!-- ===== Vista: Clientes / Prospectos ===== -->
     <section id="view-clientes" hidden>
       <div class="list-head">
-        <div>
-          <p class="kicker">05 · Clientes y prospectos</p>
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">05 · Clientes y prospectos</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
           <h1>Directorio</h1>
         </div>
         <div class="list-head-actions">
@@ -268,8 +300,14 @@
     <!-- ===== Vista: Productos y servicios ===== -->
     <section id="view-productos" hidden>
       <div class="list-head">
-        <div>
-          <p class="kicker">06 · Catálogo</p>
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">06 · Catálogo</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
           <h1>Productos y servicios</h1>
         </div>
         <div class="list-head-actions">
@@ -292,6 +330,10 @@
     <section id="view-editor" hidden>
       <div class="editor-bar">
         <button class="btn small outline" data-action="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Volver</button>
+        <button class="btn small outline section-home editor-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+          <span>Inicio</span>
+        </button>
         <div class="editor-bar-title">
           <span id="editor-mode-label">Documento</span>
         </div>
@@ -327,6 +369,29 @@
       <line class="ic-bar b2" x1="4" y1="15" x2="20" y2="15"/>
     </svg>
   </button>
+
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Navegación principal">
+    <button type="button" class="mobile-nav-item" data-action="go-home" data-nav-view="inicio" aria-label="Inicio">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-action="go-docs" data-nav-view="docs" aria-label="Documentos">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>
+      <span>Archivo</span>
+    </button>
+    <button type="button" class="mobile-nav-item mobile-nav-create" data-action="new-recibo" aria-label="Crear nuevo recibo">
+      <span class="mobile-nav-plus" aria-hidden="true">+</span>
+      <span>Nuevo</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-action="go-cxc" data-nav-view="cxc" aria-label="Cuentas por cobrar">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5c-.7-.7-1.7-1-3-1-1.4 0-2.5.7-2.5 1.8 0 2.8 5.5 1.1 5.5 4.1 0 1.2-1.2 2.1-2.9 2.1-1.4 0-2.5-.4-3.3-1.2M12 5.5v13"/></svg>
+      <span>Cobros</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-action="toggle-menu" data-nav-view="menu" aria-label="Abrir menú">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+      <span>Más</span>
+    </button>
+  </nav>
 
   <!-- ===== Menú pantalla completa ===== -->
   <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-label="Índice general">
