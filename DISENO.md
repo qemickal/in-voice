@@ -90,13 +90,34 @@ peticiones extra:
 | Bloque | Fuente |
 |---|---|
 | Hero (saludo, fecha, chips) | `docs`, `mc_cxp`, fecha del sistema |
-| 4 indicadores | `getCxCData()`, `cxpStats()`, `monthlySeries(6)` |
+| 3 indicadores (Por pagar, Facturado, Cobrado) | `getCxCData()`, `cxpStats()`, `monthlySeries(6)` |
 | Gráfica de 6 meses | `monthlySeries(6)` → SVG generado en `buildChart()` |
 | Requiere tu atención | Vencimientos de CxP, cotizaciones vencidas, saldos con +30 días |
 | Actividad reciente | Documentos y cuentas por pagar ordenados por `updatedAt` |
 
 Los montos de los indicadores se animan con `countUp()`, que incluye una red de
 seguridad (`setTimeout`) para que la cifra final siempre quede pintada.
+
+### 3.1 Panel en teléfono (≤760 px)
+
+Las dos zonas del panel que más se desacomodaban tienen ahora **una sola regla
+viva**, al final de `css/skin-cristal.css` (sección «18.13 · MÓVIL»):
+
+- **Accesos rápidos:** 5 mosaicos *en una sola fila*, siempre. Se arma con
+  `display: flex` + `flex: 1 1 0` (no con `grid-template-columns: repeat(…)`)
+  para que el ancho se reparta entre los que haya y ningún botón quede solo en
+  una segunda fila. Cada mosaico lleva su etiqueta visible (`Cotizar`,
+  `Recibo`, `Cliente`, `Gasto`, `Producto`); sin ella los 5 iconos se confunden.
+- **Indicadores:** en lugar de rejilla, una lista de filas. Cada tarjeta usa
+  `grid-template-areas: "cabeza monto" "pie pie"` → icono + etiqueta a la
+  izquierda, el monto a la derecha (con `white-space: nowrap`, la cifra nunca
+  se parte) y el pie en su renglón. Las 3 filas miden lo mismo y ya no queda
+  una tarjeta huérfana centrada a media anchura.
+
+Prohibido para estas dos zonas: reglas tipo
+`:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center }`.
+Fueron tres intentos anteriores de «centrar la que sobra» y lo que hacían era
+sacar el último elemento de la fila y romper el alineamiento.
 
 ---
 
@@ -138,8 +159,14 @@ Acciones del documento, de izquierda a derecha:
 
 ## 6. Al publicar
 
-Si cambias `css/app.css` o `js/*.js`, sube la versión del caché en `sw.js`
-(`const CACHE = 'mc-pwa-vNN'`) para que los usuarios reciban los archivos nuevos.
+`sw.js` sirve **primero la red** (`SIEMPRE_FRESCO`) para el HTML, el CSS y los
+JS: si hay internet se baja la versión nueva y se refresca la caché, y sólo se
+usa la caché cuando no hay señal. Así un arreglo de diseño ya no queda
+«invisible» en el celular por culpa del service worker.
+
+Aun así, sube la versión del caché (`const CACHE = 'mc-pwa-vNN'`) cuando
+cambien los archivos: es lo que provoca que los teléfonos reinstalen el SW y
+descarten las copias viejas de fuentes, logo e íconos (esos siguen cache-first).
 
 ---
 

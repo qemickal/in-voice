@@ -610,45 +610,12 @@ html[data-skin="cristal"] .menu-foot strong {
   html[data-skin="cristal"] .hero { margin-bottom: 15px; padding: 15px 16px; }
   html[data-skin="cristal"] .hero-title { font-size: clamp(23px, 6.8vw, 27px); }
   html[data-skin="cristal"] .hero-sub { font-size: 11.5px; }
-  html[data-skin="cristal"] .stat-grid { gap: 8px; margin-bottom: 16px; }
-  html[data-skin="cristal"] .stat-card { padding: 11px 12px 10px; }
-  html[data-skin="cristal"] .stat-head {
-    flex-direction: row;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 6px;
-  }
-  html[data-skin="cristal"] .stat-ico { width: 24px; height: 24px; flex: 0 0 24px; }
-  html[data-skin="cristal"] .stat-label { font-size: 9px; line-height: 1.2; }
-  html[data-skin="cristal"] .stat-value { font-size: clamp(16px, 4.2vw, 19px); }
-  html[data-skin="cristal"] .stat-foot { font-size: 9.5px; }
-  html[data-skin="cristal"] .quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 15px;
-  }
-  html[data-skin="cristal"] .quick { min-height: 54px; padding: 9px; gap: 8px; }
-  html[data-skin="cristal"] .quick-ico { width: 27px; height: 27px; flex: 0 0 27px; }
-  html[data-skin="cristal"] .quick-body { min-width: 0; }
-  html[data-skin="cristal"] .quick-title { font-size: 10px; line-height: 1.25; }
-  html[data-skin="cristal"] .quick-desc { display: none; }
-  html[data-skin="cristal"] .quick-grid > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: calc(50% - 4px);
-  }
   html[data-skin="cristal"] .panel { padding: 15px; }
 }
 
-@media (max-width: 420px) {
-  html[data-skin="cristal"] .hero { padding: 13px 14px; }
-  html[data-skin="cristal"] .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  html[data-skin="cristal"] .stat-card { padding: 10px 10px 9px; }
-  html[data-skin="cristal"] .stat-head { flex-direction: row; align-items: center; }
-  html[data-skin="cristal"] .stat-label { font-size: 9px; letter-spacing: .035em; }
-  html[data-skin="cristal"] .stat-value { font-size: clamp(15px, 4.4vw, 17px); }
-  html[data-skin="cristal"] .stat-foot { font-size: 9px; }
-}
+/* Los indicadores y los accesos rápidos del panel ya no se ajustan aquí:
+   su única regla viva está al final de este archivo, en «18.13 · MÓVIL».
+   (Aquí había 3 ajustes superpuestos que se anulaban entre sí.) */
 
 /* ============================================================
    18.12 · PANEL PRINCIPAL — resumen + acciones + movimientos
@@ -830,66 +797,12 @@ html[data-skin="cristal"] #view-inicio .stat-foot { margin-top: 5px; font-size: 
   html[data-skin="cristal"] #hero-balance-value { font-size: clamp(27px, 8vw, 32px); }
   html[data-skin="cristal"] #view-inicio .hero-sub { font-size: 10px; }
   html[data-skin="cristal"] #view-inicio .hero-chips { display: none; }
-  /* Accesos rápidos del panel móvil: 5 en una sola fila, solo icono (sin marco). */
-  html[data-skin="cristal"] #view-inicio .hero .quick-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 4px;
-    margin-top: 14px;
-  }
-  html[data-skin="cristal"] #view-inicio .hero .quick {
-    min-width: 0;
-    min-height: 0;
-    gap: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    justify-content: center;
-    align-items: center;
-  }
-  html[data-skin="cristal"] #view-inicio .hero .quick:hover,
-  html[data-skin="cristal"] #view-inicio .hero .quick:active {
-    transform: none;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-  html[data-skin="cristal"] #view-inicio .hero .quick-ico {
-    width: clamp(36px, 11vw, 42px);
-    height: clamp(36px, 11vw, 42px);
-    border-radius: 12px;
-  }
-  html[data-skin="cristal"] #view-inicio .hero .quick-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-  }
-  html[data-skin="cristal"] #view-inicio .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  html[data-skin="cristal"] #view-inicio .stat-card:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: calc(50% - 4px);
-  }
   html[data-skin="cristal"] #view-inicio .panel-grid { gap: 11px; }
   html[data-skin="cristal"] #view-inicio .panel-grid > .panel { order: -1; }
   html[data-skin="cristal"] #view-inicio .panel { padding: 14px; }
 }
 @media (max-width: 380px) {
   html[data-skin="cristal"] #view-inicio .hero { padding-left: 12px; padding-right: 12px; }
-  html[data-skin="cristal"] #view-inicio .hero .quick-ico { width: 34px; height: 34px; }
-  html[data-skin="cristal"] #view-inicio .stat-card { padding-left: 9px; padding-right: 9px; }
 }
 
 /* Filtros y separadores de fecha del bloque de actividad. */
@@ -931,4 +844,156 @@ html[data-skin="cristal"] #view-inicio .act { padding-top: 9px; padding-bottom: 
 @media (max-width: 760px) {
   html[data-skin="cristal"] #view-inicio .activity-filters { gap: 5px; margin-bottom: 3px; }
   html[data-skin="cristal"] #view-inicio .activity-filter { padding: 5px 9px; font-size: 9px; }
+}
+
+/* ============================================================
+   18.13 · PANEL MÓVIL — una sola fila arriba, lista ordenada abajo
+   ------------------------------------------------------------
+   Fuente única de verdad para las dos zonas que venían rotas.
+   Estaban repartidas en 3 bloques (18.11, 18.12 y un 420px) que se
+   pisaban: la rejilla de 5 accesos rápidos recibía `repeat(2, …)`
+   y además una regla `:last-child:nth-child(odd)` que sacaba el
+   último botón y lo centraba → «Producto» quedando solo en otra fila.
+   Con los indicadores pasaba lo mismo: 2 columnas + la 3.ª tarjeta
+   centrada a media anchura. Aquí se resuelven con flexbox, que no
+   depende de cuántos elementos haya.
+   ============================================================ */
+@media (max-width: 760px) {
+
+  /* ---------- 1 · Accesos rápidos: 5 en UNA fila, siempre ---------- */
+  html[data-skin="cristal"] #view-inicio .hero .quick-grid {
+    display: flex;
+    align-items: stretch;
+    gap: 5px;
+    margin: 12px 0 0;
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick {
+    flex: 1 1 0;          /* mismo ancho para los 5, sin sobrantes */
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 3px 7px;
+    border: 1px solid rgba(255, 255, 255, .11);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .07);
+    box-shadow: none;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick:hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, .2);
+    background: rgba(255, 255, 255, .12);
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick:active {
+    transform: scale(.98);
+    background: rgba(255, 255, 255, .17);
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick-ico {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 10px;
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick-body {
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+  }
+  /* La etiqueta vuelve a ser visible: sin ella los 5 iconos se confunden. */
+  html[data-skin="cristal"] #view-inicio .hero .quick-title {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip: auto;
+    clip-path: none;
+    max-width: 100%;
+    color: rgba(255, 255, 255, .95);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .01em;
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  html[data-skin="cristal"] #view-inicio .hero .quick-desc { display: none; }
+
+  /* ---------- 2 · Indicadores: lista de filas, todas alineadas ---------- */
+  html[data-skin="cristal"] #view-inicio .stat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 13px;
+  }
+  html[data-skin="cristal"] #view-inicio .stat-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "cabeza monto"
+      "pie    pie";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 1px;
+    padding: 8px 12px 7px;
+    border-radius: 14px;
+  }
+  /* app.css las deja en columna (icono arriba, etiqueta abajo); aquí van
+     en una línea para que la fila quede pareja con el monto. */
+  html[data-skin="cristal"] #view-inicio .stat-head {
+    grid-area: cabeza;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+    gap: 7px;
+  }
+  html[data-skin="cristal"] #view-inicio .stat-ico { width: 24px; height: 24px; flex: 0 0 24px; }
+  html[data-skin="cristal"] #view-inicio .stat-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: .045em;
+  }
+  html[data-skin="cristal"] #view-inicio .stat-value {
+    grid-area: monto;
+    text-align: right;
+    white-space: nowrap;   /* la cifra jamás se parte en dos líneas */
+    font-size: 17px;
+    line-height: 1.05;
+  }
+  html[data-skin="cristal"] #view-inicio .stat-foot {
+    grid-area: pie;
+    margin: 1px 0 0;
+    gap: 4px;
+    font-size: 9px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  html[data-skin="cristal"] #view-inicio .stat-delta { padding: 1px 6px 0; font-size: 8.5px; }
+}
+
+/* Pantallas angostas: la misma fila de 5, solo más apretada. */
+@media (max-width: 400px) {
+  html[data-skin="cristal"] #view-inicio .hero .quick-grid { gap: 4px; }
+  html[data-skin="cristal"] #view-inicio .hero .quick { padding: 7px 2px 6px; border-radius: 11px; }
+  html[data-skin="cristal"] #view-inicio .hero .quick-ico { width: 27px; height: 27px; flex: 0 0 27px; border-radius: 9px; }
+  html[data-skin="cristal"] #view-inicio .hero .quick-title { font-size: 8.5px; }
+  html[data-skin="cristal"] #view-inicio .stat-value { font-size: 16px; }
+}
+
+/* Encabezado de las vistas de lista (Documentos, CxC, CxP, Clientes,
+   Catálogo): arriba, en una sola fila — los botones se reparten el ancho
+   y las tarjetitas de resumen nunca se quedan a medias. */
+@media (max-width: 560px) {
+  html[data-skin="cristal"] .summary-card { padding: 9px 10px; }
+  html[data-skin="cristal"] .summary-label { font-size: 8.5px; letter-spacing: .05em; }
+  html[data-skin="cristal"] .summary-value { font-size: clamp(12.5px, 3.6vw, 16px); }
 }
