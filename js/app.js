@@ -70,6 +70,7 @@
   let prodQuery = '';
   let prodModalTipo = 'producto'; // tipo seleccionado en el modal del catálogo
   let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes' | 'productos'
+  let activityFilter = 'all';
   let previousView = 'inicio'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
@@ -209,7 +210,39 @@
   }
 
   /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
-  function switchMainView(view) {
+  const MAIN_VIEW_IDS = ['inicio', 'docs', 'cxc', 'cxp', 'clientes', 'productos'];
+
+  function writeAppHistory(view, replace, extra) {
+    if (!window.history || typeof window.history.pushState !== 'function') return;
+    const state = Object.assign({ inVoiceApp: true, view: view }, extra || {});
+    try {
+      if (replace) window.history.replaceState(state, '', window.location.href);
+      else window.history.pushState(state, '', window.location.href);
+    } catch (e) { /* historial no disponible en este contexto */ }
+  }
+
+  function resetAppHistory() {
+    if (!window.history || typeof window.history.replaceState !== 'function') return;
+    try {
+      window.history.replaceState({ inVoiceApp: true, view: 'inicio' }, '', window.location.href);
+    } catch (e) { /* historial no disponible en este contexto */ }
+  }
+
+  function refreshMobileNav() {
+    const menuOpen = document.body.classList.contains('menu-open');
+    $$('#mobile-nav [data-nav-view]').forEach(function (item) {
+      const active = item.dataset.navView === mainView || (item.dataset.navView === 'menu' && menuOpen);
+      item.classList.toggle('active', active);
+      if (active) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
+    });
+  }
+
+  function switchMainView(view, navigation) {
+    const options = navigation || {};
+    if (!options.fromPopstate && (mainView !== view || options.replaceHistory)) {
+      writeAppHistory(view, !!options.replaceHistory);
+    }
     mainView = view;
     $('#view-inicio').hidden = view !== 'inicio';
     $('#view-list').hidden = view !== 'docs';
@@ -221,6 +254,7 @@
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
     closeMenu();
+    refreshMobileNav();
     if (view === 'inicio') renderInicio();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
@@ -382,10 +416,13 @@
     }
   }
 
-  function openMenu() {
+  function openMenu(fromHistory) {
+    if ($('#menu-overlay').classList.contains('open')) return;
     menuActive = mainView;
+    if (!fromHistory) writeAppHistory(mainView, false, { overlay: 'menu' });
     $('#menu-overlay').classList.add('open');
     document.body.classList.add('menu-open');
+    refreshMobileNav();
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
@@ -400,9 +437,14 @@
     if (!o || !o.classList.contains('open')) return;
     o.classList.remove('open');
     document.body.classList.remove('menu-open');
+    refreshMobileNav();
     var fab = $('#menu-fab');
     if (fab) fab.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
+    var historyState = window.history && window.history.state;
+    if (historyState && historyState.inVoiceApp && historyState.overlay === 'menu') {
+      window.history.back();
+    }
   }
 
   /* ================= TEMA (claro / oscuro / automático) ================= */
@@ -591,17 +633,19 @@
     const saldados = docs.filter(function (d) { return computeTotals(d).pagado; }).length;
     let sub;
     if (!docs.length && !cuentasXPagar.length && !clientes.length) {
-      sub = 'Aún no hay nada registrado. Crea tu primer recibo o cotización y el panel se llena solo.';
+      sub = 'Registra tu primer recibo o cotización para empezar.';
     } else if (cxcTotal > 0 && cxp.total > 0) {
-      sub = 'Tienes ' + window.fmtMoney(cxcTotal) + ' por cobrar de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' y ' + window.fmtMoney(cxp.total) + ' por pagar.';
+      sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '')
+        + ' · ' + window.fmtMoney(cxp.total) + ' por pagar.';
     } else if (cxcTotal > 0) {
-      sub = 'Tienes ' + window.fmtMoney(cxcTotal) + ' por cobrar de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + '. Nada pendiente de pago.';
+      sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' · sin pagos pendientes.';
     } else if (cxp.total > 0) {
-      sub = 'Estás al día con tus cobros. Quedan ' + window.fmtMoney(cxp.total) + ' por pagar.';
+      sub = window.fmtMoney(cxp.total) + ' por pagar · sin saldos por cobrar.';
     } else {
-      sub = 'Todo en orden: sin saldos por cobrar ni por pagar. Buen momento para prospectar.';
+      sub = 'Todo al día: sin saldos pendientes.';
     }
     $('#hero-sub').textContent = sub;
+    countUp($('#hero-balance-value'), cxcTotal, true);
 
     const vencidasCxp = cuentasXPagar.filter(function (c) {
       const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
@@ -609,11 +653,9 @@
     }).length;
 
     $('#hero-chips').innerHTML = [
-      '<span class="hero-chip"><b>' + window.fmtMoney(cxcTotal) + '</b> por cobrar</span>',
-      '<span class="hero-chip"><b>' + window.fmtMoney(cxp.total) + '</b> por pagar</span>',
       '<span class="hero-chip"><b>' + docs.length + '</b> documentos</span>',
       vencidasCxp
-        ? '<span class="hero-chip"><b>' + vencidasCxp + '</b> pago' + (vencidasCxp !== 1 ? 's' : '') + ' vencido' + (vencidasCxp !== 1 ? 's' : '') + '</span>'
+        ? '<span class="hero-chip is-alert"><b>' + vencidasCxp + '</b> vencido' + (vencidasCxp !== 1 ? 's' : '') + '</span>'
         : '<span class="hero-chip is-ok">Al día</span>'
     ].join('');
 
@@ -643,26 +685,21 @@
 
     host.innerHTML =
       statCardHtml({
-        i: 0, tone: 'brand', icon: ICONO.cobrar, label: 'Por cobrar',
-        value: cxcTotal, money: true,
-        foot: cxcData.length
-          ? '<span>' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' con saldo</span>'
-          : '<span>Sin saldos pendientes</span>'
-      }) +
-      statCardHtml({
-        i: 1, tone: 'warn', icon: ICONO.pagar, label: 'Por pagar',
+        i: 0, tone: 'warn', icon: ICONO.pagar, label: 'Por pagar',
         value: cxp.total, money: true,
         foot: '<span>' + cxp.pendientes + ' pendiente' + (cxp.pendientes !== 1 ? 's' : '') + '</span>'
           + (vencidasCxp ? ' · <span style="color:var(--danger);font-weight:700">' + vencidasCxp + ' vencida' + (vencidasCxp !== 1 ? 's' : '') + '</span>' : '')
       }) +
       statCardHtml({
-        i: 2, tone: 'accent', icon: ICONO.factura, label: 'Facturado · ' + MESES_LARGOS[now.getMonth()],
-        value: factMes, money: true, foot: delta(factMes, factPrev)
+        i: 1, tone: 'accent', icon: ICONO.factura, label: 'Facturado',
+        value: factMes, money: true,
+        foot: '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(factMes, factPrev)
       }) +
       statCardHtml({
-        i: 3, tone: 'ok', icon: ICONO.cobrado, label: 'Cobrado · ' + MESES_LARGOS[now.getMonth()],
+        i: 2, tone: 'ok', icon: ICONO.cobrado, label: 'Cobrado',
         value: cobMes, money: true,
-        foot: delta(cobMes, cobPrev) + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : '')
+        foot: '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(cobMes, cobPrev)
+          + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : '')
       });
 
     $$('#stat-grid .stat-value').forEach(function (el) {
@@ -757,6 +794,7 @@
         ts: d.updatedAt || d.createdAt || 0,
         action: 'edit', id: d.id,
         cot: d.tipo === 'cotizacion',
+        kind: 'docs',
         title: d.proyecto || d.numero || 'Documento',
         meta: (d.representante || 'Sin cliente') + ' · ' + (d.tipo === 'cotizacion' ? 'Cotización' : 'Recibo') + ' ' + (d.numero || ''),
         amt: window.fmtMoney(t.total)
@@ -769,6 +807,7 @@
         ts: c.updatedAt || c.createdAt || 0,
         action: 'edit-cxp', id: c.id,
         cot: true,
+        kind: 'expenses',
         title: c.proveedor || 'Cuenta por pagar',
         meta: (c.concepto || 'Gasto') + ' · ' + (saldo <= 0.005 ? 'Pagada' : 'Por pagar'),
         amt: window.fmtMoney(saldo <= 0.005 ? (Number(c.monto) || 0) : saldo)
@@ -779,17 +818,41 @@
     const ACT_ICON_DOC = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
     const ACT_ICON_COT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>';
 
-    $('#activity-host').innerHTML = act.length
-      ? act.slice(0, 6).map(function (a) {
-          return '<button class="act" data-action="' + a.action + '" data-id="' + a.id + '">'
-            + '<span class="act-ico' + (a.cot ? ' cot' : '') + '">' + (a.cot ? ACT_ICON_COT : ACT_ICON_DOC) + '</span>'
-            + '<span class="act-body"><span class="act-title">' + esc(a.title) + '</span>'
-            + '<span class="act-meta">' + esc(a.meta) + '</span></span>'
-            + '<span class="act-amt">' + esc(a.amt) + '<small>' + relTime(a.ts) + '</small></span>'
-            + '</button>';
-        }).join('')
+    $$('.activity-filter').forEach(function (filterButton) {
+      const active = filterButton.dataset.activityFilter === activityFilter;
+      filterButton.classList.toggle('active', active);
+      filterButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    const visibleAct = act.filter(function (a) {
+      return activityFilter === 'all' || a.kind === activityFilter;
+    }).slice(0, 6);
+    const todayKey = window.todayISO();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
+    function activityDay(ts) {
+      const d = new Date(ts || Date.now());
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (key === todayKey) return 'Hoy';
+      if (key === yesterdayKey) return 'Ayer';
+      return d.getDate() + ' ' + MESES[d.getMonth()];
+    }
+    let lastActivityDay = '';
+    const activityMarkup = visibleAct.map(function (a) {
+      const day = activityDay(a.ts);
+      const dayHeading = day !== lastActivityDay ? '<div class="act-day">' + esc(day) + '</div>' : '';
+      lastActivityDay = day;
+      return dayHeading + '<button class="act" data-action="' + a.action + '" data-id="' + a.id + '">'
+        + '<span class="act-ico' + (a.cot ? ' cot' : '') + '">' + (a.cot ? ACT_ICON_COT : ACT_ICON_DOC) + '</span>'
+        + '<span class="act-body"><span class="act-title">' + esc(a.title) + '</span>'
+        + '<span class="act-meta">' + esc(a.meta) + '</span></span>'
+        + '<span class="act-amt">' + esc(a.amt) + '<small>' + relTime(a.ts) + '</small></span>'
+        + '</button>';
+    }).join('');
+    $('#activity-host').innerHTML = activityMarkup || (act.length
+      ? '<div class="chart-empty"><p style="margin:0">No hay movimientos en esta categoría.</p></div>'
       : '<div class="chart-empty"><p style="margin:0">Sin movimientos todavía.</p>'
-        + '<span class="hint">Aquí verás lo último que edites.</span></div>';
+        + '<span class="hint">Aquí verás lo último que edites.</span></div>');
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -1450,7 +1513,9 @@
       match = clientes.find((c) => (c.nombre || '').trim().toLowerCase() === editing.representante.trim().toLowerCase());
     }
     selectedClientId = match ? match.id : null;
+    const editorWasOpen = !$('#view-editor').hidden;
     previousView = mainView;
+    if (!editorWasOpen) writeAppHistory(previousView, false, { editorReturn: true });
     $('#view-inicio').hidden = true;
     $('#view-list').hidden = true;
     $('#view-cxc').hidden = true;
@@ -1913,6 +1978,26 @@
     toast('Ajustes guardados ✓');
   }
 
+  /* El botón Atrás del navegador/PWA recorre las vistas internas antes de salir. */
+  window.addEventListener('popstate', function (event) {
+    const state = event.state;
+    if (!state || state.inVoiceApp !== true) return;
+
+    if (state.overlay === 'menu') {
+      openMenu(true);
+      return;
+    }
+    if (MAIN_VIEW_IDS.indexOf(state.view) === -1) return;
+
+    const menuWasOpen = $('#menu-overlay').classList.contains('open');
+    if (menuWasOpen) {
+      closeMenu();
+      if (state.view === mainView) return;
+    }
+    if (!$('#view-editor').hidden && editing) saveDoc(true);
+    switchMainView(state.view, { fromPopstate: true });
+  });
+
   /* ---------------- Eventos ---------------- */
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
@@ -1921,12 +2006,20 @@
     switch (a) {
       case 'new-recibo': { const d = blankDoc('recibo'); docs.push(d); storeSet('mc_docs', docs); showEditor(d); break; }
       case 'new-cotizacion': { const d = blankDoc('cotizacion'); docs.push(d); storeSet('mc_docs', docs); showEditor(d); break; }
-      case 'back': saveDoc(true); switchMainView(previousView); break;
+      case 'back': saveDoc(true); switchMainView(previousView, { replaceHistory: true }); break;
+      case 'go-home':
+        if (!$('#view-editor').hidden && editing) {
+          saveDoc(true);
+          switchMainView('inicio', { replaceHistory: true });
+        } else {
+          switchMainView('inicio');
+        }
+        break;
       case 'save': saveDoc(false); break;
       case 'print': printDoc(); break;
       case 'email': sendEmail(); break;
       case 'delete':
-        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView); } }
+        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView, { replaceHistory: true }); } }
         break;
       case 'edit': { const d = docs.find((x) => x.id === btn.dataset.id); if (d) showEditor(d); break; }
       case 'duplicate': {
@@ -2072,6 +2165,15 @@
         break;
       }
       case 'go-docs': switchMainView('docs'); break;
+      case 'go-cxc': switchMainView('cxc'); break;
+      case 'activity-filter': {
+        const filter = btn.dataset.activityFilter;
+        if (filter === 'all' || filter === 'docs' || filter === 'expenses') {
+          activityFilter = filter;
+          renderInicio();
+        }
+        break;
+      }
       case 'close-settings': $('#modal-settings').classList.remove('open'); break;
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
@@ -2092,7 +2194,7 @@
       case 'menu-enter': {
         const target = btn.dataset.menuView || menuActive;
         if (target === 'logout') { closeMenu(); if (window.SYNC) window.SYNC.logout(); }
-        else switchMainView(target);
+        else switchMainView(target, { replaceHistory: true });
         break;
       }
 
@@ -2346,7 +2448,7 @@
         renderPreview();
         updateTotalsBox();
       } else {
-        switchMainView(previousView);
+        switchMainView(previousView, { replaceHistory: true });
       }
     } else {
       switchMainView(mainView);
@@ -2368,6 +2470,7 @@
 
   /* ---------------- Init ---------------- */
   async function init() {
+    resetAppHistory();
     applyTheme(currentThemeMode());
     preloadImages();
     if ('serviceWorker' in navigator) {
