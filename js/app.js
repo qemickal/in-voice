@@ -74,6 +74,7 @@
   let cxpQuery = '';
   let cxcQuery = '';
   let cxcDetailDocId = null;
+  let heroDebtorsOpen = false;
 
   /* ---------------- Utilidades ---------------- */
   // fuente única de verdad (layout.js): subtotal → IVA → descuento → por pagar
@@ -375,10 +376,85 @@
     };
   }
 
-  function cobranzaHTML(c) {
-    if (!c.abiertos) {
+  function cobranzaItems(hoy) {
+    const open = [];
+    const paid = [];
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      if (t.total <= 0) return;
+      const item = {
+        id: d.id, tipo: d.tipo, numero: d.numero || '',
+        cliente: d.representante || 'Sin cliente',
+        saldo: t.porPagar, total: t.total, pagado: !!t.pagado,
+        vigencia: d.vigencia || '', fecha: d.fecha || '',
+        updatedAt: d.updatedAt || d.createdAt || 0
+      };
+      if (t.porPagar > 0.005) open.push(item);
+      else if (t.pagado) paid.push(item);
+    });
+    function dueRank(it) {
+      if (it.vigencia && it.vigencia <= hoy) return 0;
+      if (it.fecha && daysBetween(hoy, it.fecha) >= 30) return 1;
+      return 2;
+    }
+    open.sort(function (a, b) {
+      const r = dueRank(a) - dueRank(b);
+      return r !== 0 ? r : b.saldo - a.saldo;
+    });
+    paid.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    return { open: open, paid: paid.slice(0, 3) };
+  }
+
+  function cobDueMeta(it, hoy) {
+    if (it.pagado) return { text: 'Pagado', tone: 'ok' };
+    if (it.vigencia) {
+      if (it.vigencia === hoy) return { text: 'Vence hoy', tone: 'danger' };
+      if (it.vigencia < hoy) {
+        const n = Math.abs(daysBetween(hoy, it.vigencia));
+        return { text: 'Vencida · ' + n + 'd', tone: 'danger' };
+      }
+      const n = daysBetween(it.vigencia, hoy);
+      if (n <= 7) return { text: 'Vence en ' + n + ' día' + (n !== 1 ? 's' : ''), tone: 'warn' };
+      return { text: 'Vence ' + window.fmtDate(it.vigencia), tone: '' };
+    }
+    const antig = it.fecha ? daysBetween(hoy, it.fecha) : 0;
+    if (antig >= 30) return { text: antig + ' días', tone: 'warn' };
+    return { text: 'Pendiente', tone: '' };
+  }
+
+  function cobDocRow(it, hoy) {
+    const due = cobDueMeta(it, hoy);
+    const kind = it.tipo === 'cotizacion' ? 'Cotización' : 'Recibo';
+    const title = kind + ' ' + (it.numero ? '#' + it.numero : '');
+    const actions = it.pagado
+      ? ''
+      : '<button type="button" class="btn outline small cob-act" data-action="cob-pay" data-id="' + it.id + '">Cobrar</button>'
+        + '<button type="button" class="cob-check" data-action="cob-settle" data-id="' + it.id + '" title="Marcar pagado" aria-label="Marcar pagado">'
+        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+        + '</button>';
+    return '<div class="cob-doc' + (it.pagado ? ' is-paid' : '') + '">'
+      + '<div class="cob-doc-main">'
+      + '<span class="cob-doc-title">' + esc(title) + ' — ' + esc(it.cliente) + '</span>'
+      + '<span class="cob-doc-meta' + (due.tone ? ' is-' + due.tone : '') + '">' + esc(due.text) + '</span>'
+      + '</div>'
+      + '<div class="cob-doc-side">'
+      + '<span class="cob-doc-amt">' + window.fmtMoney(it.pagado ? it.total : it.saldo) + '</span>'
+      + actions
+      + '</div></div>';
+  }
+
+  function cobranzaHTML(c, hoy) {
+    if (!c.abiertos && !c.saldados) {
       return '<div class="cob-empty"><p>No hay documentos con saldo pendiente.</p>'
-        + '<span class="hint">Cada recibo o cotización abierto aparece aquí hasta que se liquida.</span></div>';
+        + '<button type="button" class="stat-cta" data-action="new-recibo" style="margin-top:8px">Crear primera factura</button></div>';
+    }
+    const items = cobranzaItems(hoy);
+    const rows = items.open.map(function (it) { return cobDocRow(it, hoy); })
+      .concat(items.paid.map(function (it) { return cobDocRow(it, hoy); }))
+      .join('');
+    if (!c.abiertos) {
+      return (rows ? '<div class="cob-docs">' + rows + '</div>' : '')
+        + '<p class="cob-foot">' + c.saldados + ' documento' + (c.saldados !== 1 ? 's' : '') + ' ya liquidado' + (c.saldados !== 1 ? 's' : '') + '</p>';
     }
     const pct = Math.min(100, Math.max(0, c.pct));
     const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
@@ -391,9 +467,199 @@
       + '<div class="cob-item"><span class="cob-dot is-open"></span>'
       + '<span class="cob-name">Por cobrar</span><b>' + window.fmtMoney(c.porCobrar) + '</b><small>' + Math.round(100 - pct) + '%</small></div>'
       + '</div>'
+      + (rows ? '<div class="cob-docs">' + rows + '</div>' : '')
       + '<p class="cob-foot">' + window.fmtMoney(c.total) + ' abierto en ' + c.abiertos
       + ' documento' + (c.abiertos !== 1 ? 's' : '')
       + (c.saldados ? ' · ' + c.saldados + ' ya liquidado' + (c.saldados !== 1 ? 's' : '') : '') + '</p>';
+  }
+
+  function abonarDocumento(id, monto) {
+    const d = docs.find(function (x) { return x.id === id; });
+    if (!d) return false;
+    const t = computeTotals(d);
+    const m = Number(monto);
+    if (!(m > 0) || t.porPagar <= 0.005) return false;
+    if (!d.abonos) d.abonos = [];
+    d.abonos.push({ fecha: window.todayISO(), monto: Math.min(m, t.porPagar) });
+    d.updatedAt = Date.now();
+    storeSet('mc_docs', docs);
+    if (editing && editing.id === d.id) editing.abonos = d.abonos.slice();
+    return true;
+  }
+
+  function liquidarDocumento(id) {
+    const d = docs.find(function (x) { return x.id === id; });
+    if (!d) return false;
+    return abonarDocumento(id, computeTotals(d).porPagar);
+  }
+
+  function homeDoneMap() { return storeGet('mc_home_done', {}); }
+  function markHomeTaskDone(id) {
+    const m = homeDoneMap();
+    m[id] = Date.now();
+    storeSet('mc_home_done', m);
+  }
+
+  function homeTasks(hoy, cxcData) {
+    const done = homeDoneMap();
+    const tasks = [];
+    function add(t) { if (!done[t.id]) tasks.push(t); }
+
+    const cxpOpen = [];
+    cuentasXPagar.forEach(function (c) {
+      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      const saldo = (Number(c.monto) || 0) - ab;
+      if (saldo <= 0.005) return;
+      cxpOpen.push({ c: c, saldo: saldo });
+    });
+    const cxpVencidas = cxpOpen.filter(function (x) { return x.c.vencimiento && x.c.vencimiento < hoy; });
+    const cxpHoy = cxpOpen.filter(function (x) { return x.c.vencimiento === hoy; });
+    if (cxpVencidas.length) {
+      add({
+        id: 'cxp-overdue', area: 'contabilidad',
+        title: cxpVencidas.length === 1
+          ? 'Pagar a ' + (cxpVencidas[0].c.proveedor || 'proveedor')
+          : 'Pagar ' + cxpVencidas.length + ' cuentas vencidas',
+        meta: cxpVencidas.length + ' pendiente' + (cxpVencidas.length !== 1 ? 's' : '') + ' · prioridad alta',
+        prio: 'high', go: 'go-cxp'
+      });
+    } else if (cxpHoy.length) {
+      add({
+        id: 'cxp-today', area: 'contabilidad',
+        title: cxpHoy.length === 1
+          ? 'Pagar hoy a ' + (cxpHoy[0].c.proveedor || 'proveedor')
+          : 'Pagar ' + cxpHoy.length + ' vencimientos de hoy',
+        meta: cxpHoy.length + ' pendiente' + (cxpHoy.length !== 1 ? 's' : '') + ' · prioridad alta',
+        prio: 'high', go: 'go-cxp'
+      });
+    } else if (cxpOpen.length) {
+      add({
+        id: 'cxp-open', area: 'contabilidad',
+        title: 'Revisar cuentas por pagar',
+        meta: cxpOpen.length + ' pendiente' + (cxpOpen.length !== 1 ? 's' : ''),
+        prio: 'mid', go: 'go-cxp'
+      });
+    }
+    const cobMes = monthTotals(0).cobrado;
+    if (cobMes > 0) {
+      add({
+        id: 'bank-' + String(hoy).slice(0, 7), area: 'contabilidad',
+        title: 'Conciliar banco',
+        meta: '1 pendiente · cobros de ' + window.fmtMoney(cobMes),
+        prio: cobMes > 0 ? 'high' : 'mid', go: 'go-docs'
+      });
+    }
+
+    const quotesVencidas = [];
+    const quotesHoy = [];
+    docs.forEach(function (d) {
+      if (d.tipo !== 'cotizacion' || !d.vigencia) return;
+      const t = computeTotals(d);
+      if (t.pagado || t.total <= 0) return;
+      if (d.vigencia === hoy) quotesHoy.push(d);
+      else if (d.vigencia < hoy) quotesVencidas.push(d);
+    });
+    if (quotesHoy.length) {
+      add({
+        id: 'quote-today', area: 'ventas',
+        title: quotesHoy.length === 1
+          ? 'Seguir cotización ' + (quotesHoy[0].numero || '') + ' a ' + (quotesHoy[0].representante || 'cliente')
+          : 'Seguir ' + quotesHoy.length + ' cotizaciones que vencen hoy',
+        meta: quotesHoy.length + ' pendiente' + (quotesHoy.length !== 1 ? 's' : ''),
+        prio: 'high', go: quotesHoy.length === 1 ? 'edit' : 'go-docs', idGo: quotesHoy[0] && quotesHoy[0].id
+      });
+    }
+    if (quotesVencidas.length) {
+      add({
+        id: 'quote-expired', area: 'ventas',
+        title: quotesVencidas.length === 1
+          ? 'Renovar cotización a ' + (quotesVencidas[0].representante || 'cliente')
+          : 'Renovar ' + quotesVencidas.length + ' cotizaciones vencidas',
+        meta: quotesVencidas.length + ' pendiente' + (quotesVencidas.length !== 1 ? 's' : ''),
+        prio: 'mid', go: quotesVencidas.length === 1 ? 'edit' : 'go-docs',
+        idGo: quotesVencidas[0] && quotesVencidas[0].id
+      });
+    }
+    const prospects = clientes.filter(function (c) {
+      return c.tipo === 'prospecto' && c.estado !== 'ganado' && c.estado !== 'perdido';
+    });
+    if (prospects.length) {
+      add({
+        id: 'prospects', area: 'ventas',
+        title: prospects.length === 1
+          ? 'Emitir cotización a ' + (prospects[0].nombre || prospects[0].empresa || 'prospecto')
+          : 'Dar seguimiento a ' + prospects.length + ' prospectos',
+        meta: prospects.length + ' pendiente' + (prospects.length !== 1 ? 's' : ''),
+        prio: 'mid', go: prospects.length === 1 ? 'new-cotizacion' : 'go-clientes'
+      });
+    } else if (clientes.length && !quotesHoy.length && !quotesVencidas.length && monthTotals(0).facturado <= 0) {
+      add({
+        id: 'emit-quote', area: 'ventas',
+        title: 'Emitir cotización',
+        meta: '1 pendiente',
+        prio: 'low', go: 'new-cotizacion'
+      });
+    }
+
+    if (cxcData.length) {
+      add({
+        id: 'cxc-remind', area: 'cobranza',
+        title: cxcData.length === 1
+          ? 'Enviar recordatorio a ' + cxcData[0].cliente
+          : 'Enviar recordatorio a ' + cxcData.length + ' clientes',
+        meta: cxcData.length + ' pendiente' + (cxcData.length !== 1 ? 's' : ''),
+        prio: cxcData.length >= 3 ? 'high' : 'mid', go: 'go-cxc'
+      });
+    }
+    const viejos = [];
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      if (t.total <= 0 || t.porPagar <= 0.005 || !d.fecha) return;
+      const antig = daysBetween(hoy, d.fecha);
+      if (antig >= 30) viejos.push({ d: d, antig: antig, saldo: t.porPagar });
+    });
+    if (viejos.length) {
+      viejos.sort(function (a, b) { return b.antig - a.antig; });
+      add({
+        id: 'cxc-old', area: 'cobranza',
+        title: viejos.length === 1
+          ? 'Cobrar saldo de ' + viejos[0].antig + ' días a ' + (viejos[0].d.representante || 'cliente')
+          : 'Cobrar ' + viejos.length + ' saldos de más de 30 días',
+        meta: viejos.length + ' pendiente' + (viejos.length !== 1 ? 's' : '') + ' · prioridad alta',
+        prio: 'high', go: viejos.length === 1 ? 'edit' : 'go-cxc', idGo: viejos[0] && viejos[0].d.id
+      });
+    }
+
+    return tasks;
+  }
+
+  function tareasHTML(tasks) {
+    if (!tasks.length) {
+      return '<div class="todo-empty">Nada pendiente por área. El panel se llena con vencimientos, saldos y seguimientos.</div>';
+    }
+    const areas = [
+      { id: 'contabilidad', label: 'Contabilidad' },
+      { id: 'ventas', label: 'Ventas' },
+      { id: 'cobranza', label: 'Cobranza' }
+    ];
+    return areas.map(function (area) {
+      const list = tasks.filter(function (t) { return t.area === area.id; });
+      if (!list.length) return '';
+      const rows = list.map(function (t) {
+        return '<div class="todo-row">'
+          + '<button type="button" class="todo-check" data-action="todo-done" data-tid="' + esc(t.id) + '" aria-label="Marcar hecha" title="Hecha"></button>'
+          + '<div class="todo-body">'
+          + '<span class="todo-title"><span class="todo-prio ' + t.prio + '" title="Prioridad"></span>' + esc(t.title) + '</span>'
+          + '<span class="todo-meta">' + esc(t.meta || '') + '</span>'
+          + '</div>'
+          + '<button type="button" class="btn outline small todo-go" data-action="todo-go" data-go="' + esc(t.go || '') + '" data-id="' + esc(t.idGo || '') + '">Ir</button>'
+          + '</div>';
+      }).join('');
+      return '<div class="todo-area">'
+        + '<div class="todo-area-head"><span class="todo-area-name">' + area.label + '</span>'
+        + '<span class="todo-area-count">' + list.length + '</span></div>'
+        + rows + '</div>';
+    }).join('');
   }
 
   function statCardHtml(o) {
@@ -426,42 +692,99 @@
     $('#hero-title').textContent = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
 
     const saldados = docs.filter(function (d) { return computeTotals(d).pagado; }).length;
-    let sub;
-    if (!docs.length && !cuentasXPagar.length && !clientes.length) {
-      sub = 'Registra tu primer recibo o cotización para empezar.';
-    } else if (cxcTotal > 0 && cxp.total > 0) {
-      sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '')
-        + ' · ' + window.fmtMoney(cxp.total) + ' por pagar.';
-    } else if (cxcTotal > 0) {
-      sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' · sin pagos pendientes.';
-    } else if (cxp.total > 0) {
-      sub = window.fmtMoney(cxp.total) + ' por pagar · sin saldos por cobrar.';
-    } else {
-      sub = 'Todo al día: sin saldos pendientes.';
-    }
-    $('#hero-sub').textContent = sub;
-    countUp($('#hero-balance-value'), cxcTotal, true);
 
     const vencidasCxp = cuentasXPagar.filter(function (c) {
       const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
       return c.vencimiento && c.vencimiento < hoy && ((Number(c.monto) || 0) - ab) > 0.005;
     }).length;
+    const vencHoyCxp = cuentasXPagar.filter(function (c) {
+      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      return c.vencimiento === hoy && ((Number(c.monto) || 0) - ab) > 0.005;
+    }).length;
+    const vencHoyDocs = docs.filter(function (d) {
+      if (!d.vigencia || d.vigencia !== hoy) return false;
+      const t = computeTotals(d);
+      return t.total > 0 && t.porPagar > 0.005;
+    }).length;
+    const vencidasDocs = docs.filter(function (d) {
+      if (!d.vigencia || d.vigencia >= hoy) return false;
+      const t = computeTotals(d);
+      return t.total > 0 && t.porPagar > 0.005;
+    }).length;
+    const vencHoy = vencHoyCxp + vencHoyDocs;
+    const vencidos = vencidasCxp + vencidasDocs;
+
+    const subEl = $('#hero-sub');
+    subEl.classList.remove('is-warn', 'is-danger');
+    if (vencidos) {
+      subEl.classList.add('is-danger');
+      subEl.innerHTML = '<button type="button" class="hero-sub-action" data-action="focus-tareas">'
+        + '<b>' + vencidos + ' vencido' + (vencidos !== 1 ? 's' : '') + '</b> — Ver ahora</button>';
+    } else if (vencHoy) {
+      subEl.classList.add('is-warn');
+      subEl.innerHTML = '<button type="button" class="hero-sub-action" data-action="focus-tareas">'
+        + '<b>' + vencHoy + ' vencimiento' + (vencHoy !== 1 ? 's' : '') + ' hoy</b> — Ver ahora</button>';
+    } else {
+      let sub;
+      if (!docs.length && !cuentasXPagar.length && !clientes.length) {
+        sub = 'Registra tu primer recibo o cotización para empezar.';
+      } else if (cxcTotal > 0 && cxp.total > 0) {
+        sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '')
+          + ' · ' + window.fmtMoney(cxp.total) + ' por pagar.';
+      } else if (cxcTotal > 0) {
+        sub = 'Saldo pendiente de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '') + ' · sin pagos pendientes.';
+      } else if (cxp.total > 0) {
+        sub = window.fmtMoney(cxp.total) + ' por pagar · sin saldos por cobrar.';
+      } else {
+        sub = 'Todo al día: sin saldos pendientes.';
+      }
+      subEl.textContent = sub;
+    }
+    countUp($('#hero-balance-value'), cxcTotal, true);
+
+    const balBtn = $('#hero-balance-btn');
+    const debtorsEl = $('#hero-debtors');
+    if (balBtn) {
+      balBtn.disabled = !cxcData.length;
+      balBtn.setAttribute('aria-expanded', heroDebtorsOpen && cxcData.length ? 'true' : 'false');
+    }
+    if (debtorsEl) {
+      if (heroDebtorsOpen && cxcData.length) {
+        debtorsEl.hidden = false;
+        const top = cxcData.slice(0, 5);
+        debtorsEl.innerHTML = top.map(function (c) {
+          return '<button type="button" class="hero-debtor" data-action="go-cxc-client" data-cliente="' + esc(c.cliente) + '">'
+            + '<span class="hero-debtor-name">' + esc(c.cliente) + '</span>'
+            + '<span class="hero-debtor-amt">' + window.fmtMoney(c.saldoTotal) + '</span>'
+            + '</button>';
+        }).join('')
+          + (cxcData.length > 5
+            ? '<button type="button" class="hero-debtor hero-debtor-more" data-action="go-cxc">Ver todos (' + cxcData.length + ')</button>'
+            : '');
+      } else {
+        debtorsEl.hidden = true;
+        debtorsEl.innerHTML = '';
+      }
+    }
 
     $('#hero-chips').innerHTML = [
       '<span class="hero-chip"><b>' + docs.length + '</b> documentos</span>',
-      vencidasCxp
-        ? '<span class="hero-chip is-alert"><b>' + vencidasCxp + '</b> vencido' + (vencidasCxp !== 1 ? 's' : '') + '</span>'
+      (vencidos || vencHoy)
+        ? '<span class="hero-chip is-alert"><b>' + (vencidos || vencHoy) + '</b> '
+          + (vencidos ? 'vencido' + (vencidos !== 1 ? 's' : '') : 'hoy') + '</span>'
         : '<span class="hero-chip is-ok">Al día</span>'
     ].join('');
 
     /* ---------- Indicadores ---------- */
     function delta(actual, anterior) {
-      // A comienzos de mes todavía no hay movimientos: no tiene sentido
-      // pintar un −100% en rojo, así que se avisa en tono neutro.
-      if (actual <= 0) return '<span class="stat-delta flat">sin movimientos aún</span>';
-      if (anterior <= 0) return '<span class="stat-delta up">nuevo</span>';
+      if (anterior <= 0 && actual <= 0) {
+        return '<span class="stat-delta flat"><span class="stat-dot"></span>=</span>';
+      }
+      if (anterior <= 0) {
+        return '<span class="stat-delta up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>nuevo</span>';
+      }
       const pct = ((actual - anterior) / anterior) * 100;
-      if (Math.abs(pct) < 1) return '<span class="stat-delta flat">= igual que el mes pasado</span>';
+      if (Math.abs(pct) < 1) return '<span class="stat-delta flat"><span class="stat-dot"></span>=</span>';
       const up = pct > 0;
       const arrow = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'
         + (up ? '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>'
@@ -469,6 +792,9 @@
         + '</svg>';
       return '<span class="stat-delta ' + (up ? 'up' : 'down') + '">' + arrow + Math.abs(Math.round(pct)) + '%</span>'
         + '<span>vs. mes pasado</span>';
+    }
+    function cta(action, label) {
+      return '<button type="button" class="stat-cta" data-action="' + action + '">' + label + '</button>';
     }
 
     const ICONO = {
@@ -482,100 +808,44 @@
       statCardHtml({
         i: 0, tone: 'warn', icon: ICONO.pagar, label: 'Por pagar',
         value: cxp.total, money: true,
-        foot: '<span>' + cxp.pendientes + ' pendiente' + (cxp.pendientes !== 1 ? 's' : '') + '</span>'
-          + (vencidasCxp ? ' · <span style="color:var(--danger);font-weight:700">' + vencidasCxp + ' vencida' + (vencidasCxp !== 1 ? 's' : '') + '</span>' : '')
+        foot: (cxp.total <= 0
+          ? delta(0, 0) + ' ' + cta('new-cxp', 'Registrar gasto')
+          : '<span>' + cxp.pendientes + ' pendiente' + (cxp.pendientes !== 1 ? 's' : '') + '</span>'
+            + (vencidasCxp
+              ? ' · <span class="stat-delta down"><span class="stat-dot"></span>' + vencidasCxp + ' vencida' + (vencidasCxp !== 1 ? 's' : '') + '</span>'
+              : ' · <span class="stat-delta up"><span class="stat-dot"></span>al día</span>'))
       }) +
       statCardHtml({
         i: 1, tone: 'accent', icon: ICONO.factura, label: 'Facturado',
         value: factMes, money: true,
-        foot: '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(factMes, factPrev)
+        foot: (factMes <= 0
+          ? delta(factMes, factPrev) + ' ' + cta('new-recibo', docs.length ? 'Nueva factura' : 'Crear primera factura')
+          : '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(factMes, factPrev))
       }) +
       statCardHtml({
         i: 2, tone: 'ok', icon: ICONO.cobrado, label: 'Cobrado',
         value: cobMes, money: true,
-        foot: '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(cobMes, cobPrev)
-          + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : '')
+        foot: (cobMes <= 0
+          ? delta(cobMes, cobPrev) + ' ' + cta('new-recibo', 'Registrar recibo')
+          : '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(cobMes, cobPrev)
+            + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : ''))
       });
 
     $$('#stat-grid .stat-value').forEach(function (el) {
       countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
     });
 
-    /* ---------- Cobranza: una sola barra ---------- */
+    /* ---------- Cobranza: barra + lista de documentos ---------- */
     const cob = cobranzaStats();
-    $('#chart-host').innerHTML = cobranzaHTML(cob);
+    $('#chart-host').innerHTML = cobranzaHTML(cob, hoy);
     $('#cob-note').textContent = cob.abiertos ? Math.round(cob.pct) + '% abonado' : '';
 
-    /* ---------- Alertas ---------- */
-    const alerts = [];
-    cuentasXPagar.forEach(function (c) {
-      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
-      const saldo = (Number(c.monto) || 0) - ab;
-      if (saldo <= 0.005) return;
-      if (c.vencimiento && c.vencimiento < hoy) {
-        const d = Math.abs(daysBetween(hoy, c.vencimiento));
-        alerts.push({
-          tone: 'danger', action: 'edit-cxp', id: c.id,
-          title: 'Pago vencido: ' + (c.proveedor || 'sin proveedor'),
-          desc: 'Venció hace ' + d + ' día' + (d !== 1 ? 's' : '') + ' · ' + window.fmtDate(c.vencimiento),
-          amt: window.fmtMoney(saldo)
-        });
-      } else if (c.vencimiento) {
-        const d = daysBetween(c.vencimiento, hoy);
-        if (d <= 7) {
-          alerts.push({
-            tone: 'warn', action: 'edit-cxp', id: c.id,
-            title: 'Por vencer: ' + (c.proveedor || 'sin proveedor'),
-            desc: d === 0 ? 'Vence hoy' : 'Vence en ' + d + ' día' + (d !== 1 ? 's' : ''),
-            amt: window.fmtMoney(saldo)
-          });
-        }
-      }
-    });
-
-    docs.forEach(function (d) {
-      const t = computeTotals(d);
-      if (t.total <= 0 || t.porPagar <= 0.005) return;
-      const antig = d.fecha ? daysBetween(hoy, d.fecha) : 0;
-      if (antig >= 30) {
-        alerts.push({
-          tone: 'info', action: 'edit', id: d.id,
-          title: 'Saldo con ' + antig + ' días: ' + (d.proyecto || d.numero || 'documento'),
-          desc: (d.representante || 'Sin cliente') + ' · ' + window.fmtMoney(t.porPagar) + ' pendiente de ' + window.fmtMoney(t.total),
-          amt: window.fmtDate(d.fecha)
-        });
-      }
-      if (d.tipo === 'cotizacion' && d.vigencia && d.vigencia < hoy && !t.pagado) {
-        alerts.push({
-          tone: 'warn', action: 'edit', id: d.id,
-          title: 'Cotización vencida: ' + d.numero,
-          desc: 'La vigencia terminó el ' + window.fmtDate(d.vigencia) + ' · ' + (d.representante || 'sin cliente'),
-          amt: window.fmtMoney(t.total)
-        });
-      }
-    });
-
-    const ALERT_ICON = {
-      danger: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-      warn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-      info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
-      ok: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-    };
-    const order = { danger: 0, warn: 1, info: 2 };
-    alerts.sort(function (a, b) { return order[a.tone] - order[b.tone]; });
-
-    $('#alert-host').innerHTML = alerts.length
-      ? alerts.slice(0, 6).map(function (a) {
-          return '<button class="alert ' + a.tone + '" data-action="' + a.action + '" data-id="' + a.id + '">'
-            + '<span class="alert-ico">' + ALERT_ICON[a.tone] + '</span>'
-            + '<span class="alert-body"><span class="alert-title">' + esc(a.title) + '</span>'
-            + '<span class="alert-desc">' + esc(a.desc) + '</span></span>'
-            + '<span class="alert-amt">' + esc(a.amt) + '</span>'
-            + '</button>';
-        }).join('')
-      : '<div class="alert ok"><span class="alert-ico">' + ALERT_ICON.ok + '</span>'
-        + '<span class="alert-body"><span class="alert-title">Todo en orden</span>'
-        + '<span class="alert-desc">No hay vencimientos ni saldos que reclamen tu atención.</span></span></div>';
+    /* ---------- Áreas / To-Do ---------- */
+    const tasks = homeTasks(hoy, cxcData);
+    const todoHost = $('#todo-host');
+    if (todoHost) todoHost.innerHTML = tareasHTML(tasks);
+    const todoNote = $('#todo-note');
+    if (todoNote) todoNote.textContent = tasks.length ? (tasks.length + ' tarea' + (tasks.length !== 1 ? 's' : '')) : 'Al día';
 
   }
 
@@ -1888,6 +2158,77 @@
       case 'go-cxc': closeNavPop(); switchMainView('cxc'); break;
       case 'go-cxp': closeNavPop(); switchMainView('cxp'); break;
       case 'go-clientes': closeNavPop(); switchMainView('clientes'); break;
+      case 'toggle-debtors':
+        heroDebtorsOpen = !heroDebtorsOpen;
+        renderInicio();
+        break;
+      case 'go-cxc-client': {
+        closeNavPop();
+        const nombre = btn.dataset.cliente || '';
+        cxcQuery = nombre;
+        const inp = $('#search-cxc');
+        if (inp) inp.value = nombre;
+        switchMainView('cxc');
+        break;
+      }
+      case 'focus-tareas': {
+        const panel = $('#panel-tareas');
+        if (panel && typeof panel.scrollIntoView === 'function') {
+          panel.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+        }
+        break;
+      }
+      case 'cob-pay': {
+        const docPay = docs.find(function (x) { return x.id === btn.dataset.id; });
+        if (!docPay) break;
+        const saldoPay = computeTotals(docPay).porPagar;
+        const montoStr = prompt('Saldo pendiente: ' + window.fmtMoney(saldoPay) + '\n\n¿Cuánto quieres cobrar?', String(saldoPay));
+        if (montoStr === null) break;
+        const monto = Number(montoStr);
+        if (!(monto > 0)) { toast('Monto inválido'); break; }
+        if (abonarDocumento(docPay.id, monto)) {
+          renderInicio();
+          toast('Cobro registrado ✓');
+        }
+        break;
+      }
+      case 'cob-settle': {
+        const docSet = docs.find(function (x) { return x.id === btn.dataset.id; });
+        if (!docSet) break;
+        const saldoSet = computeTotals(docSet).porPagar;
+        if (!confirm('¿Marcar ' + (docSet.numero || 'este documento') + ' como pagado (' + window.fmtMoney(saldoSet) + ')?')) break;
+        if (liquidarDocumento(docSet.id)) {
+          renderInicio();
+          toast('Marcado como pagado ✓');
+        }
+        break;
+      }
+      case 'todo-done':
+        if (btn.dataset.tid) {
+          markHomeTaskDone(btn.dataset.tid);
+          renderInicio();
+        }
+        break;
+      case 'todo-go': {
+        const go = btn.dataset.go;
+        const gid = btn.dataset.id;
+        if (go === 'go-cxc') { closeNavPop(); switchMainView('cxc'); }
+        else if (go === 'go-cxp') { closeNavPop(); switchMainView('cxp'); }
+        else if (go === 'go-docs') { closeNavPop(); switchMainView('docs'); }
+        else if (go === 'go-clientes') { closeNavPop(); switchMainView('clientes'); }
+        else if (go === 'new-cotizacion') {
+          const d = blankDoc('cotizacion'); docs.push(d); storeSet('mc_docs', docs); showEditor(d);
+        }
+        else if (go === 'edit' && gid) {
+          const d = docs.find(function (x) { return x.id === gid; });
+          if (d) showEditor(d);
+        }
+        else if (go === 'edit-cxp' && gid) {
+          const cxpGo = cuentasXPagar.find(function (x) { return x.id === gid; });
+          if (cxpGo) openCxpModal(cxpGo);
+        }
+        break;
+      }
       case 'close-settings': $('#modal-settings').classList.remove('open'); break;
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {

@@ -1,4 +1,4 @@
-# Diseño de la interfaz — v3.1 «Calma clara y compacta»
+# Diseño de la interfaz — v3.2 «Panel accionable»
 
 Notas del rediseño de octubre 2026. La interfaz vive en **una sola hoja**
 (`css/app.css`), con **un solo tema (claro)** y una escala tipográfica corta.
@@ -14,7 +14,7 @@ permanecen intactos.
 | Tres capas de CSS (`app.css` base + «Calma» + piel `skin-cristal.css`) | **Una hoja**: `css/app.css` (≈55 KB) |
 | Tema claro / oscuro / automático, guardado y sincronizado | **Solo claro**, permanente. Sin conmutador ni script anti-destello |
 | Menú a pantalla completa con índice y ficha de cifras | **Menú compacto desplegable** (botón ☰ del masthead y «Más» en la barra inferior) |
-| Panel de «Actividad reciente» con filtros | Retirado; el inicio queda en héroe → indicadores → cobranza → avisos |
+| Panel de «Actividad reciente» con filtros | Retirado; el inicio queda en héroe → acciones → indicadores → cobranza → to-do |
 | Gráfica de 6 meses (2 barras por mes, SVG) | **Una barra horizontal partida en dos** (abonado / por cobrar) |
 | ~20 tamaños de letra distintos (8.5 → 88 px) | **4 tamaños + una cifra** (10 / 11 / 12 / 14 px + 17 px) |
 | Jerarquía por tamaño | Jerarquía por **negrita y color** |
@@ -67,7 +67,7 @@ sección «Apariencia».
 
 | # | Vista | ID | Notas |
 |---|---|---|---|
-| 01 | Inicio | `#view-inicio` | Héroe azul, 3 indicadores, cobranza y avisos |
+| 01 | Inicio | `#view-inicio` | Héroe (saldo tap), barra de acciones, 3 indicadores, cobranza por documento y to-do por área |
 | 02 | Documentos | `#view-list` | Recibos y cotizaciones |
 | 03 | Por cobrar | `#view-cxc` | Saldos por cliente |
 | 04 | Por pagar | `#view-cxp` | Gastos y facturas |
@@ -87,21 +87,43 @@ añade su caso en `switchMainView` y su botón en `#nav-pop`.
 - En pantalla chica aparece pegado a la barra inferior; en escritorio, bajo el
   botón del masthead. `body.nav-open` marca el estado.
 
-### 4.2 Cobranza (panel de inicio)
+### 4.2 Héroe y acciones
 
-Una sola barra horizontal en `#chart-host`, calculada por `cobranzaStats()`:
+- La cifra de **saldo por cobrar** es un botón: despliega una mini-lista de
+  clientes con saldo (`#hero-debtors`). Tocar un cliente abre Por cobrar filtrado.
+- El texto bajo la cifra reacciona: si hay vencimientos **hoy**, se pone ámbar
+  con *«N vencimiento(s) hoy — Ver ahora»*; si ya hay vencidos, rojo.
+  «Ver ahora» baja al to-do.
+- Los 5 accesos (Cotizar, Recibo, Cliente, Gasto, Producto) viven en
+  `#action-bar`, una fila **sticky** bajo el héroe, con icono chico y etiqueta
+  siempre visible. El héroe solo habla de cobranza.
+
+### 4.3 Cobranza (panel de inicio)
+
+Una barra horizontal en `#chart-host` (sigue calculada por `cobranzaStats()`)
+**más** una lista de documentos:
 
 - El 100 % de la barra son **todos los documentos abiertos** (recibos y
   cotizaciones con saldo pendiente).
 - **Turquesa** = lo ya abonado · **azul** = lo que falta por cobrar.
-- Un documento **sale de la barra** en cuanto se liquida (deja de contar en el
-  100 %); el pie indica cuántos ya se liquidaron.
-- Debajo, dos lecturas con el monto y el porcentaje de cada color.
+- Cada documento abierto muestra folio, cliente, vencimiento y monto, con
+  **Cobrar** (abono) y un check de **Marcar pagado**.
+- Un documento **sale de la barra** en cuanto se liquida; puede quedar un
+  momento en la lista como «Pagado».
 
-### 4.3 Accesos rápidos y móvil
+### 4.4 Indicadores y to-do
 
-- Los 5 accesos del héroe van **siempre en una sola fila** (`display: flex` +
-  `flex: 1 1 0`), con su etiqueta visible.
+- *Por pagar / Facturado / Cobrado*: si el mes va en $0, el pie es un CTA
+  (*Registrar gasto*, *Crear primera factura*, *Registrar recibo*) en vez de
+  «sin movimientos aún». Si hay cifra, se muestra flecha o punto vs. el mes
+  anterior.
+- El panel de avisos se sustituye por **Áreas / To-Do** (`#todo-host`): tareas
+  derivadas de datos reales, agrupadas en Contabilidad, Ventas y Cobranza.
+  Cada una tiene prioridad (rojo / ámbar / verde), checkbox para darla por
+  hecha (local) y botón *Ir*.
+
+### 4.5 Móvil
+
 - En ≤620 px los indicadores se vuelven **una fila por indicador**: icono y
   etiqueta a la izquierda, la cifra a la derecha (sin partirse nunca).
 - La barra inferior (`#mobile-nav`) sigue apareciendo solo en móvil y fuera del
@@ -132,5 +154,4 @@ Aun así, sube la versión de la caché (`const CACHE = 'mc-pwa-vNN'`) cuando
 cambien los archivos: es lo que provoca que los teléfonos reinstalen el SW y
 descartén las copias viejas de fuentes, logo e íconos.
 
-> Al publicar la v3.1 se subió a `mc-pwa-v31` y se quitó del `ASSETS` el
-> archivo `css/skin-cristal.css` (ya no existe).
+> Al publicar la v3.2 se subió a `mc-pwa-v32`.
