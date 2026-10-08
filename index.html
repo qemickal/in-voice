@@ -271,6 +271,43 @@
       <div id="prod-list" class="doc-list"></div>
     </section>
 
+    <!-- ===== Vista: Tareas ===== -->
+    <section id="view-tareas" hidden>
+      <div class="list-head">
+        <div class="list-heading">
+          <div class="section-heading-kicker">
+            <p class="kicker">07 · Tareas</p>
+            <button class="btn small outline section-home" data-action="go-home" aria-label="Ir al inicio" title="Ir al inicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Inicio</span>
+            </button>
+          </div>
+          <h1>Tareas</h1>
+        </div>
+        <div class="list-head-actions">
+          <div class="cxc-summary" id="tareas-summary"></div>
+          <button class="btn primary" data-action="new-tarea"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva tarea</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <input id="search-tareas" type="search" placeholder="Buscar por título, descripción, área…">
+        <div class="chips">
+          <button class="chip active" data-tarea-filter="todas">Todas</button>
+          <button class="chip" data-tarea-filter="pendiente">Pendientes</button>
+          <button class="chip" data-tarea-filter="hecha">Hechas</button>
+          <button class="chip" data-tarea-filter="vencida">Vencidas</button>
+        </div>
+        <div class="chips">
+          <button class="chip active" data-tarea-area="todas">Todas las áreas</button>
+          <button class="chip" data-tarea-area="general">General</button>
+          <button class="chip" data-tarea-area="contabilidad">Contabilidad</button>
+          <button class="chip" data-tarea-area="ventas">Ventas</button>
+          <button class="chip" data-tarea-area="cobranza">Cobranza</button>
+        </div>
+      </div>
+      <div id="tareas-list" class="doc-list"></div>
+    </section>
+
     <!-- ===== Vista: editor ===== -->
     <section id="view-editor" hidden>
       <div class="editor-bar">
@@ -355,6 +392,10 @@
     <button type="button" class="nav-pop-item" role="menuitem" data-action="go-productos">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <span>Catálogo</span><small>Productos y servicios</small>
+    </button>
+    <button type="button" class="nav-pop-item" role="menuitem" data-action="go-tareas">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tareas</span><small>Con deadline y documento</small>
     </button>
     <div class="nav-pop-sep" role="separator"></div>
     <button type="button" class="nav-pop-item" role="menuitem" data-action="settings">
@@ -544,6 +585,59 @@
       <div class="modal-foot">
         <button class="btn outline" data-action="close-producto-modal">Cancelar</button>
         <button class="btn primary" data-action="save-producto">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal: Tarea (agregar/editar) ===== -->
+  <div id="modal-tarea" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-tarea-title">Nueva tarea</h2>
+        <button class="icon-btn" data-action="close-tarea-modal" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <label>Título *
+          <input id="ta-titulo" type="text" placeholder="Ej. Enviar factura a cliente" autocomplete="off">
+        </label>
+        <label>Descripción
+          <textarea id="ta-desc" rows="3" placeholder="Detalles, pasos, notas…"></textarea>
+        </label>
+        <div class="sgrid">
+          <label>Área
+            <select id="ta-area">
+              <option value="general">General</option>
+              <option value="contabilidad">Contabilidad</option>
+              <option value="ventas">Ventas</option>
+              <option value="cobranza">Cobranza</option>
+            </select>
+          </label>
+          <label>Prioridad
+            <select id="ta-prioridad">
+              <option value="mid">Media</option>
+              <option value="high">Alta</option>
+              <option value="low">Baja</option>
+            </select>
+          </label>
+        </div>
+        <div class="sgrid">
+          <label>Fecha límite
+            <input id="ta-deadline" type="date">
+          </label>
+          <label>Documento asociado
+            <select id="ta-doc">
+              <option value="">— Ninguno —</option>
+            </select>
+          </label>
+        </div>
+        <label class="toggle" style="flex-direction:row; text-transform:none; letter-spacing:0; font-size:var(--fs-3); font-weight:600; color:var(--ink-2);">
+          <input id="ta-done" type="checkbox"> <span>Marcar como hecha</span>
+        </label>
+        <p class="hint">Las pendientes aparecen en el To-Do del inicio, agrupadas por área, y se sincronizan entre tus equipos.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn outline" data-action="close-tarea-modal">Cancelar</button>
+        <button class="btn primary" data-action="save-tarea">Guardar tarea</button>
       </div>
     </div>
   </div>
