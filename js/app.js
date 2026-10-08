@@ -260,11 +260,26 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- Menú compacto (desplegable) ----------
-     Una lista corta: secciones, ajustes y cerrar sesión. Sin capas
-     intermedias ni pantalla completa: se abre sobre el contenido y se
-     cierra al elegir, al tocar fuera o con Esc. */
+  /* ---------- Menú a pantalla completa ----------
+     Una hoja que cubre la ventana: secciones, ajustes y cerrar sesión.
+     Se cierra al elegir, al tocar el aspa o el fondo, y con Esc. */
   function navPopEl() { return $('#nav-pop'); }
+
+  /* De acción del menú a vista de la app (para marcar la actual). */
+  const NAV_POP_VIEW = {
+    'go-home': 'inicio', 'go-docs': 'docs', 'go-cxc': 'cxc',
+    'go-cxp': 'cxp', 'go-clientes': 'clientes', 'go-productos': 'productos'
+  };
+
+  function markNavPopActive() {
+    $$('#nav-pop .nav-pop-item').forEach(function (b) {
+      const view = NAV_POP_VIEW[b.dataset.action];
+      const active = !!view && view === mainView;
+      b.classList.toggle('active', active);
+      if (active) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+  }
 
   function openNavPop() {
     const pop = navPopEl();
@@ -274,7 +289,11 @@
     $$('[data-action="toggle-menu"]').forEach(function (b) {
       b.setAttribute('aria-expanded', 'true');
     });
+    markNavPopActive();
     refreshMobileNav();
+    // el foco entra en la hoja: así Esc y Tab se sienten naturales
+    const first = pop.querySelector('.nav-pop-close') || pop.querySelector('.nav-pop-item');
+    if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
   }
 
   function closeNavPop() {
@@ -285,6 +304,11 @@
     $$('[data-action="toggle-menu"]').forEach(function (b) {
       b.setAttribute('aria-expanded', 'false');
     });
+    // si el foco quedó dentro de la hoja, devolverlo al botón que la abrió
+    if (pop.contains(document.activeElement)) {
+      const opener = document.querySelector('#topbar [data-action="toggle-menu"]');
+      if (opener) { try { opener.focus({ preventScroll: true }); } catch (e) { opener.focus(); } }
+    }
     refreshMobileNav();
   }
 
@@ -1738,6 +1762,7 @@
       case 'new-cotizacion': { const d = blankDoc('cotizacion'); docs.push(d); storeSet('mc_docs', docs); showEditor(d); break; }
       case 'back': saveDoc(true); switchMainView(previousView, { replaceHistory: true }); break;
       case 'go-home':
+        closeNavPop();
         if (!$('#view-editor').hidden && editing) {
           saveDoc(true);
           switchMainView('inicio', { replaceHistory: true });
@@ -1900,7 +1925,7 @@
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
 
-      /* --- Menú compacto --- */
+      /* --- Menú a pantalla completa --- */
       case 'toggle-menu':
         toggleNavPop();
         break;
@@ -2027,18 +2052,28 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Menú compacto: se cierra al tocar fuera y con Esc.
+  // Menú a pantalla completa: se cierra al tocar el fondo de la hoja y con Esc.
   document.addEventListener('click', function (e) {
     const pop = navPopEl();
     if (!pop || pop.hidden) return;
-    if (pop.contains(e.target)) return;
-    if (e.target.closest('[data-action="toggle-menu"]')) return;
+    if (e.target && e.target.closest) {
+      // los botones de la hoja la cierran por sí mismos
+      if (e.target.closest('.nav-pop-item')) return;
+      if (e.target.closest('[data-action="toggle-menu"]')) return;
+    }
     closeNavPop();
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeNavPop();
   });
-  window.addEventListener('resize', function () { closeNavPop(); });
+  // Sólo se cierra si cambia el ancho de verdad (giro del teléfono):
+  // en móvil, mostrar u ocultar la barra del navegador no cuenta.
+  var lastWinW = window.innerWidth;
+  window.addEventListener('resize', function () {
+    const w = window.innerWidth;
+    if (Math.abs(w - lastWinW) > 80) closeNavPop();
+    lastWinW = w;
+  });
 
   // Búsqueda CxC
   var searchCxc = $('#search-cxc');
