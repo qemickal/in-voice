@@ -154,7 +154,7 @@ async function authUser(req) {
 
 /* ---------------- Validación de registros de sync ---------------- */
 
-const KINDS = { docs: 1, settings: 1, clientes: 1, cxp: 1, productos: 1 };
+const KINDS = { docs: 1, settings: 1, clientes: 1, cxp: 1, productos: 1, tareas: 1 };
 
 function normEmail(raw) {
   return String(raw || '').trim().toLowerCase();

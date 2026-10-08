@@ -19,7 +19,8 @@
     settings: { key: 'mc_settings', array: false },
     clientes: { key: 'mc_clientes', array: true },
     cxp:      { key: 'mc_cxp',      array: true },
-    productos:{ key: 'mc_productos',array: true }
+    productos:{ key: 'mc_productos',array: true },
+    tareas:  { key: 'mc_tareas',   array: true }
   };
 
   /* ---------------- localStorage (mismas llaves que app.js) ---------------- */

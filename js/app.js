@@ -17,7 +17,7 @@
     _memStore[k] = v;
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento no disponible */ }
     // notificar al sincronizador (colecciones que viajan)
-    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp' || k === 'mc_productos') {
+    if (k === 'mc_docs' || k === 'mc_settings' || k === 'mc_clientes' || k === 'mc_cxp' || k === 'mc_productos' || k === 'mc_tareas') {
       if (window.SYNC) window.SYNC.localChanged();
     }
   }
@@ -54,10 +54,12 @@
   let clientes = storeGet('mc_clientes', []);
   let cuentasXPagar = storeGet('mc_cxp', []);
   let productos = storeGet('mc_productos', []);  // catálogo: productos y servicios
+  let tareas = storeGet('mc_tareas', []); // tareas con deadline y documento asociado
   let editing = null;   // copia de trabajo
   let editingCxp = null; // copia de trabajo para cuenta por pagar
   let editingCliente = null; // referencia al contacto en edición (null = nuevo)
   let editingProducto = null; // referencia al ítem del catálogo en edición (null = nuevo)
+  let editingTarea = null; // tarea en edición (null = nueva)
   let selectedClientId = null;
   let images = null;    // dataURLs pre-cargados para el PDF
   let listFilter = 'todos';
@@ -68,7 +70,10 @@
   let prodFilter = 'todos'; // 'todos' | 'producto' | 'servicio'
   let prodQuery = '';
   let prodModalTipo = 'producto'; // tipo seleccionado en el modal del catálogo
-  let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes' | 'productos'
+  let tareaFilter = 'todas'; // 'todas' | 'pendiente' | 'hecha' | 'vencida'
+  let tareaArea = 'todas'; // 'todas' | 'general' | 'contabilidad' | 'ventas' | 'cobranza'
+  let tareaQuery = '';
+  let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes' | 'productos' | 'tareas'
   let previousView = 'inicio'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
@@ -207,7 +212,7 @@
   }
 
   /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
-  const MAIN_VIEW_IDS = ['inicio', 'docs', 'cxc', 'cxp', 'clientes', 'productos'];
+  const MAIN_VIEW_IDS = ['inicio', 'docs', 'cxc', 'cxp', 'clientes', 'productos', 'tareas'];
 
   function writeAppHistory(view, replace, extra) {
     if (!window.history || typeof window.history.pushState !== 'function') return;
@@ -247,6 +252,7 @@
     $('#view-cxp').hidden = view !== 'cxp';
     $('#view-clientes').hidden = view !== 'clientes';
     $('#view-productos').hidden = view !== 'productos';
+    $('#view-tareas').hidden = view !== 'tareas';
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
@@ -258,6 +264,7 @@
     if (view === 'cxp') renderCxP();
     if (view === 'clientes') renderClientes();
     if (view === 'productos') renderProductos();
+    if (view === 'tareas') renderTareas();
     window.scrollTo(0, 0);
   }
 
@@ -630,17 +637,58 @@
       });
     }
 
+    // Tareas creadas por el usuario (mc_tareas) → también en el To-Do
+    (tareas || []).forEach(function (t) {
+      if (t.done) return;
+      var isOver = t.deadline && t.deadline < hoy;
+      var isToday = t.deadline && t.deadline === hoy;
+      var metaParts = [];
+      if (t.area) metaParts.push(t.area);
+      if (t.prioridad) {
+        metaParts.push(t.prioridad === 'high' ? 'prioridad alta' : t.prioridad === 'low' ? 'prioridad baja' : 'prioridad media');
+      }
+      if (t.deadline) {
+        if (isOver) {
+          var d = Math.abs(daysBetween(hoy, t.deadline));
+          metaParts.push('vencida · ' + d + 'd');
+        } else if (isToday) {
+          metaParts.push('vence hoy');
+        } else {
+          var dd = daysBetween(t.deadline, hoy);
+          if (dd <= 7) metaParts.push('vence en ' + dd + ' día' + (dd !== 1 ? 's' : ''));
+          else metaParts.push('vence ' + window.fmtDate(t.deadline));
+        }
+      }
+      if (t.docId) {
+        var dd = docs.find(function (x) { return x.id === t.docId; });
+        if (dd) metaParts.push((dd.tipo === 'cotizacion' ? 'COT ' : 'REC ') + (dd.numero || ''));
+      }
+      var prio = t.prioridad || 'mid';
+      if (isOver) prio = 'high';
+      else if (isToday) prio = prio === 'low' ? 'mid' : prio;
+      tasks.push({
+        id: 'tarea-' + t.id,
+        area: t.area || 'general',
+        title: t.titulo || 'Sin título',
+        meta: metaParts.join(' · ') || (t.descripcion || '').slice(0, 80),
+        prio: prio,
+        go: 'edit-tarea',
+        idGo: t.id
+      });
+    });
+
     return tasks;
   }
 
   function tareasHTML(tasks) {
     if (!tasks.length) {
-      return '<div class="todo-empty">Nada pendiente por área. El panel se llena con vencimientos, saldos y seguimientos.</div>';
+      return '<div class="todo-empty">Nada pendiente por área. El panel se llena con vencimientos, saldos, seguimientos y tus tareas.</div>';
     }
     const areas = [
       { id: 'contabilidad', label: 'Contabilidad' },
       { id: 'ventas', label: 'Ventas' },
-      { id: 'cobranza', label: 'Cobranza' }
+      { id: 'cobranza', label: 'Cobranza' },
+      { id: 'general', label: 'General' }
     ];
     return areas.map(function (area) {
       const list = tasks.filter(function (t) { return t.area === area.id; });
@@ -1439,6 +1487,205 @@
     toast((prodModalTipo === 'servicio' ? 'Servicio' : 'Producto') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
   }
 
+  /* ================= TAREAS =================
+     Título, descripción, área, prioridad, deadline y documento
+     asociado opcional. Pendientes → To-Do del inicio (mc_tareas). */
+  function tareaAreaLabel(a) {
+    var m = { general: 'General', contabilidad: 'Contabilidad', ventas: 'Ventas', cobranza: 'Cobranza' };
+    return m[a] || a || 'General';
+  }
+  function tareaPrioLabel(p) {
+    var m = { high: 'Alta', mid: 'Media', low: 'Baja' };
+    return m[p] || 'Media';
+  }
+  function tareaPrioClass(p) {
+    if (p === 'high') return 'danger';
+    if (p === 'low') return 'ok';
+    return 'warn';
+  }
+  function tareaDueMeta(t, hoy) {
+    if (t.done) return { text: 'Hecha', tone: 'ok' };
+    if (!t.deadline) return { text: 'Sin fecha', tone: '' };
+    if (t.deadline < hoy) {
+      var d = Math.abs(daysBetween(hoy, t.deadline));
+      return { text: 'Vencida · ' + d + 'd', tone: 'danger' };
+    }
+    if (t.deadline === hoy) return { text: 'Vence hoy', tone: 'danger' };
+    var dd = daysBetween(t.deadline, hoy);
+    if (dd <= 3) return { text: 'Vence en ' + dd + ' día' + (dd !== 1 ? 's' : ''), tone: 'warn' };
+    if (dd <= 7) return { text: 'Vence en ' + dd + ' días', tone: 'warn' };
+    return { text: 'Vence ' + window.fmtDate(t.deadline), tone: '' };
+  }
+
+  function fillTareaDocSelect(selectedId) {
+    var sel = $('#ta-doc');
+    if (!sel) return;
+    var opts = ['<option value="">— Ninguno —</option>'];
+    var sorted = docs.slice().sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    sorted.forEach(function (d) {
+      var label = (d.tipo === 'cotizacion' ? 'COT' : 'REC') + ' ' + (d.numero || '') + ' — ' + (d.representante || d.proyecto || 'Sin cliente');
+      opts.push('<option value="' + esc(d.id) + '"' + (d.id === selectedId ? ' selected' : '') + '>' + esc(label) + '</option>');
+    });
+    sel.innerHTML = opts.join('');
+  }
+
+  function renderTareas() {
+    var wrap = $('#tareas-list');
+    var summary = $('#tareas-summary');
+    if (!wrap) return;
+
+    var hoy = window.todayISO();
+    var q = tareaQuery.trim().toLowerCase();
+
+    var filtered = tareas.filter(function (t) {
+      var okQ = true;
+      if (q) {
+        var text = ((t.titulo || '') + ' ' + (t.descripcion || '') + ' ' + (t.area || '')).toLowerCase();
+        okQ = text.indexOf(q) >= 0;
+      }
+      var okEstado = true;
+      if (tareaFilter === 'pendiente') okEstado = !t.done;
+      else if (tareaFilter === 'hecha') okEstado = !!t.done;
+      else if (tareaFilter === 'vencida') okEstado = !t.done && t.deadline && t.deadline < hoy;
+      var okArea = true;
+      if (tareaArea !== 'todas') okArea = (t.area || 'general') === tareaArea;
+      return okQ && okEstado && okArea;
+    }).sort(function (a, b) {
+      // pendientes primero, luego por deadline (null al final), luego prioridad alta, luego actualizado
+      if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+      if (a.deadline && !b.deadline) return -1;
+      if (!a.deadline && b.deadline) return 1;
+      if (a.deadline && b.deadline && a.deadline !== b.deadline) return a.deadline < b.deadline ? -1 : 1;
+      var prioRank = { high: 0, mid: 1, low: 2 };
+      var pa = prioRank[a.prioridad] != null ? prioRank[a.prioridad] : 1;
+      var pb = prioRank[b.prioridad] != null ? prioRank[b.prioridad] : 1;
+      if (pa !== pb) return pa - pb;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+
+    $$('.chip[data-tarea-filter]').forEach(function (c) {
+      c.classList.toggle('active', c.dataset.tareaFilter === tareaFilter);
+    });
+    $$('.chip[data-tarea-area]').forEach(function (c) {
+      c.classList.toggle('active', c.dataset.tareaArea === tareaArea);
+    });
+
+    // resumen
+    if (summary) {
+      var pendientes = tareas.filter(function (t) { return !t.done; }).length;
+      var vencidas = tareas.filter(function (t) { return !t.done && t.deadline && t.deadline < hoy; }).length;
+      var hechas = tareas.filter(function (t) { return !!t.done; }).length;
+      summary.innerHTML = ''
+        + '<div class="summary-card' + (pendientes ? ' summary-warning' : '') + '"><span class="summary-label">Pendientes</span><strong class="summary-value">' + pendientes + '</strong></div>'
+        + '<div class="summary-card summary-danger"><span class="summary-label">Vencidas</span><strong class="summary-value">' + vencidas + '</strong></div>'
+        + '<div class="summary-card"><span class="summary-label">Hechas</span><strong class="summary-value">' + hechas + '</strong></div>';
+    }
+
+    if (!filtered.length) {
+      wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.check('ic-lg') + '</span>'
+        + '<h3>' + (tareas.length ? 'No hay tareas que coincidan' : 'Aún no hay tareas') + '</h3>'
+        + '<p>' + (tareas.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primera tarea con título, área, prioridad, deadline y, si quieres, un recibo o cotización asociado. Las pendientes salen en el To-Do del inicio.') + '</p>'
+        + '<div class="empty-actions"><button class="btn primary" data-action="new-tarea"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2=\"19\"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva tarea</button></div></div>';
+      return;
+    }
+
+    wrap.innerHTML = filtered.map(function (t, i) {
+      var due = tareaDueMeta(t, hoy);
+      var prioPill = '<span class="pill mini ' + tareaPrioClass(t.prioridad) + '">' + esc(tareaPrioLabel(t.prioridad)) + '</span>';
+      var areaPill = '<span class="pill mini ghost">' + esc(tareaAreaLabel(t.area)) + '</span>';
+      var duePill = due.text ? '<span class="pill mini ' + (due.tone === 'danger' ? 'danger' : due.tone === 'warn' ? 'warn' : due.tone === 'ok' ? 'ok' : 'ghost') + '">' + esc(due.text) + '</span>' : '';
+      var docHtml = '';
+      if (t.docId) {
+        var d = docs.find(function (x) { return x.id === t.docId; });
+        if (d) {
+          docHtml = '<div class="tarea-doc"><span class="pill mini ' + (d.tipo === 'cotizacion' ? 'ghost' : 'solid') + '">' + (d.tipo === 'cotizacion' ? 'COT' : 'REC') + ' ' + esc(d.numero || '') + '</span>'
+            + '<span class="muted"> ' + esc(d.representante || d.proyecto || '') + '</span>'
+            + ' <button class="btn small outline" data-action="view-tarea-doc" data-docid="' + esc(d.id) + '">Ver</button></div>';
+        }
+      }
+      return '<div class="card card-tarea' + (t.done ? ' tarea-hecha' : '') + '" style="--i:' + Math.min(i, 14) + '">'
+        + '<div class="card-top">' + prioPill + areaPill + duePill + '</div>'
+        + '<div class="card-title">' + esc(t.titulo || 'Sin título') + '</div>'
+        + (t.descripcion ? '<div class="card-sub" style="white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + esc(t.descripcion) + '</div>' : '')
+        + docHtml
+        + '<div class="card-actions">'
+        + '<button class="btn small outline" data-action="edit-tarea" data-id="' + esc(t.id) + '">Editar</button>'
+        + (t.done
+          ? '<button class="btn small outline" data-action="toggle-tarea" data-id="' + esc(t.id) + '">Reabrir</button>'
+          : '<button class="btn small" data-action="toggle-tarea" data-id="' + esc(t.id) + '">' + window.ICONS.check() + ' Hecha</button>')
+        + '<button class="btn small danger" data-action="del-tarea" data-id="' + esc(t.id) + '">' + window.ICONS.trash() + '</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  function openTareaModal(id) {
+    editingTarea = id ? (tareas.find(function (x) { return x.id === id; }) || null) : null;
+    var t = editingTarea;
+    var titleEl = $('#modal-tarea-title');
+    if (titleEl) titleEl.textContent = t ? 'Editar tarea' : 'Nueva tarea';
+    $('#ta-titulo').value = t ? (t.titulo || '') : '';
+    $('#ta-desc').value = t ? (t.descripcion || '') : '';
+    $('#ta-area').value = t ? (t.area || 'general') : 'general';
+    $('#ta-prioridad').value = t ? (t.prioridad || 'mid') : 'mid';
+    $('#ta-deadline').value = t ? (t.deadline || '') : '';
+    $('#ta-done').checked = t ? !!t.done : false;
+    fillTareaDocSelect(t ? t.docId : '');
+    $('#modal-tarea').classList.add('open');
+    setTimeout(function () { var n = $('#ta-titulo'); if (n) n.focus(); }, 80);
+  }
+
+  function saveTareaFromModal() {
+    var g = function (id) { var el = $('#' + id); return el ? el.value : ''; };
+    var titulo = g('ta-titulo').trim();
+    if (!titulo) {
+      toast('Escribe el título de la tarea');
+      var n = $('#ta-titulo'); if (n) n.focus();
+      return;
+    }
+    var now = Date.now();
+    var t = editingTarea;
+    var esNuevo = !t;
+    if (esNuevo) { t = { id: window.uid(), createdAt: now }; tareas.push(t); }
+    t.titulo = titulo;
+    t.descripcion = g('ta-desc').trim();
+    t.area = g('ta-area') || 'general';
+    t.prioridad = g('ta-prioridad') || 'mid';
+    t.deadline = g('ta-deadline') || '';
+    t.docId = g('ta-doc') || '';
+    t.done = !!$('#ta-done').checked;
+    t.updatedAt = now;
+
+    storeSet('mc_tareas', tareas);
+    $('#modal-tarea').classList.remove('open');
+    editingTarea = null;
+    renderTareas();
+    if (mainView === 'inicio') renderInicio();
+    toast(esNuevo ? 'Tarea creada ✓' : 'Tarea actualizada ✓');
+  }
+
+  function toggleTareaDone(id) {
+    var t = tareas.find(function (x) { return x.id === id; });
+    if (!t) return;
+    t.done = !t.done;
+    t.updatedAt = Date.now();
+    storeSet('mc_tareas', tareas);
+    renderTareas();
+    renderInicio();
+    toast(t.done ? 'Tarea marcada como hecha ✓' : 'Tarea reabierta');
+  }
+
+  function deleteTarea(id) {
+    var t = tareas.find(function (x) { return x.id === id; });
+    if (!t) return;
+    if (!confirm('¿Eliminar la tarea «' + (t.titulo || 'esta tarea') + '»?')) return;
+    tareas = tareas.filter(function (x) { return x.id !== id; });
+    storeSet('mc_tareas', tareas);
+    if (window.SYNC) window.SYNC.tombstone('tareas', id);
+    renderTareas();
+    renderInicio();
+    toast('Tarea eliminada');
+  }
+
   /* Selector del catálogo dentro del editor de documentos */
   function catalogoPickerHtml() {
     if (!productos.length) {
@@ -1510,6 +1757,7 @@
     $('#view-cxp').hidden = true;
     $('#view-clientes').hidden = true;
     $('#view-productos').hidden = true;
+    $('#view-tareas').hidden = true;
     $('#view-editor').hidden = false;
     $('#topbar').classList.add('hidden');
     document.body.classList.add('in-editor');
@@ -2158,6 +2406,7 @@
       case 'go-cxc': closeNavPop(); switchMainView('cxc'); break;
       case 'go-cxp': closeNavPop(); switchMainView('cxp'); break;
       case 'go-clientes': closeNavPop(); switchMainView('clientes'); break;
+      case 'go-tareas': closeNavPop(); switchMainView('tareas'); break;
       case 'toggle-debtors':
         heroDebtorsOpen = !heroDebtorsOpen;
         renderInicio();
@@ -2203,12 +2452,26 @@
         }
         break;
       }
-      case 'todo-done':
-        if (btn.dataset.tid) {
-          markHomeTaskDone(btn.dataset.tid);
+      case 'todo-done': {
+        var tid = btn.dataset.tid || '';
+        if (!tid) break;
+        if (tid.indexOf('tarea-') === 0) {
+          var tareaId = tid.slice(6);
+          var tt = tareas.find(function (x) { return x.id === tareaId; });
+          if (tt) {
+            tt.done = true;
+            tt.updatedAt = Date.now();
+            storeSet('mc_tareas', tareas);
+            renderInicio();
+            renderTareas();
+            toast('Tarea marcada como hecha ✓');
+          }
+        } else {
+          markHomeTaskDone(tid);
           renderInicio();
         }
         break;
+      }
       case 'todo-go': {
         const go = btn.dataset.go;
         const gid = btn.dataset.id;
@@ -2216,6 +2479,11 @@
         else if (go === 'go-cxp') { closeNavPop(); switchMainView('cxp'); }
         else if (go === 'go-docs') { closeNavPop(); switchMainView('docs'); }
         else if (go === 'go-clientes') { closeNavPop(); switchMainView('clientes'); }
+        else if (go === 'go-tareas') { closeNavPop(); switchMainView('tareas'); }
+        else if (go === 'edit-tarea' && gid) {
+          var tGo = tareas.find(function (x) { return x.id === gid; });
+          if (tGo) openTareaModal(gid);
+        }
         else if (go === 'new-cotizacion') {
           const d = blankDoc('cotizacion'); docs.push(d); storeSet('mc_docs', docs); showEditor(d);
         }
@@ -2305,6 +2573,21 @@
         break;
       }
       case 'close-cxc-detail': $('#modal-cxc-detail').classList.remove('open'); break;
+
+      /* --- Tareas --- */
+      case 'new-tarea': openTareaModal(null); break;
+      case 'edit-tarea': openTareaModal(btn.dataset.id); break;
+      case 'del-tarea': deleteTarea(btn.dataset.id); break;
+      case 'toggle-tarea': toggleTareaDone(btn.dataset.id); break;
+      case 'save-tarea': saveTareaFromModal(); break;
+      case 'close-tarea-modal': $('#modal-tarea').classList.remove('open'); editingTarea = null; break;
+      case 'view-tarea-doc': {
+        var didT = btn.dataset.docid;
+        var ddT = docs.find(function (x) { return x.id === didT; });
+        if (ddT) showEditor(ddT);
+        break;
+      }
+
       case 'logout':
         closeNavPop();
         if (window.SYNC) window.SYNC.logout();
@@ -2406,6 +2689,16 @@
     c.addEventListener('click', function() { prodFilter = c.dataset.prodFilter; renderProductos(); });
   });
 
+  // Búsqueda y filtros de tareas
+  var searchTareas = $('#search-tareas');
+  if (searchTareas) searchTareas.addEventListener('input', function(e) { tareaQuery = e.target.value; renderTareas(); });
+  $$('.chip[data-tarea-filter]').forEach(function(c) {
+    c.addEventListener('click', function() { tareaFilter = c.dataset.tareaFilter; renderTareas(); });
+  });
+  $$('.chip[data-tarea-area]').forEach(function(c) {
+    c.addEventListener('click', function() { tareaArea = c.dataset.tareaArea; renderTareas(); });
+  });
+
   // Input events para modal CxP
   document.addEventListener('input', function(e) {
     if (!$('#modal-cxp').classList.contains('open')) return;
@@ -2464,6 +2757,7 @@
     if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
     if (changed.has('mc_cxp')) cuentasXPagar = storeGet('mc_cxp', []);
     if (changed.has('mc_productos')) productos = storeGet('mc_productos', []);
+    if (changed.has('mc_tareas')) tareas = storeGet('mc_tareas', []);
 
 
     if (!$('#view-editor').hidden && editing) {
@@ -2487,6 +2781,7 @@
     clientes = storeGet('mc_clientes', []);
     cuentasXPagar = storeGet('mc_cxp', []);
     productos = storeGet('mc_productos', []);
+    tareas = storeGet('mc_tareas', []);
     showList();
   }
 

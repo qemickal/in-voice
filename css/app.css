@@ -287,7 +287,7 @@ label {
   font-weight: 700;
 }
 
-#search, #search-cxc, #search-cxp, #search-cli, #search-prod {
+#search, #search-cxc, #search-cxp, #search-cli, #search-prod, #search-tareas {
   max-width: 420px;
   min-height: 34px;
   padding: 8px 12px 8px 33px;
@@ -301,7 +301,8 @@ label {
 #search-cxc::-webkit-search-cancel-button,
 #search-cxp::-webkit-search-cancel-button,
 #search-cli::-webkit-search-cancel-button,
-#search-prod::-webkit-search-cancel-button { -webkit-appearance: none; }
+#search-prod::-webkit-search-cancel-button,
+#search-tareas::-webkit-search-cancel-button { -webkit-appearance: none; }
 
 /* ============================================================
    4 · MASTHEAD Y MENÚ COMPACTO
@@ -1387,6 +1388,21 @@ button.alert:hover { border-color: var(--line-2); background: var(--surface-3); 
 }
 
 /* ============================================================
+   11b · TAREAS
+   ============================================================ */
+.card-tarea { position: relative; }
+.card-tarea.tarea-hecha { opacity: .72; }
+.card-tarea.tarea-hecha .card-title { text-decoration: line-through; color: var(--ink-3); }
+.tarea-doc {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px 8px;
+  border: 1px dashed var(--line-2); border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-2);
+}
+#search-tareas { max-width: 520px; }
+
+/* ============================================================
    12 · SINCRONIZACIÓN — puerta de cuenta
    ============================================================ */
 .auth-gate {
@@ -1660,7 +1676,7 @@ main > section:not([hidden]) { animation: view-in var(--dur-2) var(--ease-out) b
   }
   main { display: none !important; }
   #topbar, #mobile-nav, .nav-pop, .sync-bar, #toast,
-  #modal-settings, #modal-cxp, #modal-cxc-detail, #modal-cliente, #modal-producto {
+  #modal-settings, #modal-cxp, #modal-cxc-detail, #modal-cliente, #modal-producto, #modal-tarea {
     display: none !important;
   }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
