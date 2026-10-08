@@ -7,7 +7,7 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v31';
+const CACHE = 'mc-pwa-v32';
 const ASSETS = [
   './',
   './index.html',
