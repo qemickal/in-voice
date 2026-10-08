@@ -31,7 +31,6 @@
     web: 'www.monocromatyco.com',
     ciudad: 'CDMX',
     iva: 16,
-    theme: 'auto',   // 'auto' | 'light' | 'dark'
     pagos: { cuenta: '', clabe: '', beneficiario: '', banco: '' },
     condiciones: 'Entrega de 7 a 10 días hábiles después de confirmar el pago.',
     // Formato "Título: texto" por línea (el PDF resalta el título en negrita)
@@ -70,7 +69,6 @@
   let prodQuery = '';
   let prodModalTipo = 'producto'; // tipo seleccionado en el modal del catálogo
   let mainView = 'inicio';  // 'inicio' | 'docs' | 'cxc' | 'cxp' | 'clientes' | 'productos'
-  let activityFilter = 'all';
   let previousView = 'inicio'; // vista antes de entrar al editor
   let cxpFilter = 'todas';
   let cxpQuery = '';
@@ -176,7 +174,6 @@
             <button class="btn outline" data-action="new-cotizacion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
           </div>
         </div>`;
-      refreshMenuCounts();
       return;
     }
 
@@ -206,7 +203,6 @@
         </div>
       </div>`;
     }).join('');
-    refreshMenuCounts();
   }
 
   /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
@@ -229,7 +225,7 @@
   }
 
   function refreshMobileNav() {
-    const menuOpen = document.body.classList.contains('menu-open');
+    const menuOpen = document.body.classList.contains('nav-open');
     $$('#mobile-nav [data-nav-view]').forEach(function (item) {
       const active = item.dataset.navView === mainView || (item.dataset.navView === 'menu' && menuOpen);
       item.classList.toggle('active', active);
@@ -253,7 +249,7 @@
     $('#view-editor').hidden = true;
     $('#topbar').classList.remove('hidden');
     document.body.classList.remove('in-editor');
-    closeMenu();
+    closeNavPop();
     refreshMobileNav();
     if (view === 'inicio') renderInicio();
     if (view === 'docs') renderList();
@@ -264,20 +260,41 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- Menú pantalla completa ----------
-     Índice numerado a la izquierda + ficha lateral con las cifras
-     vivas de la sección activa. Tocar una fila entra directo. */
-  const MENU_VIEWS = [
-    { view: 'inicio',   num: '01', name: 'Inicio',          desc: 'El estado de tu estudio de un vistazo: por cobrar, por pagar y actividad reciente.' },
-    { view: 'docs',     num: '02', name: 'Documentos',      desc: 'Todo tu archivo de recibos y cotizaciones, listo para editar, duplicar o imprimir.' },
-    { view: 'cxc',      num: '03', name: 'Por cobrar',      desc: 'Saldos pendientes agrupados por cliente, con el avance de cada cobro.' },
-    { view: 'cxp',      num: '04', name: 'Por pagar',       desc: 'Gastos y facturas por liquidar, con abonos parciales y avisos de vencimiento.' },
-    { view: 'clientes', num: '05', name: 'Clientes',        desc: 'Directorio de clientes y prospectos con su estado de seguimiento.' },
-    { view: 'productos', num: '06', name: 'Catálogo',       desc: 'Productos y servicios con su precio por unidad, unidad de medida y características, listos para agregar a tus documentos.' },
-    { view: 'logout',   num: '07', name: 'Cerrar sesión',   desc: 'Corta la sincronización en este dispositivo. Tus datos locales no se borran.' }
-  ];
-  let menuActive = 'inicio';
+  /* ---------- Menú compacto (desplegable) ----------
+     Una lista corta: secciones, ajustes y cerrar sesión. Sin capas
+     intermedias ni pantalla completa: se abre sobre el contenido y se
+     cierra al elegir, al tocar fuera o con Esc. */
+  function navPopEl() { return $('#nav-pop'); }
 
+  function openNavPop() {
+    const pop = navPopEl();
+    if (!pop || !pop.hidden) return;
+    pop.hidden = false;
+    document.body.classList.add('nav-open');
+    $$('[data-action="toggle-menu"]').forEach(function (b) {
+      b.setAttribute('aria-expanded', 'true');
+    });
+    refreshMobileNav();
+  }
+
+  function closeNavPop() {
+    const pop = navPopEl();
+    if (!pop || pop.hidden) return;
+    pop.hidden = true;
+    document.body.classList.remove('nav-open');
+    $$('[data-action="toggle-menu"]').forEach(function (b) {
+      b.setAttribute('aria-expanded', 'false');
+    });
+    refreshMobileNav();
+  }
+
+  function toggleNavPop() {
+    const pop = navPopEl();
+    if (pop && pop.hidden) openNavPop(); else closeNavPop();
+  }
+
+  /* ================= PANEL DE INICIO ================= */
+  /* Cuentas por pagar: cuántas siguen pendientes y por cuánto. */
   function cxpStats() {
     var pendientes = 0, total = 0;
     cuentasXPagar.forEach(function (x) {
@@ -287,231 +304,10 @@
     });
     return { pendientes: pendientes, total: total };
   }
-
-  function menuMeta(view) {
-    switch (view) {
-      case 'inicio': {
-        var c = getCxCData().reduce(function (s, x) { return s + x.saldoTotal; }, 0);
-        return window.fmtMoney(c) + ' por cobrar';
-      }
-      case 'docs': return docs.length + (docs.length === 1 ? ' documento' : ' documentos');
-      case 'cxc': return getCxCData().length + ' clientes con saldo';
-      case 'cxp': return cxpStats().pendientes + ' pendientes';
-      case 'clientes': return clientes.length + (clientes.length === 1 ? ' contacto' : ' contactos');
-      case 'productos': return productos.length + (productos.length === 1 ? ' ítem' : ' ítems');
-      case 'logout': return window.SYNC && window.SYNC.authed() ? 'Cuenta conectada' : 'Sin cuenta';
-    }
-    return '';
-  }
-
-  /* Cifras grandes de la ficha lateral */
-  function menuStats(view) {
-    var cxcTotal = getCxCData().reduce(function (s, x) { return s + x.saldoTotal; }, 0);
-    switch (view) {
-      case 'inicio': return [
-        { n: window.fmtMoney(cxcTotal), l: 'Por cobrar' },
-        { n: window.fmtMoney(cxpStats().total), l: 'Por pagar' },
-        { n: String(docs.length), l: 'Documentos' }
-      ];
-      case 'docs': {
-        var r = docs.filter(function (d) { return d.tipo !== 'cotizacion'; }).length;
-        return [
-          { n: String(r), l: 'Recibos' },
-          { n: String(docs.length - r), l: 'Cotizaciones' },
-          { n: String(docs.length), l: 'Total' }
-        ];
-      }
-      case 'cxc': {
-        var d0 = getCxCData();
-        var nDocs = d0.reduce(function (s, x) { return s + x.docs.length; }, 0);
-        return [
-          { n: window.fmtMoney(cxcTotal), l: 'Pendiente' },
-          { n: String(d0.length), l: 'Clientes' },
-          { n: String(nDocs), l: 'Documentos' }
-        ];
-      }
-      case 'cxp': {
-        var st = cxpStats();
-        var pagadas = cuentasXPagar.length - st.pendientes;
-        return [
-          { n: window.fmtMoney(st.total), l: 'Por pagar' },
-          { n: String(st.pendientes), l: 'Pendientes' },
-          { n: String(pagadas), l: 'Pagadas' }
-        ];
-      }
-      case 'clientes': {
-        var pros = clientes.filter(function (c) { return cliTipo(c) === 'prospecto'; }).length;
-        return [
-          { n: String(clientes.length - pros), l: 'Clientes' },
-          { n: String(pros), l: 'Prospectos' },
-          { n: String(clientes.length), l: 'Total' }
-        ];
-      }
-      case 'productos': {
-        var servs = productos.filter(function (p) { return prodTipo(p) === 'servicio'; }).length;
-        return [
-          { n: String(productos.length - servs), l: 'Productos' },
-          { n: String(servs), l: 'Servicios' },
-          { n: String(productos.length), l: 'En catálogo' }
-        ];
-      }
-      case 'logout': return [{ n: window.SYNC && window.SYNC.authed() ? 'Activa' : 'Sin cuenta', l: 'Sesión' }];
-    }
-    return [];
-  }
-
-  function renderMenuIndex() {
-    const host = $('#menu-index');
-    if (!host) return;
-    host.innerHTML = MENU_VIEWS.map(function (v, i) {
-      return '<button class="menu-row' + (v.view === menuActive ? ' on' : '') + '"'
-        + ' style="--i:' + i + '" data-action="menu-enter" data-menu-view="' + v.view + '"'
-        + ' aria-current="' + (v.view === menuActive ? 'true' : 'false') + '">'
-        + '<span class="menu-row-num">' + v.num + '</span>'
-        + '<span class="menu-row-body">'
-        + '<span class="menu-row-name">' + v.name + '</span>'
-        + '<span class="menu-row-desc">' + menuMeta(v.view) + '</span>'
-        + '</span>'
-        + '<span class="menu-row-side">'
-        + '<span class="menu-row-meta">' + menuMeta(v.view) + '</span>'
-        + '<span class="menu-row-go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>'
-        + '</span>'
-        + '</button>';
-    }).join('');
-  }
-
-  function renderMenuPanel(animate) {
-    const v = MENU_VIEWS.find(function (x) { return x.view === menuActive; }) || MENU_VIEWS[0];
-    $('#menu-panel-num').textContent = v.num;
-    $('#menu-panel-name').textContent = v.name;
-    $('#menu-panel-desc').textContent = v.desc;
-    $('#menu-panel-stats').innerHTML = menuStats(v.view).map(function (s) {
-      return '<div class="menu-panel-stat"><b>' + s.n + '</b><span>' + s.l + '</span></div>';
-    }).join('');
-    const go = $('#menu-enter-label');
-    if (go) go.textContent = v.view === 'logout' ? 'Cerrar sesión' : 'Entrar a ' + v.name.toLowerCase();
-    if (animate) {
-      const el = $('#menu-panel');
-      el.classList.remove('swap');
-      void el.offsetWidth;
-      el.classList.add('swap');
-    }
-  }
-
-  function setMenuActive(view) {
-    if (view === menuActive) return;
-    menuActive = view;
-    $$('#menu-index .menu-row').forEach(function (r) {
-      const on = r.dataset.menuView === view;
-      r.classList.toggle('on', on);
-      r.setAttribute('aria-current', on ? 'true' : 'false');
-    });
-    renderMenuPanel(true);
-  }
-
-  function refreshMenuCounts() {
-    if ($('#menu-overlay').classList.contains('open')) {
-      renderMenuIndex();
-      renderMenuPanel(false);
-    }
-  }
-
-  function openMenu(fromHistory) {
-    if ($('#menu-overlay').classList.contains('open')) return;
-    menuActive = mainView;
-    if (!fromHistory) writeAppHistory(mainView, false, { overlay: 'menu' });
-    $('#menu-overlay').classList.add('open');
-    document.body.classList.add('menu-open');
-    refreshMobileNav();
-    var fab = $('#menu-fab');
-    if (fab) fab.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden';
-    renderMenuIndex();
-    renderMenuPanel(true);
-    const first = $('#menu-index .menu-row.on') || $('#menu-index .menu-row');
-    if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
-  }
-
-  function closeMenu() {
-    var o = $('#menu-overlay');
-    if (!o || !o.classList.contains('open')) return;
-    o.classList.remove('open');
-    document.body.classList.remove('menu-open');
-    refreshMobileNav();
-    var fab = $('#menu-fab');
-    if (fab) fab.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-    var historyState = window.history && window.history.state;
-    if (historyState && historyState.inVoiceApp && historyState.overlay === 'menu') {
-      window.history.back();
-    }
-  }
-
-  /* ================= TEMA (claro / oscuro / automático) ================= */
-  const THEME_MODES = ['auto', 'light', 'dark'];
-  const THEME_LABEL = { auto: 'Automático', light: 'Claro', dark: 'Oscuro' };
-
-  function currentThemeMode() {
-    return THEME_MODES.indexOf(settings.theme) >= 0 ? settings.theme : 'auto';
-  }
-  function systemPrefersDark() {
-    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }
-  function applyTheme(mode) {
-    const m = THEME_MODES.indexOf(mode) >= 0 ? mode : 'auto';
-    const dark = m === 'dark' || (m === 'auto' && systemPrefersDark());
-    const root = document.documentElement;
-    root.setAttribute('data-theme', dark ? 'dark' : 'light');
-    root.setAttribute('data-theme-mode', m);
-    const meta = $('#meta-theme');
-    if (meta) meta.setAttribute('content', dark ? '#11161c' : '#f6f7f9');
-    const btn = document.querySelector('[data-action="cycle-theme"]');
-    if (btn) btn.setAttribute('title', 'Tema: ' + THEME_LABEL[m] + (m === 'auto' ? ' (según tu sistema)' : '') + ' · clic para cambiar');
-  }
-  function saveTheme(mode) {
-    settings.theme = mode;
-    settings.updatedAt = Date.now();
-    storeSet('mc_settings', settings);
-    applyTheme(mode);
-  }
-  function cycleTheme() {
-    const m = currentThemeMode();
-    const next = m === 'auto' ? 'light' : (m === 'light' ? 'dark' : 'auto');
-    saveTheme(next);
-    toast('Tema: ' + THEME_LABEL[next]);
-  }
-
-  /* ================= PANEL DE INICIO ================= */
-  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
   function monthKeyOf(iso) { return String(iso || '').slice(0, 7); }
-  function lastMonths(n) {
-    const out = [];
-    const now = new Date();
-    for (let i = n - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      out.push({
-        key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
-        label: MESES[d.getMonth()],
-        year: d.getFullYear()
-      });
-    }
-    return out;
-  }
-  function relTime(ts) {
-    if (!ts) return '';
-    const mins = Math.floor((Date.now() - ts) / 60000);
-    if (mins < 1) return 'ahora';
-    if (mins < 60) return 'hace ' + mins + ' min';
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return 'hace ' + hours + ' h';
-    const days = Math.floor(hours / 24);
-    if (days < 7) return 'hace ' + days + ' d';
-    const d = new Date(ts);
-    return d.getDate() + ' ' + MESES[d.getMonth()];
-  }
   function daysBetween(isoA, isoB) {
     const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
     if (isNaN(a) || isNaN(b)) return 0;
@@ -542,59 +338,62 @@
     setTimeout(finish, dur + 250);
   }
 
-  /* Resumen mensual: facturado y cobrado de los últimos N meses */
-  function monthlySeries(n) {
-    const months = lastMonths(n);
-    const idx = {};
-    months.forEach(function (m, i) { idx[m.key] = i; });
-    const facturado = months.map(function () { return 0; });
-    const cobrado = months.map(function () { return 0; });
-
+  /* Movimiento de un mes concreto: lo facturado y lo cobrado (abonos). */
+  function monthTotals(offset) {
+    const now = new Date();
+    const d0 = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const key = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0');
+    let facturado = 0, cobrado = 0;
     docs.forEach(function (d) {
-      const t = computeTotals(d);
-      const k = monthKeyOf(d.fecha || '');
-      if (k in idx) facturado[idx[k]] += t.total;
+      if (monthKeyOf(d.fecha) === key) facturado += computeTotals(d).total;
       (d.abonos || []).forEach(function (a) {
-        const ak = monthKeyOf(a.fecha || d.fecha || '');
-        if (ak in idx) cobrado[idx[ak]] += (Number(a.monto) || 0);
+        if (monthKeyOf(a.fecha || d.fecha) === key) cobrado += (Number(a.monto) || 0);
       });
     });
-    return { months: months, facturado: facturado, cobrado: cobrado };
+    return { facturado: facturado, cobrado: cobrado };
   }
 
-  function buildChart(series) {
-    const fact = series.facturado, cob = series.cobrado;
-    const maxV = Math.max.apply(null, fact.concat(cob).concat([1]));
-    const W = 540, H = 196, padL = 6, padR = 6, padT = 16, padB = 28;
-    const plotH = H - padT - padB;
-    const groupW = (W - padL - padR) / fact.length;
-    const barW = Math.min(22, groupW * 0.28);
-    const step = 3;
-
-    // La retícula es sólo referencia visual: basta con dejar un 12% de aire
-    const top = maxV * 1.12;
-
-    let g = '';
-    // retícula
-    for (let i = 1; i <= step; i++) {
-      const y = padT + plotH - (plotH * i / step);
-      g += '<line class="chart-grid" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"/>';
-    }
-    let bars = '', labels = '';
-    series.months.forEach(function (m, i) {
-      const cx = padL + groupW * i + groupW / 2;
-      [[fact[i], '', -1], [cob[i], ' cobrado', 1]].forEach(function (pair) {
-        const v = pair[0], mod = pair[1], side = pair[2];
-        const h = top > 0 ? Math.max(v > 0 ? 3 : 0, (v / top) * plotH) : 0;
-        const x = cx + (side < 0 ? -barW - 1.5 : 1.5);
-        const y = padT + plotH - h;
-        bars += '<rect class="chart-bar' + mod + '" style="--i:' + (i * 2 + (side < 0 ? 0 : 1)) + '"'
-          + ' x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '"></rect>';
-      });
-      labels += '<text class="chart-label" x="' + cx.toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + m.label + '</text>';
+  /* Cobranza en una sola barra: de todo lo facturado que sigue abierto,
+     cuánto se ha abonado y cuánto falta por cobrar. Un documento
+     liquidado sale de la barra y deja de contar en el 100%. */
+  function cobranzaStats() {
+    let total = 0, pagado = 0, abiertos = 0, saldados = 0;
+    docs.forEach(function (d) {
+      const t = computeTotals(d);
+      if (t.total <= 0) return;
+      const abonos = (d.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      if (t.total - abonos <= 0.005) { saldados++; return; }
+      total += t.total;
+      pagado += abonos;
+      abiertos++;
     });
-    return '<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Facturado y cobrado de los últimos 6 meses">'
-      + g + bars + labels + '</svg>';
+    const porCobrar = Math.max(0, total - pagado);
+    return {
+      total: total, pagado: pagado, porCobrar: porCobrar,
+      abiertos: abiertos, saldados: saldados,
+      pct: total > 0 ? (pagado / total) * 100 : 0
+    };
+  }
+
+  function cobranzaHTML(c) {
+    if (!c.abiertos) {
+      return '<div class="cob-empty"><p>No hay documentos con saldo pendiente.</p>'
+        + '<span class="hint">Cada recibo o cotización abierto aparece aquí hasta que se liquida.</span></div>';
+    }
+    const pct = Math.min(100, Math.max(0, c.pct));
+    const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
+      + (pct < 99.6 ? '<span class="cob-seg is-open" style="width:' + (100 - pct).toFixed(2) + '%"></span>' : '');
+    return '<div class="cob-bar" role="img" aria-label="Abonado ' + Math.round(pct) + ' por ciento, por cobrar ' + Math.round(100 - pct) + ' por ciento">'
+      + seg + '</div>'
+      + '<div class="cob-legend">'
+      + '<div class="cob-item"><span class="cob-dot is-paid"></span>'
+      + '<span class="cob-name">Abonado</span><b>' + window.fmtMoney(c.pagado) + '</b><small>' + Math.round(pct) + '%</small></div>'
+      + '<div class="cob-item"><span class="cob-dot is-open"></span>'
+      + '<span class="cob-name">Por cobrar</span><b>' + window.fmtMoney(c.porCobrar) + '</b><small>' + Math.round(100 - pct) + '%</small></div>'
+      + '</div>'
+      + '<p class="cob-foot">' + window.fmtMoney(c.total) + ' abierto en ' + c.abiertos
+      + ' documento' + (c.abiertos !== 1 ? 's' : '')
+      + (c.saldados ? ' · ' + c.saldados + ' ya liquidado' + (c.saldados !== 1 ? 's' : '') : '') + '</p>';
   }
 
   function statCardHtml(o) {
@@ -614,14 +413,10 @@
     const cxcData = getCxCData();
     const cxcTotal = cxcData.reduce(function (s, c) { return s + c.saldoTotal; }, 0);
     const cxp = cxpStats();
-    const series = monthlySeries(6);
-    const last = series.months.length - 1;
-    const prev = series.months.length - 2;
-
-    const factMes = series.facturado[last];
-    const factPrev = series.facturado[prev];
-    const cobMes = series.cobrado[last];
-    const cobPrev = series.cobrado[prev];
+    const mes = monthTotals(0);
+    const mesPrev = monthTotals(1);
+    const factMes = mes.facturado, factPrev = mesPrev.facturado;
+    const cobMes = mes.cobrado, cobPrev = mesPrev.cobrado;
 
     /* ---------- Encabezado ---------- */
     const now = new Date();
@@ -706,14 +501,10 @@
       countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
     });
 
-    /* ---------- Gráfica ---------- */
-    const chartHost = $('#chart-host');
-    const hayDatos = series.facturado.some(function (v) { return v > 0; }) || series.cobrado.some(function (v) { return v > 0; });
-    chartHost.innerHTML = hayDatos
-      ? buildChart(series)
-      : '<div class="chart-empty">'
-        + '<p style="margin:0">Todavía no hay movimientos en los últimos 6 meses.</p>'
-        + '<span class="hint">Los montos de tus documentos aparecerán aquí.</span></div>';
+    /* ---------- Cobranza: una sola barra ---------- */
+    const cob = cobranzaStats();
+    $('#chart-host').innerHTML = cobranzaHTML(cob);
+    $('#cob-note').textContent = cob.abiertos ? Math.round(cob.pct) + '% abonado' : '';
 
     /* ---------- Alertas ---------- */
     const alerts = [];
@@ -786,73 +577,6 @@
         + '<span class="alert-body"><span class="alert-title">Todo en orden</span>'
         + '<span class="alert-desc">No hay vencimientos ni saldos que reclamen tu atención.</span></span></div>';
 
-    /* ---------- Actividad reciente ---------- */
-    const act = [];
-    docs.forEach(function (d) {
-      const t = computeTotals(d);
-      act.push({
-        ts: d.updatedAt || d.createdAt || 0,
-        action: 'edit', id: d.id,
-        cot: d.tipo === 'cotizacion',
-        kind: 'docs',
-        title: d.proyecto || d.numero || 'Documento',
-        meta: (d.representante || 'Sin cliente') + ' · ' + (d.tipo === 'cotizacion' ? 'Cotización' : 'Recibo') + ' ' + (d.numero || ''),
-        amt: window.fmtMoney(t.total)
-      });
-    });
-    cuentasXPagar.forEach(function (c) {
-      const ab = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
-      const saldo = (Number(c.monto) || 0) - ab;
-      act.push({
-        ts: c.updatedAt || c.createdAt || 0,
-        action: 'edit-cxp', id: c.id,
-        cot: true,
-        kind: 'expenses',
-        title: c.proveedor || 'Cuenta por pagar',
-        meta: (c.concepto || 'Gasto') + ' · ' + (saldo <= 0.005 ? 'Pagada' : 'Por pagar'),
-        amt: window.fmtMoney(saldo <= 0.005 ? (Number(c.monto) || 0) : saldo)
-      });
-    });
-    act.sort(function (a, b) { return b.ts - a.ts; });
-
-    const ACT_ICON_DOC = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
-    const ACT_ICON_COT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>';
-
-    $$('.activity-filter').forEach(function (filterButton) {
-      const active = filterButton.dataset.activityFilter === activityFilter;
-      filterButton.classList.toggle('active', active);
-      filterButton.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    const visibleAct = act.filter(function (a) {
-      return activityFilter === 'all' || a.kind === activityFilter;
-    }).slice(0, 6);
-    const todayKey = window.todayISO();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
-    function activityDay(ts) {
-      const d = new Date(ts || Date.now());
-      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      if (key === todayKey) return 'Hoy';
-      if (key === yesterdayKey) return 'Ayer';
-      return d.getDate() + ' ' + MESES[d.getMonth()];
-    }
-    let lastActivityDay = '';
-    const activityMarkup = visibleAct.map(function (a) {
-      const day = activityDay(a.ts);
-      const dayHeading = day !== lastActivityDay ? '<div class="act-day">' + esc(day) + '</div>' : '';
-      lastActivityDay = day;
-      return dayHeading + '<button class="act" data-action="' + a.action + '" data-id="' + a.id + '">'
-        + '<span class="act-ico' + (a.cot ? ' cot' : '') + '">' + (a.cot ? ACT_ICON_COT : ACT_ICON_DOC) + '</span>'
-        + '<span class="act-body"><span class="act-title">' + esc(a.title) + '</span>'
-        + '<span class="act-meta">' + esc(a.meta) + '</span></span>'
-        + '<span class="act-amt">' + esc(a.amt) + '<small>' + relTime(a.ts) + '</small></span>'
-        + '</button>';
-    }).join('');
-    $('#activity-host').innerHTML = activityMarkup || (act.length
-      ? '<div class="chart-empty"><p style="margin:0">No hay movimientos en esta categoría.</p></div>'
-      : '<div class="chart-empty"><p style="margin:0">Sin movimientos todavía.</p>'
-        + '<span class="hint">Aquí verás lo último que edites.</span></div>');
   }
 
   /* ================= CUENTAS POR COBRAR ================= */
@@ -909,7 +633,6 @@
       wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.coin('ic-lg') + '</span>'
         + '<h3>' + (data.length ? 'No hay coincidencias' : 'No hay cuentas por cobrar') + '</h3>'
         + '<p>' + (data.length ? 'Prueba con otra búsqueda.' : 'Los saldos pendientes de tus recibos y cotizaciones aparecerán aquí automáticamente.') + '</p></div>';
-      refreshMenuCounts();
       return;
     }
 
@@ -947,7 +670,6 @@
         + '</div>'
         + '</div>';
     }).join('');
-    refreshMenuCounts();
   }
 
   /* ================= CUENTAS POR PAGAR ================= */
@@ -999,7 +721,6 @@
         + '<h3>' + (cuentasXPagar.length ? 'No hay coincidencias' : 'No hay cuentas por pagar') + '</h3>'
         + '<p>' + (cuentasXPagar.length ? 'Prueba con otra búsqueda o filtro.' : 'Registra tus gastos y facturas pendientes de pago.') + '</p>'
         + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
-      refreshMenuCounts();
       return;
     }
 
@@ -1041,7 +762,6 @@
         + '</div>'
         + '</div>';
     }).join('');
-    refreshMenuCounts();
   }
 
   function openCxpModal(cxp) {
@@ -1319,7 +1039,6 @@
     $('#modal-cliente').classList.remove('open');
     editingCliente = null;
     if (mainView === 'clientes') renderClientes();
-    refreshMenuCounts();
     toast((cliModalTipo === 'prospecto' ? 'Prospecto' : 'Cliente') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
   }
 
@@ -1447,7 +1166,6 @@
     $('#modal-producto').classList.remove('open');
     editingProducto = null;
     if (mainView === 'productos') renderProductos();
-    refreshMenuCounts();
     toast((prodModalTipo === 'servicio' ? 'Servicio' : 'Producto') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
   }
 
@@ -1530,7 +1248,7 @@
     document.body.classList.add('tab-datos');
     document.body.classList.remove('tab-preview');
     $$('.editor-tabs [data-tab]').forEach((t) => t.classList.toggle('on', t.dataset.tab === 'datos'));
-    closeMenu();
+    closeNavPop();
     renderEditor();
     renderPreview();
     watchPreview();
@@ -1857,7 +1575,31 @@
     }
   }
 
+  /* El motor de PDF (jsPDF, ~360 KB) se descarga SOLO cuando de verdad se
+     necesita: al enviar el documento. Imprimir no lo requiere. */
+  let jsPdfPromise = null;
+  function ensureJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+    if (!jsPdfPromise) {
+      jsPdfPromise = new Promise(function (resolve, reject) {
+        const s = document.createElement('script');
+        s.src = 'assets/js/jspdf.umd.min.js';
+        s.onload = function () {
+          if (window.jspdf && window.jspdf.jsPDF) resolve();
+          else { jsPdfPromise = null; reject(new Error('jsPDF no respondió')); }
+        };
+        s.onerror = function () {
+          jsPdfPromise = null;
+          reject(new Error('no se pudo descargar el motor de PDF'));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return jsPdfPromise;
+  }
+
   async function makePdfFile() {
+    await ensureJsPDF();
     if (!images) await preloadImages();
     const blob = await window.PDFEngine.build(editing, settings, images);
     return new File([blob], fileName(editing), { type: 'application/pdf' });
@@ -1896,18 +1638,9 @@
   /* ---------------- Ajustes ---------------- */
   function openSettings() {
     const s = settings;
-    const modo = currentThemeMode();
+    const cuenta = (window.SYNC && window.SYNC.accountEmail && window.SYNC.accountEmail()) || '';
     $('#settings-body').innerHTML = `
-      <h3 style="margin-top:0">Apariencia</h3>
-      <div class="theme-pick">
-        ${THEME_MODES.map((m) => `
-          <button type="button" class="theme-opt ${modo === m ? 'on' : ''}" data-action="set-theme" data-theme-mode="${m}">
-            <span class="theme-swatch ${m}"></span>
-            <span class="theme-opt-name">${THEME_LABEL[m]}</span>
-            <span class="theme-opt-desc">${m === 'auto' ? 'Sigue a tu sistema' : m === 'light' ? 'Siempre claro' : 'Siempre oscuro'}</span>
-          </button>`).join('')}
-      </div>
-      <h3>Datos del estudio</h3>
+      <h3 style="margin-top:0">Datos del estudio</h3>
       <div class="sgrid">
         <label>Empresa (línea 1)
           <input id="s-empresa" type="text" value="${esc(s.empresa)}"></label>
@@ -1944,6 +1677,11 @@
       <div class="qr-row">
         <input id="s-qr-file" type="file" accept="image/png,image/jpeg,image/webp">
         ${s.qr ? `<div class="qr-prev"><img src="${esc(s.qr)}" alt="QR"><button class="btn small danger" data-action="clear-qr">Quitar</button></div>` : ''}
+      </div>
+      <h3>Cuenta y sincronización</h3>
+      <div class="account-row">
+        <span>${cuenta ? 'Sincronizando como <b>' + esc(cuenta) + '</b> entre tus equipos.' : 'Sin cuenta: tus datos viven solo en este dispositivo.'}</span>
+        ${cuenta ? '<button class="btn small outline" data-action="logout">Cerrar sesión</button>' : ''}
       </div>
       <h3>Clientes guardados (${clientes.length})</h3>
       <div class="client-list">
@@ -1983,17 +1721,9 @@
     const state = event.state;
     if (!state || state.inVoiceApp !== true) return;
 
-    if (state.overlay === 'menu') {
-      openMenu(true);
-      return;
-    }
     if (MAIN_VIEW_IDS.indexOf(state.view) === -1) return;
 
-    const menuWasOpen = $('#menu-overlay').classList.contains('open');
-    if (menuWasOpen) {
-      closeMenu();
-      if (state.view === mainView) return;
-    }
+    closeNavPop();
     if (!$('#view-editor').hidden && editing) saveDoc(true);
     switchMainView(state.view, { fromPopstate: true });
   });
@@ -2119,7 +1849,6 @@
           productos.push(copy);
           storeSet('mc_productos', productos);
           renderProductos();
-          refreshMenuCounts();
           toast('Ítem duplicado ✓');
         }
         break;
@@ -2132,12 +1861,12 @@
         storeSet('mc_productos', productos);
         if (window.SYNC) window.SYNC.tombstone('productos', pp.id);
         renderProductos();
-        refreshMenuCounts();
         toast('Ítem eliminado');
         break;
       }
       /* desde el editor: ir al catálogo guardando el documento en silencio */
       case 'go-productos':
+        closeNavPop();
         if (editing) saveDoc(true);
         switchMainView('productos');
         break;
@@ -2150,30 +1879,15 @@
         if (window.SYNC) window.SYNC.tombstone('clientes', cc.id);
         if (selectedClientId === cc.id) selectedClientId = null;
         renderClientes();
-        refreshMenuCounts();
         toast('Contacto eliminado');
         break;
       }
-      case 'settings': openSettings(); break;
+      case 'settings': closeNavPop(); openSettings(); break;
       case 'save-settings': saveSettings(); break;
-      case 'cycle-theme': cycleTheme(); break;
-      case 'set-theme': {
-        saveTheme(btn.dataset.themeMode);
-        $$('.theme-opt').forEach(function (o) {
-          o.classList.toggle('on', o.dataset.themeMode === currentThemeMode());
-        });
-        break;
-      }
-      case 'go-docs': switchMainView('docs'); break;
-      case 'go-cxc': switchMainView('cxc'); break;
-      case 'activity-filter': {
-        const filter = btn.dataset.activityFilter;
-        if (filter === 'all' || filter === 'docs' || filter === 'expenses') {
-          activityFilter = filter;
-          renderInicio();
-        }
-        break;
-      }
+      case 'go-docs': closeNavPop(); switchMainView('docs'); break;
+      case 'go-cxc': closeNavPop(); switchMainView('cxc'); break;
+      case 'go-cxp': closeNavPop(); switchMainView('cxp'); break;
+      case 'go-clientes': closeNavPop(); switchMainView('clientes'); break;
       case 'close-settings': $('#modal-settings').classList.remove('open'); break;
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
@@ -2186,17 +1900,10 @@
       }
       case 'install': if (window._deferredPrompt) { window._deferredPrompt.prompt(); window._deferredPrompt = null; btn.style.display = 'none'; } break;
 
-      /* --- Menú pantalla completa --- */
+      /* --- Menú compacto --- */
       case 'toggle-menu':
-        if ($('#menu-overlay').classList.contains('open')) closeMenu(); else openMenu();
+        toggleNavPop();
         break;
-      case 'close-menu': closeMenu(); break;
-      case 'menu-enter': {
-        const target = btn.dataset.menuView || menuActive;
-        if (target === 'logout') { closeMenu(); if (window.SYNC) window.SYNC.logout(); }
-        else switchMainView(target, { replaceHistory: true });
-        break;
-      }
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -2257,7 +1964,10 @@
         break;
       }
       case 'close-cxc-detail': $('#modal-cxc-detail').classList.remove('open'); break;
-      case 'logout': if (window.SYNC) window.SYNC.logout(); break;
+      case 'logout':
+        closeNavPop();
+        if (window.SYNC) window.SYNC.logout();
+        break;
     }
   });
 
@@ -2317,34 +2027,18 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Menú: al pasar el cursor o enfocar una fila se adelanta la ficha lateral
-  $('#menu-overlay').addEventListener('pointerover', function(e) {
-    var b = e.target.closest('[data-menu-view]');
-    if (b && !b.classList.contains('on')) setMenuActive(b.dataset.menuView);
+  // Menú compacto: se cierra al tocar fuera y con Esc.
+  document.addEventListener('click', function (e) {
+    const pop = navPopEl();
+    if (!pop || pop.hidden) return;
+    if (pop.contains(e.target)) return;
+    if (e.target.closest('[data-action="toggle-menu"]')) return;
+    closeNavPop();
   });
-  $('#menu-overlay').addEventListener('focusin', function(e) {
-    var b = e.target.closest('[data-menu-view]');
-    if (b) setMenuActive(b.dataset.menuView);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeNavPop();
   });
-  document.addEventListener('keydown', function(e) {
-    var menuOpen = $('#menu-overlay').classList.contains('open');
-    if (e.key === 'Escape') { closeMenu(); return; }
-    if (!menuOpen) return;
-    var i = MENU_VIEWS.findIndex(function (v) { return v.view === menuActive; });
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      moveMenuFocus((i + 1) % MENU_VIEWS.length);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      moveMenuFocus((i - 1 + MENU_VIEWS.length) % MENU_VIEWS.length);
-    }
-  });
-
-  function moveMenuFocus(i) {
-    setMenuActive(MENU_VIEWS[i].view);
-    var row = $('#menu-index .menu-row.on');
-    if (row) { try { row.focus({ preventScroll: true }); } catch (err) { row.focus(); } }
-  }
+  window.addEventListener('resize', function () { closeNavPop(); });
 
   // Búsqueda CxC
   var searchCxc = $('#search-cxc');
@@ -2382,14 +2076,6 @@
   window.addEventListener('resize', () => {
     if (!$('#view-editor').hidden) autoscale();
   });
-
-  // El tema «automático» reacciona al cambio de preferencia del sistema
-  if (window.matchMedia) {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onScheme = () => { if (currentThemeMode() === 'auto') applyTheme('auto'); };
-    if (mq.addEventListener) mq.addEventListener('change', onScheme);
-    else if (mq.addListener) mq.addListener(onScheme);
-  }
 
   /* Barra superior de sincronización: refleja el estado de la píldora */
   (function watchSync() {
@@ -2432,15 +2118,12 @@
     if (changed.has('mc_settings')) {
       settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
       settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
-      applyTheme(currentThemeMode());
     }
     if (changed.has('mc_docs')) docs = storeGet('mc_docs', []);
     if (changed.has('mc_clientes')) clientes = storeGet('mc_clientes', []);
     if (changed.has('mc_cxp')) cuentasXPagar = storeGet('mc_cxp', []);
     if (changed.has('mc_productos')) productos = storeGet('mc_productos', []);
 
-    const acc = $('#sync-account');
-    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'Sin cuenta';
 
     if (!$('#view-editor').hidden && editing) {
       // si el documento que estoy editando se borró en otro equipo, salir del editor
@@ -2463,15 +2146,12 @@
     clientes = storeGet('mc_clientes', []);
     cuentasXPagar = storeGet('mc_cxp', []);
     productos = storeGet('mc_productos', []);
-    const acc = $('#sync-account');
-    if (acc && window.SYNC) acc.textContent = window.SYNC.accountEmail() || 'sin cuenta';
     showList();
   }
 
   /* ---------------- Init ---------------- */
   async function init() {
     resetAppHistory();
-    applyTheme(currentThemeMode());
     preloadImages();
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('sw.js'); } catch (e) {}

@@ -7,17 +7,18 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v30';
+const CACHE = 'mc-pwa-v31';
 const ASSETS = [
   './',
   './index.html',
   './css/app.css',
-  './css/skin-cristal.css',
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',
   './js/sync.js',
   './js/app.js',
+  // El motor de PDF se guarda aquí para que «Enviar» funcione sin señal,
+  // pero la app ya NO lo carga al arrancar: lo pide solo cuando hace falta.
   './assets/js/jspdf.umd.min.js',
   './assets/fonts/archivo-latin-300.woff2',
   './assets/fonts/archivo-latin-400.woff2',
