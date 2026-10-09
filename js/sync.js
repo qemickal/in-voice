@@ -137,9 +137,6 @@
     const gate = document.getElementById('auth-gate');
     if (!gate) { onSuccess(); return; }
 
-    const ab = document.getElementById('auth-barcode');
-    if (ab && window.barcodeSVG) ab.innerHTML = window.barcodeSVG('ARCHIVO · CUENTA', 200, 30);
-
     state = navigator.onLine ? 'off' : 'offl';
     pill();
     gate.hidden = false;

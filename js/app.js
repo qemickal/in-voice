@@ -268,10 +268,10 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- Menú compacto (desplegable) ----------
-     Una lista corta: secciones, ajustes y cerrar sesión. Sin capas
-     intermedias ni pantalla completa: se abre sobre el contenido y se
-     cierra al elegir, al tocar fuera o con Esc. */
+  /* ---------- Menú a pantalla completa ----------
+     Se abre sólo desde «Más» en la barra inferior (el botón del
+     masthead se eliminó en la v4.0). Ocupa todo el viewport y se
+     cierra al elegir una sección, con su botón ✕ o con Esc. */
   function navPopEl() { return $('#nav-pop'); }
 
   function openNavPop() {
@@ -283,6 +283,8 @@
       b.setAttribute('aria-expanded', 'true');
     });
     refreshMobileNav();
+    const close = pop.querySelector('.nav-pop-close');
+    if (close && typeof close.focus === 'function') close.focus({ preventScroll: true });
   }
 
   function closeNavPop() {
@@ -321,29 +323,11 @@
     if (isNaN(a) || isNaN(b)) return 0;
     return Math.round((a - b) / 86400000);
   }
-  function prefersReducedMotion() {
-    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  }
+  /* Las cifras se pintan de una vez: sin conteo animado (v4.0). */
   function countUp(el, to, money) {
     if (!el) return;
     const val = Number(to) || 0;
-    const show = (v) => { el.textContent = money ? window.fmtMoney(v) : String(Math.round(v)); };
-    if (prefersReducedMotion() || !val || typeof requestAnimationFrame !== 'function') {
-      show(val);
-      return;
-    }
-    const dur = 680, t0 = performance.now();
-    let done = false;
-    // red de seguridad: el número final siempre acaba pintado
-    const finish = () => { if (!done) { done = true; show(val); } };
-    function step(t) {
-      if (done) return;
-      const k = Math.min(1, (t - t0) / dur);
-      show(val * (1 - Math.pow(1 - k, 3)));
-      if (k < 1) requestAnimationFrame(step); else finish();
-    }
-    requestAnimationFrame(step);
-    setTimeout(finish, dur + 250);
+    el.textContent = money ? window.fmtMoney(val) : String(Math.round(val));
   }
 
   /* Movimiento de un mes concreto: lo facturado y lo cobrado (abonos). */
@@ -2438,7 +2422,8 @@
       case 'focus-tareas': {
         const panel = $('#panel-tareas');
         if (panel && typeof panel.scrollIntoView === 'function') {
-          panel.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+          // sin desplazamiento animado: la v4.0 no usa movimiento
+          panel.scrollIntoView({ behavior: 'auto', block: 'start' });
         }
         break;
       }
@@ -2666,18 +2651,12 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
 
-  // Menú compacto: se cierra al tocar fuera y con Esc.
-  document.addEventListener('click', function (e) {
-    const pop = navPopEl();
-    if (!pop || pop.hidden) return;
-    if (pop.contains(e.target)) return;
-    if (e.target.closest('[data-action="toggle-menu"]')) return;
-    closeNavPop();
-  });
+  // Menú a pantalla completa: se cierra con Esc (o con su ✕ y al elegir
+  // sección). Ya no hay «tocar fuera»: la capa cubre todo el viewport, y
+  // tampoco se cierra al redimensionar (el teclado móvil lo disparaba).
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeNavPop();
   });
-  window.addEventListener('resize', function () { closeNavPop(); });
 
   // Búsqueda CxC
   var searchCxc = $('#search-cxc');

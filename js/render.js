@@ -1,11 +1,11 @@
 /* ============================================================
    RENDER HTML — construye el documento como HTML (pt) para la
    vista previa en pantalla y la impresión. Usa LAYOUT.
-   Rediseño 2026: cabecera a una línea, totales con DESCUENTO y
-   POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS a dos
-   columnas, fondo string-art y pie con datos de contacto.
-   El código de barras del folio ocupa el lugar del tipo de
-   documento (arriba a la derecha), como en la referencia.
+   Rediseño 2026: cabecera alineada con el logo, totales con
+   DESCUENTO y POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS
+   a dos columnas, fondo string-art y pie con datos de contacto.
+   v4.0: documento monocromo (los acentos van en NEGRITA, no en
+   color) y folio impreso como texto, sin código de barras.
    ============================================================ */
 (function () {
   const ASC = 0.77; // fracción de la em box por encima de la línea base
@@ -51,11 +51,6 @@
   // Línea punteada (perforado)
   function dash(x, y, w, weight, color) {
     return `<div style="position:absolute;left:${x.toFixed(2)}pt;top:${y.toFixed(2)}pt;width:${w.toFixed(2)}pt;border-top:${weight}pt dashed ${color};"></div>`;
-  }
-
-  // Código de barras posicional (SVG)
-  function barcodeAbs(x, y, w, h, text, color) {
-    return `<div style="position:absolute;left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt;color:${color};">${window.barcodeSVG(text, w, h)}</div>`;
   }
 
   // Fondo string-art (haz de rectas de la referencia)
@@ -130,19 +125,21 @@
     /* ---------- Cabecera ---------- */
     h += imgAbs('assets/img/logo-blue.png', lp.x, lp.y, lp.w, lp.h);
 
+    // Nombre de la empresa y bajada, a la misma sangría, justo a la
+    // derecha del logo: el bloque queda alineado con él.
     const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
-    h += txt(L.brandLine1.x, L.brandLine1.y, L.brandLine1.size, 700, empresa, { ls: -0.2 });
-    const wEmp = measurePt(empresa, L.brandLine1.size, 700);
-    h += txt(L.brandLine1.x + wEmp + 7, L.brandLine1.y, L.brandSlash.size, 500,
-      '// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), { color: GREY });
+    h += txt(L.brandLine1.x, L.brandLine1.y, L.brandLine1.size, 700, empresa, { ls: -0.3 });
+    h += txt(L.brandSlash.x, L.brandSlash.y, L.brandSlash.size, 500,
+      '// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), { color: GREY, ls: 0.3 });
 
-    // Folio: sólo código de barras + número (el prefijo PO/RQ identifica
-    // si es recibo o cotización, así que no se imprime el rótulo).
+    // Folio: rótulo chico sobre el número en negrita, a la derecha. Sin
+    // código de barras; el prefijo (PO / RQ) ya identifica el documento.
     const FB = L.folioBox;
     const folio = doc.numero || 'MC';
-    h += barcodeAbs(FB.right - FB.w, FB.y, FB.w, FB.h, folio, BLUE);
-    h += txt(FB.right, FB.y + FB.h + FB.gap, FB.size, 500, folio,
-      { align: 'right', color: STEEL, ls: 0.7 });
+    h += txt(FB.right, FB.labelY, FB.labelSize, 700, 'FOLIO',
+      { align: 'right', color: GREY, ls: 1.2 });
+    h += txt(FB.right, FB.y, FB.size, 700, folio,
+      { align: 'right', color: BLUE, ls: 0.2 });
 
     /* ---------- Datos (dos columnas) ---------- */
     const MS = L.metaSize;
