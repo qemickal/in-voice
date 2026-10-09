@@ -450,7 +450,29 @@
       + '</div></div>';
   }
 
-  function cobranzaHTML(c, hoy) {
+  /* La gráfica horizontal (barra abonado / por cobrar + leyenda) vive dentro
+     del héroe, en una franja de vidrio claro; el panel de inicio conserva
+     la lista de documentos con saldo pendiente. */
+  function cobranzaChartHTML(c) {
+    if (!c.abiertos) {
+      return '<div class="hero-chart-empty' + (c.saldados ? ' is-ok' : '') + '">'
+        + (c.saldados ? 'Todo liquidado · sin saldo pendiente' : 'Sin documentos con saldo pendiente')
+        + '</div>';
+    }
+    const pct = Math.min(100, Math.max(0, c.pct));
+    const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
+      + (pct < 99.6 ? '<span class="cob-seg is-open" style="width:' + (100 - pct).toFixed(2) + '%"></span>' : '');
+    return '<div class="cob-bar" role="img" aria-label="Abonado ' + Math.round(pct) + ' por ciento, por cobrar ' + Math.round(100 - pct) + ' por ciento">'
+      + seg + '</div>'
+      + '<div class="cob-legend">'
+      + '<div class="cob-item"><span class="cob-dot is-paid"></span>'
+      + '<span class="cob-name">Abonado</span><b>' + window.fmtMoney(c.pagado) + '</b><small>' + Math.round(pct) + '%</small></div>'
+      + '<div class="cob-item"><span class="cob-dot is-open"></span>'
+      + '<span class="cob-name">Por cobrar</span><b>' + window.fmtMoney(c.porCobrar) + '</b><small>' + Math.round(100 - pct) + '%</small></div>'
+      + '</div>';
+  }
+
+  function cobranzaDocsHTML(c, hoy) {
     if (!c.abiertos && !c.saldados) {
       return '<div class="cob-empty"><p>No hay documentos con saldo pendiente.</p>'
         + '<button type="button" class="stat-cta" data-action="new-recibo" style="margin-top:8px">Crear primera factura</button></div>';
@@ -463,18 +485,7 @@
       return (rows ? '<div class="cob-docs">' + rows + '</div>' : '')
         + '<p class="cob-foot">' + c.saldados + ' documento' + (c.saldados !== 1 ? 's' : '') + ' ya liquidado' + (c.saldados !== 1 ? 's' : '') + '</p>';
     }
-    const pct = Math.min(100, Math.max(0, c.pct));
-    const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
-      + (pct < 99.6 ? '<span class="cob-seg is-open" style="width:' + (100 - pct).toFixed(2) + '%"></span>' : '');
-    return '<div class="cob-bar" role="img" aria-label="Abonado ' + Math.round(pct) + ' por ciento, por cobrar ' + Math.round(100 - pct) + ' por ciento">'
-      + seg + '</div>'
-      + '<div class="cob-legend">'
-      + '<div class="cob-item"><span class="cob-dot is-paid"></span>'
-      + '<span class="cob-name">Abonado</span><b>' + window.fmtMoney(c.pagado) + '</b><small>' + Math.round(pct) + '%</small></div>'
-      + '<div class="cob-item"><span class="cob-dot is-open"></span>'
-      + '<span class="cob-name">Por cobrar</span><b>' + window.fmtMoney(c.porCobrar) + '</b><small>' + Math.round(100 - pct) + '%</small></div>'
-      + '</div>'
-      + (rows ? '<div class="cob-docs">' + rows + '</div>' : '')
+    return (rows ? '<div class="cob-docs">' + rows + '</div>' : '')
       + '<p class="cob-foot">' + window.fmtMoney(c.total) + ' abierto en ' + c.abiertos
       + ' documento' + (c.abiertos !== 1 ? 's' : '')
       + (c.saldados ? ' · ' + c.saldados + ' ya liquidado' + (c.saldados !== 1 ? 's' : '') : '') + '</p>';
@@ -883,10 +894,14 @@
       countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
     });
 
-    /* ---------- Cobranza: barra + lista de documentos ---------- */
+    /* ---------- Cobranza: gráfica en el héroe + lista de documentos ---------- */
     const cob = cobranzaStats();
-    $('#chart-host').innerHTML = cobranzaHTML(cob, hoy);
-    $('#cob-note').textContent = cob.abiertos ? Math.round(cob.pct) + '% abonado' : '';
+    $('#hero-chart-host').innerHTML = cobranzaChartHTML(cob);
+    $('#chart-host').innerHTML = cobranzaDocsHTML(cob, hoy);
+    $('#hero-cob-note').textContent = cob.abiertos ? Math.round(cob.pct) + '% abonado' : '';
+    $('#cob-note').textContent = cob.abiertos
+      ? cob.abiertos + ' abierto' + (cob.abiertos !== 1 ? 's' : '')
+      : (cob.saldados ? 'Liquidados' : '');
 
     /* ---------- Áreas / To-Do ---------- */
     const tasks = homeTasks(hoy, cxcData);
