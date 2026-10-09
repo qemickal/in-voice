@@ -1,9 +1,12 @@
-# Diseño de la interfaz — v3.2 «Panel accionable»
+# Diseño de la interfaz — v3.3 «Vidrio y píldoras»
 
 Notas del rediseño de octubre 2026. La interfaz vive en **una sola hoja**
 (`css/app.css`), con **un solo tema (claro)** y una escala tipográfica corta.
 `js/render.js` y `js/pdf.js` **no se tocaron**: el PDF y su vista previa
 permanecen intactos.
+
+> La v3.2 («Panel accionable») queda documentada abajo; la v3.3 añade
+> **glassmorphism** y **píldoras** sobre esa base (ver §7).
 
 ---
 
@@ -155,3 +158,35 @@ cambien los archivos: es lo que provoca que los teléfonos reinstalen el SW y
 descartén las copias viejas de fuentes, logo e íconos.
 
 > Al publicar la v3.2 se subió a `mc-pwa-v32`.
+
+---
+
+## 7. v3.3 — «Vidrio y píldoras»
+
+Cambios de octubre 2026 sobre la v3.2:
+
+- **El héroe es vidrio otra vez**: tarjeta semitransparente con degrade
+  **azul → blanco** (`--grad-hero`), `backdrop-filter` y dos brillos internos
+  (`::before` / `::after`). El texto del héroe sigue en blanco sobre la zona
+  azul (arriba); la zona clara queda abajo, donde va la gráfica.
+- **La gráfica horizontal de cobranza subió al héroe**: la barra
+  abonado / por cobrar + su leyenda se renderizan en `#hero-chart-host`,
+  dentro de una **franja de vidrio claro** (`.hero-chart`) con su propia
+  cabecera («Cobranza» + píldora «n% abonado»). El panel inferior pasó a
+  llamarse **«Por cobrar»** y conserva la lista de documentos
+  (`cobranzaDocsHTML`); la gráfica es `cobranzaChartHTML`.
+- **Lienzo en malla**: `body::before` (fijo, `z-index: -1`) pinta degradados
+  radiales de marca sobre el fondo claro; las superficies de vidrio los
+  desenfocan. Sin `backdrop-filter`, las tarjetas siguen siendo translúcidas.
+- **Píldoras**: botones, chips activos (sólidos de marca), iconos, avatares,
+  checks, buscadores, controles segmentados y el botón flotante «+» con
+  `border-radius: 999px`. Los botones primarios y el pie de abono usan el
+  degrade de marca.
+- **Glassmorphism** en topbar, barra de acciones, indicadores, paneles del
+  inicio, modales (con desenfoque del fondo), menú desplegable, toast, barra
+  inferior móvil y puerta de cuenta (su fondo es transparente para ver la
+  malla). Las tarjetas de lista usan translúcida **sin** desenfoque
+  (`--glass-flat`) para no recargar equipos chicos.
+- Tokens nuevos en `:root`: `--grad-hero`, `--glass`, `--glass-flat`,
+  `--glass-soft`, `--glass-line`, `--glass-blur`.
+- Al publicar la v3.3 se subió la caché a `mc-pwa-v34`.
