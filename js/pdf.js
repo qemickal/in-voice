@@ -2,9 +2,11 @@
    PDF ENGINE — genera el PDF real (para correo / compartir)
    usando jsPDF + fuentes Archivo incrustadas + el logo.
    Dibuja con las mismas coordenadas que la vista previa (LAYOUT).
-   Rediseño 2026: cabecera a una línea, totales con DESCUENTO y
-   POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS a dos
-   columnas, fondo string-art y pie con datos de contacto.
+   Rediseño 2026: cabecera alineada con el logo, totales con
+   DESCUENTO y POR PAGAR, P.O. TRACK con estado, PAGOS + TÉRMINOS
+   a dos columnas, fondo string-art y pie con datos de contacto.
+   v4.0: documento monocromo (los acentos van en NEGRITA, no en
+   color) y folio impreso como texto, sin código de barras.
    ============================================================ */
 (function () {
   const L = () => window.LAYOUT;
@@ -80,13 +82,6 @@
     pdf.line(x1, y, x2, y);
   }
 
-  // Código de barras Code 128 real del folio (escaneable; igual que la app)
-  function drawBarcode(pdf, x, y, w, h, text, color) {
-    const d = window.barcodeBars(text, w);
-    pdf.setFillColor(...color);
-    d.bars.forEach((b) => pdf.rect(x + b.x, y, b.w, h, 'F'));
-  }
-
   // Fondo string-art: el mismo haz de rectas que la vista previa
   function drawLineArt(pdf) {
     const LAY = L();
@@ -134,20 +129,23 @@
       pdf.addImage(images.blue.dataUrl, 'PNG', p.x, p.y, p.w, p.h);
     }
 
+    // Nombre de la empresa y bajada, a la misma sangría, justo a la
+    // derecha del logo: el bloque queda alineado con él.
     const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
     F('bold'); pdf.setFontSize(LAY.brandLine1.size); C(BLUE);
     pdf.text(empresa, LAY.brandLine1.x, LAY.brandLine1.y);
-    const wEmp = pdf.getTextWidth(empresa);
     F('medium'); pdf.setFontSize(LAY.brandSlash.size); C(GREY);
-    pdf.text('// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), LAY.brandLine1.x + wEmp + 7, LAY.brandLine1.y);
+    pdf.text('// ' + (s.empresaSub || 'estudio creativo').toLowerCase(),
+      LAY.brandSlash.x, LAY.brandSlash.y);
 
-    // Folio: sólo código de barras + número (el prefijo PO/RQ identifica
-    // si es recibo o cotización, así que no se imprime el rótulo).
+    // Folio: rótulo chico sobre el número en negrita, a la derecha. Sin
+    // código de barras; el prefijo (PO / RQ) ya identifica el documento.
     const FB = LAY.folioBox;
     const folio = doc.numero || 'MC';
-    drawBarcode(pdf, FB.right - FB.w, FB.y, FB.w, FB.h, folio, BLUE);
-    F('medium'); pdf.setFontSize(FB.size); C(STEEL);
-    pdf.text(folio, FB.right, FB.y + FB.h + FB.gap, { align: 'right' });
+    F('bold'); pdf.setFontSize(FB.labelSize); C(GREY);
+    pdf.text('FOLIO', FB.right, FB.labelY, { align: 'right' });
+    F('bold'); pdf.setFontSize(FB.size); C(BLUE);
+    pdf.text(folio, FB.right, FB.y, { align: 'right' });
 
     /* ---------- Datos (dos columnas) ---------- */
     const MS = LAY.metaSize;

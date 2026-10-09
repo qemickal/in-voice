@@ -1,31 +1,38 @@
 /* ============================================================
    LAYOUT — especificación única del diseño del documento
    Todas las medidas en puntos (pt). Página Letter 612 x 792 pt.
-   Rediseño 2026: cabecera a una línea, columna de totales con
-   DESCUENTO / POR PAGAR, bloque P.O. TRACK con estado, PAGOS +
-   TÉRMINOS a dos columnas y pie de página con datos de contacto.
+   Rediseño 2026: cabecera a dos líneas alineada con el logo,
+   columna de totales con DESCUENTO / POR PAGAR, bloque P.O. TRACK
+   con estado, PAGOS + TÉRMINOS a dos columnas y pie de contacto.
+
+   v4.0: el documento es monocromo. Los acentos se hacen con
+   NEGRITA (peso), no con color, y el folio ya no lleva código de
+   barras: se imprime como texto, grande y alineado a la derecha.
    ============================================================ */
 window.LAYOUT = {
   pageW: 612,
   pageH: 792,
 
-  /* ---------- Paleta ---------- */
-  brand:     [31, 61, 143],   // #1F3D8F  azul profundo (títulos)
-  brandHex:  '#1F3D8F',
-  steel:     [64, 100, 162],  // #4064A2  azul acero (etiquetas)
-  steelHex:  '#4064A2',
-  turq:      [73, 194, 190],  // #49C2BE  turquesa (tipo de documento)
-  turqHex:   '#49C2BE',
-  grey:      [154, 163, 178], // #9AA3B2  gris (subtítulos, P.O. TRACK)
-  greyHex:   '#9AA3B2',
-  body:      [51, 58, 71],    // #333A47  texto de términos
+  /* ---------- Paleta: tinta, no color ----------
+     Los nombres se conservan (los usan render.js y pdf.js), pero los
+     valores son una escala de grises: lo que destaca lo hace por su
+     PESO, no por su color. */
+  brand:     [20, 27, 38],    // #141B26  titulares y etiquetas (negrita)
+  brandHex:  '#141B26',
+  steel:     [62, 72, 86],    // #3E4856  etiquetas secundarias
+  steelHex:  '#3E4856',
+  turq:      [20, 27, 38],    // #141B26  estado liquidado (negrita)
+  turqHex:   '#141B26',
+  grey:      [126, 136, 150], // #7E8896  subtítulos y notas
+  greyHex:   '#7E8896',
+  body:      [51, 58, 71],    // #333A47  cuerpo de texto
   bodyHex:   '#333A47',
-  lineArt:   [205, 231, 230], // #CDE7E6  fondo de líneas
-  lineArtHex:'#CDE7E6',
-  rule:      [143, 163, 196], // #8FA3C4  reglas finas
-  ruleHex:   '#8FA3C4',
-  light:     [232, 242, 248],
-  lightHex:  '#E8F2F8',
+  lineArt:   [222, 228, 235], // #DEE4EB  fondo de líneas
+  lineArtHex:'#DEE4EB',
+  rule:      [168, 176, 188], // #A8B0BC  reglas finas
+  ruleHex:   '#A8B0BC',
+  light:     [238, 240, 244],
+  lightHex:  '#EEF0F4',
 
   // márgenes laterales simétricos: 34pt a cada lado
   contentL: 34,
@@ -39,14 +46,18 @@ window.LAYOUT = {
   // string-art: envolvente de rectas, esquina inferior izquierda
   lineArtBox: { x: -30, y: 340, w: 672, h: 460 },
 
-  /* ---------- Cabecera ---------- */
-  logoBox:    { x: 34, y: 26, w: 78, h: 60 },
-  brandLine1: { x: 183, y: 50, size: 20.5 },   // "MONO CROMAT & CO."
-  brandSlash: { x: 183, y: 50, size: 16.5 },   // "// estudio creativo" (x se calcula)
-  // Bloque de folio (arriba a la derecha). No se imprime "RECIBO" /
-  // "COTIZACIÓN": el prefijo del folio ya lo identifica (PO = recibo,
-  // RQ = cotización), así que sólo van el código de barras y el número.
-  folioBox: { right: 578, y: 58, w: 150, h: 22, size: 8.5, gap: 11 },
+  /* ---------- Cabecera ----------
+     El logo manda: el nombre de la empresa arranca justo a su derecha
+     (misma sangría para las dos líneas) y el bloque queda centrado
+     ópticamente contra el alto del logo. */
+  logoBox:    { x: 34, y: 28, w: 76, h: 58 },
+  brandLine1: { x: 126, y: 56, size: 19 },     // "MONO CROMAT & CO."
+  // El subtítulo baja a su propia línea: ya no se encima al nombre.
+  brandSlash: { x: 126, y: 72, size: 9.5 },    // "// estudio creativo"
+  // Folio (arriba a la derecha), sin código de barras: rótulo chico
+  // sobre el número en negrita. El prefijo ya identifica el documento
+  // (PO = recibo, RQ = cotización).
+  folioBox: { right: 578, labelY: 50, labelSize: 8, y: 70, size: 15 },
 
   /* ---------- Datos (dos columnas) ---------- */
   metaSize: 10.5,
@@ -277,126 +288,6 @@ window.wrapText = function (text, maxW, size) {
   }
   if (cur) lines.push(cur);
   return lines;
-};
-
-/* ================== Código de barras Code 128 (real, escaneable) ==================
-   Simbología Code 128 (ISO/IEC 15417): 107 símbolos de 11 módulos
-   (3 barras + 3 espacios, anchos 1–4) + dígito de verificación.
-   - Code B: ASCII 32–127 (letras, dígitos, signos)
-   - Code C: pares de dígitos, se activa en corridas de 4+ números
-   - Verificación: (start + Σ valor_i × posición_i) mod 103
-   La tabla y el algoritmo están validados contra bwip-js y jsbarcode
-   (identidad módulo a módulo) y la salida se decodifica con ZXing.
-   barcodeBars() devuelve las barras en pt (para el PDF);
-   barcodeSVG() genera el SVG (para la app y la vista previa). */
-window.C128 = (function () {
-  var T = [
-    "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231",
-    "213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311",
-    "112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111",
-    "111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212",
-    "124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214",
-    "211232","233111"  ];
-  var START_B = 104, START_C = 105, STOP = 106;
-  var SWITCH_C = 99, SWITCH_B = 100;
-
-  // Code B solo cubre ASCII 32–127; mapea lo común y descarta el resto
-  var MAP = { 'º': 'O', 'ª': 'a', '°': 'D', '·': '-', '–': '-', '—': '-',
-              '…': '...', '¡': '!', '¿': '?', '‘': "'", '’': "'",
-              '“': '"', '”': '"', '€': 'EUR', '¢': 'c', '×': 'x',
-              '÷': '/', '²': '2', '³': '3', '½': '1/2' };
-  function sanitize(t) {
-    var s = String(t == null ? '' : t);
-    var out = '';
-    for (var i = 0; i < s.length; i++) {
-      var c = s[i], v = s.charCodeAt(i);
-      if (v >= 32 && v < 128) out += c;
-      else if (MAP[c]) out += MAP[c];
-      else {
-        var lo = c.toLowerCase(), up = c.toUpperCase();
-        if (lo.length === 1 && lo.charCodeAt(0) >= 32 && lo.charCodeAt(0) < 128) out += lo;
-        else if (up.length === 1 && up.charCodeAt(0) >= 32 && up.charCodeAt(0) < 128) out += up;
-      }
-    }
-    return out;
-  }
-
-  // Devuelve el array de valores de patrón (incluye start, verificación y stop)
-  function encode(text) {
-    var t = sanitize(text);
-    if (!t) t = 'MC';
-    var n = t.length, i = 0;
-    function digitsAt(k) {
-      var m = 0;
-      while (k + m < n) {
-        var c = t.charCodeAt(k + m);
-        if (c >= 48 && c <= 57) m++; else break;
-      }
-      return m;
-    }
-    var pats = [];
-    var startsC = n >= 4 && digitsAt(0) >= 4;
-    pats.push(startsC ? START_C : START_B);
-    var modeC = startsC;
-    while (i < n) {
-      if (!modeC) {
-        if (digitsAt(i) >= 4) { pats.push(SWITCH_C); modeC = true; continue; }
-        pats.push(t.charCodeAt(i) - 32); i++;
-      } else {
-        if (digitsAt(i) >= 2) {
-          pats.push((t.charCodeAt(i) - 48) * 10 + (t.charCodeAt(i + 1) - 48)); i += 2;
-        } else { pats.push(SWITCH_B); modeC = false; }
-      }
-    }
-    var sum = pats[0];
-    for (var k = 1; k < pats.length; k++) sum += pats[k] * k;
-    pats.push(sum % 103, STOP);
-    return pats;
-  }
-
-  // Cadena de módulos: '1' = barra, '0' = espacio (sin zonas de quietud)
-  function modules(text) {
-    var pats = encode(text);
-    var s = '';
-    for (var p = 0; p < pats.length; p++) {
-      var w = T[pats[p]];
-      for (var k = 0; k < 6; k++) {
-        var n = +w.charAt(k);
-        for (var m = 0; m < n; m++) s += (k % 2 === 0 ? '1' : '0');
-      }
-    }
-    s += '11'; // barra final de 2 módulos del símbolo de parada
-    return s;
-  }
-
-  return { TABLE: T, sanitize: sanitize, encode: encode, modules: modules };
-})();
-
-window.barcodeBars = function (text, width) {
-  var w = width || 140;
-  var mods = window.C128.modules(text);
-  var Q = 10;                                   // quietud (mín. 10 módulos por lado)
-  var scale = w / (mods.length + 2 * Q);
-  var bars = [], i = 0;
-  while (i < mods.length) {
-    if (mods.charAt(i) === '1') {
-      var j = i;
-      while (j < mods.length && mods.charAt(j) === '1') j++;
-      bars.push({ x: (Q + i) * scale, w: (j - i) * scale });
-      i = j;
-    } else i++;
-  }
-  return { bars: bars, w: w };
-};
-
-window.barcodeSVG = function (text, width, height) {
-  var d = window.barcodeBars(text, width);
-  var h = height || 24;
-  var w = d.w;
-  var inner = '<g fill="currentColor">' + d.bars.map(function (b) {
-    return '<rect x="' + b.x.toFixed(3) + '" y="0" width="' + b.w.toFixed(3) + '" height="' + h + '"/>';
-  }).join('') + '</g>';
-  return '<svg class="barcode-svg" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
 };
 
 /* ================== Layout de la tabla de conceptos ==================
