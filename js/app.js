@@ -80,6 +80,7 @@
   let cxcQuery = '';
   let cxcDetailDocId = null;
   let heroDebtorsOpen = false;
+  let navReturnFocus = null;
 
   /* ---------------- Utilidades ---------------- */
   // fuente única de verdad (layout.js): subtotal → IVA → descuento → por pagar
@@ -167,7 +168,7 @@
       return okTipo && okQ;
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-    $$('.chip').forEach((c) => c.classList.toggle('active', c.dataset.filter === listFilter));
+    $$('.chip[data-filter]').forEach((c) => c.classList.toggle('active', c.dataset.filter === listFilter));
 
     if (!filtered.length) {
       wrap.innerHTML = `
@@ -199,7 +200,8 @@
         <div class="card-sub">${esc(d.representante || '')}${d.representante ? ' · ' : ''}${esc(d.email || '')}</div>
         <div class="perf"></div>
         <div class="card-foot">
-          <strong>${window.fmtMoney(t.total)}</strong>
+          <div class="card-amount"><span class="card-money-label">Importe total</span><strong>${window.fmtMoney(t.total)}</strong></div>
+          <span class="pill mini ${t.pagado ? 'ok' : 'warn'}">${t.pagado ? 'Liquidado' : 'Pendiente'}</span>
           <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
         </div>
         <div class="card-actions">
@@ -232,10 +234,10 @@
 
   function refreshMobileNav() {
     const menuOpen = document.body.classList.contains('nav-open');
-    $$('#mobile-nav [data-nav-view]').forEach(function (item) {
+    $$('#mobile-nav [data-nav-view], .desktop-nav [data-nav-view]').forEach(function (item) {
       const active = item.dataset.navView === mainView || (item.dataset.navView === 'menu' && menuOpen);
       item.classList.toggle('active', active);
-      if (active) item.setAttribute('aria-current', 'page');
+      if (active && item.dataset.navView !== 'menu') item.setAttribute('aria-current', 'page');
       else item.removeAttribute('aria-current');
     });
   }
@@ -269,16 +271,22 @@
   }
 
   /* ---------- Menú a pantalla completa ----------
-     Se abre sólo desde «Más» en la barra inferior (el botón del
-     masthead se eliminó en la v4.0). Ocupa todo el viewport y se
-     cierra al elegir una sección, con su botón ✕ o con Esc. */
+     «Más» vive en la cabecera de escritorio y en la barra móvil.
+     El menú se cierra al elegir sección, con ✕ o con Esc. */
   function navPopEl() { return $('#nav-pop'); }
+
+  function setBackgroundInert() {
+    const locked = document.body.classList.contains('nav-open') || !!$('.modal.open');
+    ['#main-content', '#topbar', '#mobile-nav'].forEach(function (id) { $(id).inert = locked; });
+  }
 
   function openNavPop() {
     const pop = navPopEl();
     if (!pop || !pop.hidden) return;
+    navReturnFocus = document.activeElement;
     pop.hidden = false;
     document.body.classList.add('nav-open');
+    setBackgroundInert();
     $$('[data-action="toggle-menu"]').forEach(function (b) {
       b.setAttribute('aria-expanded', 'true');
     });
@@ -292,6 +300,12 @@
     if (!pop || pop.hidden) return;
     pop.hidden = true;
     document.body.classList.remove('nav-open');
+    setBackgroundInert();
+    const returnFocus = navReturnFocus && navReturnFocus.isConnected && navReturnFocus.getClientRects().length
+      ? navReturnFocus
+      : $$('[data-action="toggle-menu"]').find(function (el) { return !el.closest('#nav-pop') && el.getClientRects().length; });
+    if (returnFocus) returnFocus.focus({ preventScroll: true });
+    navReturnFocus = null;
     $$('[data-action="toggle-menu"]').forEach(function (b) {
       b.setAttribute('aria-expanded', 'false');
     });
@@ -416,17 +430,20 @@
   function cobDocRow(it, hoy) {
     const due = cobDueMeta(it, hoy);
     const kind = it.tipo === 'cotizacion' ? 'Cotización' : 'Recibo';
-    const title = kind + ' ' + (it.numero ? '#' + it.numero : '');
+    const folio = kind + (it.numero ? ' · ' + it.numero : '');
     const actions = it.pagado
       ? ''
-      : '<button type="button" class="btn outline small cob-act" data-action="cob-pay" data-id="' + it.id + '">Cobrar</button>'
-        + '<button type="button" class="cob-check" data-action="cob-settle" data-id="' + it.id + '" title="Marcar pagado" aria-label="Marcar pagado">'
-        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<button type="button" class="btn outline small cob-act" data-action="cob-pay" data-id="' + esc(it.id) + '">Cobrar</button>'
+        + '<button type="button" class="cob-check" data-action="cob-settle" data-id="' + esc(it.id) + '" title="Marcar pagado" aria-label="Marcar pagado: ' + esc(it.cliente) + '">'
+        + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
         + '</button>';
     return '<div class="cob-doc' + (it.pagado ? ' is-paid' : '') + '">'
       + '<div class="cob-doc-main">'
-      + '<span class="cob-doc-title">' + esc(title) + ' — ' + esc(it.cliente) + '</span>'
-      + '<span class="cob-doc-meta' + (due.tone ? ' is-' + due.tone : '') + '">' + esc(due.text) + '</span>'
+      + '<span class="cob-doc-icon' + (it.tipo === 'cotizacion' ? ' is-quote' : '') + '" aria-hidden="true">'
+      + '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8ZM14 2v6h6M8 14h8M8 18h5"/></svg></span>'
+      + '<div class="cob-doc-copy"><span class="cob-doc-title" title="' + esc(it.cliente) + '">' + esc(it.cliente) + '</span>'
+      + '<span class="cob-doc-meta">' + esc(folio) + '</span>'
+      + '<span class="cob-doc-meta' + (due.tone ? ' is-' + due.tone : '') + '">' + esc(due.text) + '</span></div>'
       + '</div>'
       + '<div class="cob-doc-side">'
       + '<span class="cob-doc-amt">' + window.fmtMoney(it.pagado ? it.total : it.saldo) + '</span>'
@@ -440,8 +457,9 @@
   function cobranzaChartHTML(c) {
     if (!c.abiertos) {
       return '<div class="hero-chart-empty' + (c.saldados ? ' is-ok' : '') + '">'
-        + (c.saldados ? 'Todo liquidado · sin saldo pendiente' : 'Sin documentos con saldo pendiente')
-        + '</div>';
+        + '<div class="cob-bar is-empty" aria-hidden="true"></div><p>'
+        + (c.saldados ? 'Todo liquidado. Un pendiente menos.' : 'Aquí verás el avance de tus cobros.')
+        + '</p></div>';
     }
     const pct = Math.min(100, Math.max(0, c.pct));
     const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
@@ -458,8 +476,9 @@
 
   function cobranzaDocsHTML(c, hoy) {
     if (!c.abiertos && !c.saldados) {
-      return '<div class="cob-empty"><p>No hay documentos con saldo pendiente.</p>'
-        + '<button type="button" class="stat-cta" data-action="new-recibo" style="margin-top:8px">Crear primera factura</button></div>';
+      return '<div class="cob-empty"><span class="panel-empty-icon" aria-hidden="true">' + window.ICONS.docs('ic-lg') + '</span>'
+        + '<strong>Tu próximo proyecto empieza aquí</strong><p>Crea un recibo y lleva cada pago con claridad.</p>'
+        + '<button type="button" class="btn small primary" data-action="new-recibo">Crear primer recibo</button></div>';
     }
     const items = cobranzaItems(hoy);
     const rows = items.open.map(function (it) { return cobDocRow(it, hoy); })
@@ -677,7 +696,9 @@
 
   function tareasHTML(tasks) {
     if (!tasks.length) {
-      return '<div class="todo-empty">Nada pendiente por área. El panel se llena con vencimientos, saldos, seguimientos y tus tareas.</div>';
+      return '<div class="todo-empty"><span class="panel-empty-icon" aria-hidden="true">' + window.ICONS.check('ic-lg') + '</span>'
+        + '<strong>Un poco de espacio para crear</strong><p>Todo en orden. Agrega tu siguiente tarea cuando quieras.</p>'
+        + '<button type="button" class="btn small outline" data-action="new-tarea">Nueva tarea</button></div>';
     }
     const areas = [
       { id: 'contabilidad', label: 'Contabilidad' },
@@ -690,12 +711,12 @@
       if (!list.length) return '';
       const rows = list.map(function (t) {
         return '<div class="todo-row">'
-          + '<button type="button" class="todo-check" data-action="todo-done" data-tid="' + esc(t.id) + '" aria-label="Marcar hecha" title="Hecha"></button>'
+          + '<button type="button" class="todo-check" data-action="todo-done" data-tid="' + esc(t.id) + '" aria-label="Marcar hecha: ' + esc(t.title) + '" title="Marcar hecha"></button>'
           + '<div class="todo-body">'
           + '<span class="todo-title"><span class="todo-prio ' + t.prio + '" title="Prioridad"></span>' + esc(t.title) + '</span>'
           + '<span class="todo-meta">' + esc(t.meta || '') + '</span>'
           + '</div>'
-          + '<button type="button" class="btn outline small todo-go" data-action="todo-go" data-go="' + esc(t.go || '') + '" data-id="' + esc(t.idGo || '') + '">Ir</button>'
+          + '<button type="button" class="btn outline small todo-go" data-action="todo-go" data-go="' + esc(t.go || '') + '" data-id="' + esc(t.idGo || '') + '" aria-label="Ver: ' + esc(t.title) + '"><span class="todo-go-label">Ver</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>'
           + '</div>';
       }).join('');
       return '<div class="todo-area">'
@@ -706,7 +727,7 @@
   }
 
   function statCardHtml(o) {
-    return '<div class="stat-card tone-' + (o.tone || 'brand') + '" style="--i:' + (o.i || 0) + '">'
+    return '<div class="stat-card tone-' + (o.tone || 'brand') + '">'
       + '<div class="stat-head"><span class="stat-ico">' + o.icon + '</span>'
       + '<span class="stat-label">' + o.label + '</span></div>'
       + '<div class="stat-value" data-count="' + o.value + '" data-money="' + (o.money ? 1 : 0) + '">'
@@ -784,6 +805,9 @@
       subEl.textContent = sub;
     }
     countUp($('#hero-balance-value'), cxcTotal, true);
+    $('#hero-balance-detail').textContent = cxcData.length
+      ? 'Ver saldos de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '')
+      : 'Sin saldos pendientes. Todo en equilibrio.';
 
     const balBtn = $('#hero-balance-btn');
     const debtorsEl = $('#hero-debtors');
@@ -862,7 +886,7 @@
         i: 1, tone: 'accent', icon: ICONO.factura, label: 'Facturado',
         value: factMes, money: true,
         foot: (factMes <= 0
-          ? delta(factMes, factPrev) + ' ' + cta('new-recibo', docs.length ? 'Nueva factura' : 'Crear primera factura')
+          ? delta(factMes, factPrev) + ' ' + cta('new-recibo', docs.length ? 'Nuevo recibo' : 'Crear primer recibo')
           : '<span>' + MESES_LARGOS[now.getMonth()] + '</span> · ' + delta(factMes, factPrev))
       }) +
       statCardHtml({
@@ -2126,7 +2150,7 @@
     if (!editing) return;
     syncForm();
     const btn = $('[data-action="email"]');
-    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generando…';
+    const old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando…';
     try {
       const file = await makePdfFile();
       // 1) Si el dispositivo permite compartir archivos → mejor UX en móvil
@@ -2148,7 +2172,7 @@
       console.error(err);
       toast('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error'));
     } finally {
-      btn.disabled = false; btn.textContent = old;
+      btn.disabled = false; btn.innerHTML = old;
     }
   }
 
@@ -2655,7 +2679,24 @@
   // sección). Ya no hay «tocar fuera»: la capa cubre todo el viewport, y
   // tampoco se cierra al redimensionar (el teclado móvil lo disparaba).
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeNavPop();
+    const pop = navPopEl();
+    const overlay = pop && !pop.hidden ? pop : $('.modal.open');
+    if (e.key === 'Escape') {
+      if (pop && !pop.hidden) closeNavPop();
+      else if (overlay) {
+        const close = $('.modal-head [data-action^="close-"]', overlay);
+        if (close) close.click();
+      }
+      return;
+    }
+    if (e.key !== 'Tab' || !overlay) return;
+    const focusable = $$('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled)', overlay)
+      .filter(function (el) { return el.getClientRects().length; });
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (!overlay.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
   // Búsqueda CxC
@@ -2704,6 +2745,34 @@
   window.addEventListener('resize', () => {
     if (!$('#view-editor').hidden) autoscale();
   });
+
+  /* Diálogos: foco dentro de la tarjeta y retorno al control de origen. */
+  (function watchDialogs() {
+    const modals = $$('.modal');
+    const returnTargets = new Map();
+    let openBefore = new Set();
+    function update() {
+      const open = new Set(modals.filter(function (el) { return el.classList.contains('open'); }));
+      open.forEach(function (el) {
+        if (openBefore.has(el)) return;
+        returnTargets.set(el, document.activeElement);
+        const close = $('.modal-head button', el);
+        if (close && !el.contains(document.activeElement)) close.focus({ preventScroll: true });
+      });
+      document.body.classList.toggle('modal-open', open.size > 0);
+      setBackgroundInert();
+      openBefore.forEach(function (el) {
+        if (open.has(el)) return;
+        const target = returnTargets.get(el);
+        if (!open.size && target && target.isConnected) target.focus({ preventScroll: true });
+        else if (!open.size) $('#main-content').focus({ preventScroll: true });
+        returnTargets.delete(el);
+      });
+      openBefore = open;
+    }
+    const observer = new MutationObserver(update);
+    modals.forEach(function (el) { observer.observe(el, { attributes: true, attributeFilter: ['class'] }); });
+  })();
 
   /* Barra superior de sincronización: refleja el estado de la píldora */
   (function watchSync() {

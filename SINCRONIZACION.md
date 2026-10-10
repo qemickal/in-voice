@@ -12,7 +12,7 @@ entres con la misma cuenta (celular ⇄ compu).
 - **Borrados** se propagan entre dispositivos (no se "resucita" nada por error).
 - La **píldora** en la parte superior muestra el estado: `SYNC hh:mm` (verde),
   `SINCRONIZANDO…`, `SIN CONEXIÓN` o `ERROR DE SYNC`.
-- **Cerrar sesión** está en el menú (botón ☰ del masthead) y en **Ajustes → Cuenta y sincronización**.
+- **Cerrar sesión** está en el menú «Más» (en la cabecera de escritorio o en la barra inferior móvil) y en **Ajustes → Cuenta y sincronización**.
 
 ---
 

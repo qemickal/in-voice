@@ -7,7 +7,7 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v40';
+const CACHE = 'mc-pwa-v50';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,11 @@ const ASSETS = [
   './assets/fonts/archivo-latin-400.woff2',
   './assets/fonts/archivo-latin-500.woff2',
   './assets/fonts/archivo-latin-700.woff2',
+  // Fuentes del PDF: listas también para la primera exportación offline.
+  './assets/fonts/Archivo-Light.ttf',
+  './assets/fonts/Archivo-Regular.ttf',
+  './assets/fonts/Archivo-Medium.ttf',
+  './assets/fonts/Archivo-Bold.ttf',
   './assets/img/logo-blue.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -61,6 +66,7 @@ self.addEventListener('fetch', (e) => {
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;   // externos: sin intervenir
+  if (url.pathname.startsWith('/api/')) return;      // datos privados: sin caché ni respaldo HTML
 
   if (req.mode === 'navigate' || SIEMPRE_FRESCO.test(url.pathname)) {
     e.respondWith(
