@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>In-Voice — Recibos &amp; Cotizaciones</title>
   <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
-  <meta name="theme-color" content="#f3f4fa" id="meta-theme">
+  <meta name="theme-color" content="#6c5ce7" id="meta-theme">
   <meta name="color-scheme" content="light">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
@@ -13,13 +13,74 @@
   <link rel="preload" href="assets/fonts/archivo-latin-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/archivo-latin-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/modern-addons.css">
 </head>
-<body class="tab-datos">
+<body class="tab-datos has-sidebar">
   <a class="skip-link" href="#main-content">Ir al contenido</a>
 
   <div class="sync-bar" id="sync-bar" aria-hidden="true"></div>
 
-  <!-- ===== Masthead ===== -->
+  <!-- ===== Sidebar - Navegación principal ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <span class="sidebar-logo"><img src="assets/img/logo-blue.png" alt="" width="24" height="16"></span>
+        <div class="sidebar-text">
+          <strong>in-voice</strong>
+          <span>Mono Cromat &amp; Co.</span>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+      <button type="button" class="sidebar-nav-item" data-action="go-home" data-nav-view="inicio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-docs" data-nav-view="docs">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>
+        <span>Documentos</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-cxc" data-nav-view="cxc">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5c-.7-.7-1.7-1-3-1-1.4 0-2.5.7-2.5 1.8 0 2.8 5.5 1.1 5.5 4.1 0 1.2-1.2 2.1-2.9 2.1-1.4 0-2.5-.4-3.3-1.2M12 5.5v13"/></svg>
+        <span>Cobros</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-cxp" data-nav-view="cxp">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Pagos</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-clientes" data-nav-view="clientes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Clientes</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-productos" data-nav-view="productos">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <span>Catálogo</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-action="go-tareas" data-nav-view="tareas">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tareas</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-actions">
+        <button class="icon-btn" data-action="settings" aria-label="Ajustes" title="Ajustes">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+        <button id="btn-install" class="icon-btn" data-action="install" style="display:none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+      <div class="sidebar-user">
+        <span class="sidebar-user-avatar" id="sidebar-user-initial">MC</span>
+        <div class="sidebar-user-info">
+          <span class="sidebar-user-name" id="sidebar-user-name">Mono Cromat</span>
+          <span class="sidebar-user-email" id="sidebar-user-email">Estudio Creativo</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Masthead (solo móvil) ===== -->
   <header id="topbar">
     <div class="brand">
       <span class="brand-mark"><img src="assets/img/logo-blue.png" alt="" class="brand-logo" width="30" height="20"></span>
@@ -43,7 +104,7 @@
     </div>
   </header>
 
-  <main id="main-content" tabindex="-1">
+  <main class="main-content" id="main-content" tabindex="-1">
     <!-- ===== Vista: panel de inicio ===== -->
     <section id="view-inicio" aria-labelledby="hero-title">
       <div class="dashboard-intro">

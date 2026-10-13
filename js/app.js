@@ -234,12 +234,25 @@
 
   function refreshMobileNav() {
     const menuOpen = document.body.classList.contains('nav-open');
-    $$('#mobile-nav [data-nav-view], .desktop-nav [data-nav-view]').forEach(function (item) {
+    $$('#mobile-nav [data-nav-view], .desktop-nav [data-nav-view], .sidebar-nav-item').forEach(function (item) {
       const active = item.dataset.navView === mainView || (item.dataset.navView === 'menu' && menuOpen);
       item.classList.toggle('active', active);
       if (active && item.dataset.navView !== 'menu') item.setAttribute('aria-current', 'page');
       else item.removeAttribute('aria-current');
     });
+  }
+
+  function updateSidebarUser() {
+    const userName = $('#sidebar-user-name');
+    const userEmail = $('#sidebar-user-email');
+    const userInitial = $('#sidebar-user-initial');
+    if (userName && userEmail && userInitial) {
+      userName.textContent = settings.empresa || 'Mono Cromat';
+      userEmail.textContent = settings.empresaSub || 'Estudio Creativo';
+      const initials = (settings.empresa || 'MC').split(/\s+/).slice(0, 2)
+        .map(w => w.charAt(0).toUpperCase()).join('');
+      userInitial.textContent = initials || 'MC';
+    }
   }
 
   function switchMainView(view, navigation) {
@@ -260,6 +273,7 @@
     document.body.classList.remove('in-editor');
     closeNavPop();
     refreshMobileNav();
+    updateSidebarUser();
     if (view === 'inicio') renderInicio();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
@@ -2254,6 +2268,7 @@
     storeSet('mc_settings', settings);
     $('#modal-settings').classList.remove('open');
     if (editing) { renderPreview(); updateTotalsBox(); }
+    updateSidebarUser();
     toast('Ajustes guardados ✓');
   }
 
@@ -2846,6 +2861,7 @@
     productos = storeGet('mc_productos', []);
     tareas = storeGet('mc_tareas', []);
     showList();
+    updateSidebarUser();
   }
 
   /* ---------------- Init ---------------- */
@@ -2866,6 +2882,8 @@
     } else {
       bootApp();
     }
+    // Inicializar sidebar después de que todo esté listo
+    setTimeout(updateSidebarUser, 100);
   }
   init();
 })();

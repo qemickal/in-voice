@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test - In-Voice Modern Design</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/modern-addons.css">
+  <style>
+    /* Estilos de prueba */
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, sans-serif;
+    }
+    .test-section {
+      margin-bottom: 40px;
+    }
+    h2 {
+      color: #6c5ce7;
+      margin-bottom: 15px;
+    }
+    .test-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .test-card {
+      padding: 20px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      border: 1px solid #e0e0e0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-section">
+    <h2>Tarjetas Modernas</h2>
+    <div class="test-cards">
+      <div class="test-card">
+        <h3>Tarjeta 1</h3>
+        <p>Contenido de prueba</p>
+      </div>
+      <div class="test-card">
+        <h3>Tarjeta 2</h3>
+        <p>Contenido de prueba</p>
+      </div>
+      <div class="test-card">
+        <h3>Tarjeta 3</h3>
+        <p>Contenido de prueba</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Botones</h2>
+    <button class="btn">Botón Primario</button>
+    <button class="btn outline">Botón Outline</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Colores y Tipografía</h2>
+    <p style="color: var(--brand); font-size: var(--fs-xl);">Texto con color de marca</p>
+    <p style="color: var(--accent); font-size: var(--fs-lg);">Texto con color acento</p>
+    <p style="font-size: var(--fs-base);">Texto base</p>
+  </div>
+</body>
+</html>
