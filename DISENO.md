@@ -1,89 +1,121 @@
-# Diseño de la interfaz — v5.0 «Creative glass»
+# Diseño de la interfaz — v6.0 «Estudio»
 
-Rediseño del 10 de octubre de 2026. Una interfaz de estudio creativo con
-superficies de vidrio, tinta profunda, lavanda y menta. **Sin animaciones**,
-sin frameworks visuales nuevos y con todos los recursos servidos localmente.
+Rediseño del 14 de octubre de 2026. La interfaz deja de ser una sucesión de
+bloques apilados y se organiza como un **espacio de trabajo por zonas**: riel
+de navegación, barra superior, franja principal, panel lateral de filtros y
+listas densas. Superficies opacas, líneas finas y jerarquía por tamaño y peso.
+**Sin animaciones**, sin dependencias nuevas y con todos los recursos locales.
 
-La interfaz sigue en `index.html`, `css/app.css` y `js/app.js`. El diseño de
-los documentos (`layout.js`, `render.js`, `pdf.js`) se mantiene independiente.
+Cambian `index.html`, `css/app.css`, `js/app.js` (sólo el marcado que pintan
+sus funciones de render) y la versión de caché en `sw.js`. La lógica de datos,
+las rutas, la sincronización (`js/sync.js`) y el documento impreso
+(`js/layout.js`, `js/render.js`, `js/pdf.js`) quedan intactos.
 
 ## 1. Dirección visual
 
-- **Hero con presencia:** degradado azul profundo, órbitas SVG estáticas y el
-  mensaje «Menos gestión. Más creación.». El saldo, los deudores y la barra de
-  cobranza permanecen conectados a los datos reales.
-- **Vidrio con moderación:** transparencias, bordes luminosos y sombras suaves
-  en las tarjetas. El `backdrop-filter` se limita a la cabecera, la navegación
-  inferior y una superficie del hero; no se aplica a cada tarjeta ni fila.
-- **Más jerarquía:** títulos y cifras grandes, textos secundarios discretos,
-  iconos en recuadros de color y más espacio entre grupos.
-- **Una identidad completa:** acceso, menú, documentos, cuentas, directorio,
-  catálogo, tareas, editor y modales comparten el mismo sistema.
-- **Estados útiles:** documentos pendientes/liquidados, saldos por cliente,
-  prioridades y vacíos con acciones para empezar. No hay gráficas ficticias.
+- **Zonas, no tarjetas repetidas.** Cada pantalla combina un espacio principal
+  con uno de apoyo: franja oscura + columna de cifras en el panel; cabecera con
+  cifras + panel lateral de filtros en las listas; formulario + vista previa en
+  el editor; bloques en dos columnas en Ajustes.
+- **Listas densas.** Documentos, cuentas, directorio, catálogo y tareas son
+  `<ul>` de filas con rejilla de áreas (título y metadatos a la izquierda,
+  cifra a la derecha, estado y acciones abajo). Ninguna lista se convirtió en
+  una rejilla de tarjetas.
+- **Una sola voz cromática.** Un tema claro, tinta profunda y acentos lavanda /
+  menta. El degradado oscuro aparece sólo en la franja del panel y en la
+  pantalla de acceso; el resto son superficies blancas y grises muy claros.
+- **Cifras protagonistas.** El importe manda en cada fila (19–21 px, tabular);
+  los metadatos van en una línea con separadores y los detalles finos en 10–11 px.
+- **Estado sin ruido.** Pastillas semánticas (liquidado, parcial, pendiente,
+  vencida), barras de avance de 4 px y reglas de 1 px: nada de sombras duras ni
+  iconos decorativos repetidos.
 
 ## 2. Tokens principales
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--brand` | `#5b55d9` | Acciones y navegación activa |
-| `--brand-ink` | `#514bb8` | Texto lavanda legible sobre claro |
-| `--mint` | `#b6f3dc` | CTA del hero y cobranza abonada |
-| `--lavender` | `#c8bdff` | Acento del hero y del acceso |
-| `--bg` | `#f3f4fa` | Lienzo y color de la PWA |
-| `--ink` | `#22253d` | Texto principal |
-| `--ink-2` / `--ink-3` | `#5c6079` / `#646882` | Texto secundario y metadatos |
-| `--r-xl` / `--r-lg` | `24px` / `18px` | Tarjetas, paneles y controles |
+| `--brand` | `#5b55d9` | Acciones primarias y navegación activa |
+| `--brand-ink` | `#4c46b4` | Texto lavanda sobre claro (7.4:1) |
+| `--accent` | `#219c88` | Cobranza y avances positivos |
+| `--mint` / `--lavender` | `#b6f3dc` / `#c8bdff` | Acentos sobre la franja oscura |
+| `--bg` | `#f4f5fa` | Lienzo, `theme-color` y color de la PWA |
+| `--surface` / `-2` / `-3` | `#fff` / `#f8f9fc` / `#edeff6` | Superficies y apoyos |
+| `--line` / `--line-2` | `#e6e8f1` / `#d3d7e6` | Bordes y separadores |
+| `--ink` / `-2` / `-3` | `#1f2338` / `#545972` / `#61667e` | Texto (15.5 / 6.9 / 5.7:1) |
+| `--ok` `--warn` `--danger` `--info` | `#14704f` `#8d5a1f` `#ad3c53` `#41639c` | Estados, con su variante `*-soft` |
+| `--r-xl/-lg/-md/-sm` | `18/14/10/8px` | Zonas, filas, controles, pastillas |
+| `--topbar-h` `--rail-w` `--content-w` | `60px` `244px` `1180px` | Estructura (220 y 1080 px hasta 1280 px) |
+| `--pad-x` | `clamp(16px, 2.6vw, 32px)` | Margen lateral fluido |
 
-**Archivo** continúa siendo la única familia, en WOFF2 local. Se precargan
-los pesos 400 y 700. La escala de UI pasa a 11 / 12 / 14 / 16 px, con títulos
-hasta 48 px y cifras hasta 46 px. Los campos editables usan al menos 16 px
-para evitar el zoom automático de iOS; el documento conserva sus medidas en pt.
+**Archivo** sigue siendo la única familia, en WOFF2 local (300/400/500/700), con
+`font-display: swap`. Escala de interfaz: 11 / 12 / 14 / 16 px, cifras 17–26 px
+(`--fs-n`), títulos de zona 13–15 px y 27–46 px en la franja. Los campos
+editables usan mínimo 16 px para evitar el zoom automático de iOS. El documento
+conserva sus medidas en pt.
 
-## 3. Distribución adaptable
+## 3. Composición por pantalla
 
-| Tamaño | Navegación y distribución |
+| Pantalla | Composición |
 |---|---|
-| Más de 980 px | Navegación en cabecera; hero y paneles en dos columnas |
-| 761–980 px | Dock de vidrio flotante; editor con pestañas |
-| Hasta 760 px | Navegación inferior con safe areas; hero y paneles apilados |
-| Hasta 620 px | Hero resumido; indicadores en tarjetas horizontales y directorio en tarjetas |
-| Hasta 560 px | Formularios y listas en una columna |
+| **Panel (Inicio)** | Franja oscura: saludo, fecha, accesos principales, saldo por cobrar (botón que abre el detalle de deudores) y mini estado de cobranza. Debajo, franja de cinco accesos directos. Rejilla `home-grid`: To-Do agrupado por área (zona principal) y columna de apoyo con «Por cobrar» y «El mes en cifras» (renglones icono + etiqueta + cifra + detalle). |
+| **Documentos, CxC, CxP, Clientes, Catálogo, Tareas** | `page-head` con kicker, título, descripción, cifras integradas (`head-figs`) y acciones primarias. `page-grid` con panel lateral sticky (etiqueta visible + buscador + filtros en columna + pista) y columna de resultados (`results-bar` con conteo y `rows`). |
+| **Filas** | Rejilla con áreas `main / figure / status / actions`, más `progress`, `docs`, `tags` o `doc` según el tipo. Las pistas opcionales sólo se declaran cuando el contenido existe (`:has()`), para no dejar huecos. |
+| **Editor** | Barra superior (volver, modo, guardar, imprimir, enviar, eliminar), pestañas Datos/Vista previa en pantallas cortas, formulario en secciones `fsec-head` + `fsec-body` y vista previa sticky del documento a escala. |
+| **Ajustes** | Modal ancho con `set-grid` de bloques: estudio, pagos + QR, cuenta y clientes guardados; el bloque de textos por defecto ocupa el ancho completo con dos columnas. |
+| **CxC detalle, CxP, cliente, producto, tarea** | Modales `modal-head / modal-body / modal-foot`; en móvil se apoyan en el borde inferior con safe areas y botones de 44 px. |
+| **Acceso** | `auth-gate` a pantalla completa: escaparate oscuro con la propuesta y tarjeta de entrada/sesión, sin tocar el flujo de autenticación. |
 
-La navegación usa las mismas acciones existentes. Las vistas activas se
-reflejan tanto en la cabecera como en la barra inferior, con `aria-current`.
-Las cifras grandes y las etiquetas largas pueden envolver sin romper la rejilla.
+## 4. Distribución adaptable
 
-## 4. Rapidez y accesibilidad
+| Tamaño | Navegación y composición |
+|---|---|
+| 1024 px o más | Riel lateral fijo (secciones + cuenta + ajustes/salir); barra superior sin duplicados; panel y listas en dos columnas |
+| 761–1023 px | El riel se oculta: dock flotante centrado arriba de la barra inferior; bandas y listas siguen en dos columnas (360/320/232/400 px de apoyo) |
+| Hasta 900 px | Todo a una columna; el panel lateral de filtros se vuelve una franja horizontal de chips; el editor muestra pestañas Datos/Vista previa |
+| Hasta 760 px | Barra superior compacta, accesos directos en cinco iconos con etiqueta corta, modales tipo hoja inferior |
+| Hasta 620 px | Filas con estado y acciones en renglones propios, acciones sólo con icono (40 px), formularios y textos de Ajustes en una columna |
+| Hasta 420 / 359 px | Se ocultan etiquetas secundarias; los accesos directos pasan a tres columnas |
+
+`html { overflow-x: hidden }` + `body { overflow-x: clip }` impiden desplazamiento
+lateral sin romper `position: sticky`. Todas las columnas flexibles usan
+`minmax(0, 1fr)` y los textos largos `overflow-wrap: anywhere` o elipsis.
+
+## 5. Rapidez y accesibilidad
 
 - Regla global `animation: none`, `transition: none`, `scroll-behavior: auto`.
-  Las cifras se pintan directamente; no hay conteos, parallax ni hover animado.
-- Geometría decorativa SVG y degradados CSS, sin imágenes pesadas adicionales.
-- Si no hay soporte de blur, la composición sigue funcionando. Con
-  `prefers-reduced-transparency`, se usan superficies opacas.
-- Enlace «Ir al contenido», foco visible, búsquedas etiquetadas y aviso de
-  guardado mediante `role="status"`.
-- Menú y modales contienen el foco, bloquean el fondo con `inert`, se cierran
-  con Escape y devuelven el foco al control de origen.
-- La pantalla de cuenta oculta la interfaz de fondo, sin cambiar el flujo de
-  autenticación ni los endpoints.
+  El dinamismo viene de la composición y el espacio, no del movimiento.
+- Sin dependencias nuevas, sin fuentes externas, sin librerías de iconos: los
+  iconos siguen siendo los SVG en línea de `ICONS` (`js/layout.js`) y la
+  geometría decorativa son dos órbitas SVG contenidas por `overflow: hidden`.
+- Contrastes medidos: todo el texto útil cumple WCAG AA (mínimo 4.9:1 en
+  pastillas y 5.7:1 en metadatos); la franja oscura llega a 16:1.
+- Enlace «Ir al contenido», `aria-current` en la navegación activa, búsquedas
+  con etiqueta visible, botones de icono con `aria-label` y `title`, conteos con
+  texto completo («3 documentos», «Ningún resultado») y aviso de guardado con
+  `role="status"`.
+- `:focus-visible` con anillo en toda la interfaz y anillo menta sobre la franja
+  oscura; menú y modales atrapan el foco, dejan el fondo `inert`, se cierran con
+  Escape y devuelven el foco al control de origen.
+- `prefers-reduced-transparency` sustituye la superficie translúcida de la franja
+  por color sólido.
 
-## 5. PWA y documentos
+## 6. PWA y documentos
 
-- Caché actual: **`mc-pwa-v50`**. HTML, CSS y JS siguen con estrategia
+- Caché actual: **`mc-pwa-v60`**. HTML, CSS y JS siguen con estrategia
   *network-first*; fuentes, logo e iconos conservan *cache-first*.
-- Las cuatro TTF de Archivo se precargan también en la caché, para que la
-  **primera generación de PDF funcione sin conexión**.
+- Las cuatro TTF de Archivo continúan precargadas para que la **primera
+  generación de PDF funcione sin conexión**.
 - `/api/` queda fuera de la caché: no se guardan respuestas privadas ni se
   devuelve HTML como respaldo de una petición de sincronización.
-- Manifest y `theme-color` coinciden con el nuevo fondo.
-- La impresión excluye toda la UI. Los PDF siguen monocromos, en tamaño
-  Letter y con sus coordenadas originales. No se modificó el motor de cálculo.
+- `manifest.webmanifest` y `meta[name=theme-color]` coinciden con `--bg`.
+- La impresión muestra sólo `#print-area` (612 × 791.5 pt, `@page size: letter`).
+  Los PDF siguen monocromos y con sus coordenadas originales: el motor de
+  cálculo y de render no se modificó.
 
-Al actualizar la interfaz, subir siempre la versión de la caché para que
-los dispositivos instalados descarten los recursos viejos.
+Al actualizar la interfaz, subir siempre la versión de la caché para que los
+dispositivos instalados descarten los recursos viejos.
 
-## 6. Vista previa local
+## 7. Vista previa local
 
 ```sh
 npm run preview
@@ -91,8 +123,8 @@ npm run preview
 
 Abre el puerto 3000 en `0.0.0.0`, con datos de ejemplo identificados como
 **«Demo local»**. Se guardan en un espacio de almacenamiento separado
-(`in-voice-preview:`); no se crean tokens, no se envían datos a una API y no
-se instala el service worker. `/?auth=1` permite inspeccionar el acceso real.
+(`in-voice-preview:`); no se crean tokens, no se envían datos a una API y no se
+instala el service worker. `/?auth=1` permite inspeccionar el acceso real.
 
 ```sh
 npm run dev
@@ -105,21 +137,31 @@ necesitan el backend descrito en `SINCRONIZACION.md`.
 Los scripts de demo **no se incluyen en `index.html` ni en la caché de
 producción**: sólo los inyecta el servidor de desarrollo con `--demo`.
 
-## 7. Validación del rediseño
+## 8. Validación del rediseño
 
-Pruebas realizadas con Chromium / Playwright:
+Verificación automática con un arnés de DOM (jsdom) sobre la vista previa:
 
-- 12 anchos: 320, 360, 390, 430, 620, 760, 768, 980, 1024, 1280, 1440 y 1920 px.
-- Panel, deudores, seis secciones, búsqueda, menú, ajustes y editor.
-- Guardado de documentos, pestañas de vista previa y formularios de cuenta.
-- Sin desbordamientos horizontales, animaciones activas ni errores JS.
-- Comprobaciones axe WCAG AA en panel, documentos, menú y acceso: sin
-  infracciones en las vistas comprobadas. No sustituye una auditoría completa.
-- App real con API simulada en un contexto de prueba: recarga y guardado
-  offline, primera descarga PDF offline, impresión Letter de una página y
-  conservación del icono de enviar tras la descarga.
+- Las siete vistas pintan con datos de ejemplo; búsqueda y filtros reducen las
+  listas; el menú a pantalla completa abre y cierra.
+- Editor: ocho secciones, totales y saldo recalculados, alta y baja de
+  conceptos y abonos, pestaña de vista previa, guardado con aviso y regreso a
+  la lista.
+- Modales de Ajustes (14 campos), CxP, cliente, producto y tarea: abren con sus
+  controles.
+- 108 identificadores referenciados por `js/app.js` presentes en el DOM final;
+  ninguna acción `data-action` perdió su control; **sin errores de JavaScript**.
+- Auditoría de marcado/hoja de estilos: ninguna clase usada sin regla y ningún
+  selector huérfano; dos elementos nunca comparten la misma área de rejilla.
+- Comprobación de contrastes y de anchos fijos por punto de ruptura (rieles de
+  258/232 px, avatares e iconos, órbitas decorativas contenidas).
 
-## 8. Historial
+Pendiente de revisión humana: el recorrido visual en navegador (no hay binario
+de navegador en el entorno de trabajo). La vista previa queda levantada en el
+puerto 3000 para inspeccionar móvil, tableta y escritorio.
+
+## 9. Historial
 
 - **v4.0 «Plano cromático»**: superficies opacas y escala tipográfica compacta.
 - **v5.0 «Creative glass»**: vuelve la profundidad visual, pero no el movimiento.
+- **v6.0 «Estudio»**: composición por zonas, riel lateral, listas densas y
+  cifras integradas en la cabecera de cada pantalla.

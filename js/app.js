@@ -113,6 +113,41 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+
+  /* ---------------- Marcado compartido de las listas ----------------
+     Las seis listas (documentos, por cobrar, por pagar, directorio,
+     catálogo y tareas) usan la misma anatomía de fila: identidad a la
+     izquierda, cifra a la derecha, estado y acciones al pie. Así la
+     información se lee de un vistazo y las acciones quedan siempre en
+     el mismo lugar. */
+  const ICO = {
+    edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    cash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>',
+    open: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>'
+  };
+  /* Botón de fila. `visible` es la etiqueta de texto; si se omite, el
+     botón queda sólo con icono (nombre accesible por aria-label). */
+  function actBtn(action, id, aria, icon, visible, kind) {
+    const cls = 'btn small ' + (kind || 'outline') + (visible ? '' : ' icon-only');
+    const idAttr = id ? ' data-id="' + esc(id) + '"' : '';
+    const label = visible ? '<span class="btn-label">' + esc(visible) + '</span>' : '';
+    return '<button type="button" class="' + cls + '" data-action="' + action + '"' + idAttr
+      + ' aria-label="' + esc(aria) + '" title="' + esc(aria) + '">' + icon + label + '</button>';
+  }
+  function trashBtn(action, id, aria) {
+    return actBtn(action, id, aria, window.ICONS.trash(), '', 'danger');
+  }
+  /* Separador de metadatos: no se lee, sólo ordena la línea. */
+  const SEP = '<span class="row-sep" aria-hidden="true">·</span>';
+  /* Cuenta de resultados de cada lista (aviso visible y para lectores). */
+  function setCount(id, n, singular, plural, extra) {
+    const el = $('#' + id);
+    if (!el) return;
+    el.innerHTML = n
+      ? '<b>' + n + '</b> ' + (n === 1 ? singular : plural) + (extra ? ' · ' + esc(extra) : '')
+      : 'Ningún resultado';
+  }
   /* Características de productos, servicios y conceptos: se guardan como
      arreglo, pero se acepta texto suelto (líneas, comas, punto y coma). */
   function splitCaract(v) {
@@ -169,6 +204,8 @@
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
     $$('.chip[data-filter]').forEach((c) => c.classList.toggle('active', c.dataset.filter === listFilter));
+    setCount('docs-count', filtered.length, 'documento', 'documentos',
+      listFilter === 'todos' ? '' : (listFilter === 'recibo' ? 'recibos' : 'cotizaciones'));
 
     if (!filtered.length) {
       wrap.innerHTML = `
@@ -177,40 +214,51 @@
           <h3>${docs.length ? 'No hay documentos que coincidan' : 'Aún no hay documentos'}</h3>
           <p>${docs.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primer recibo o cotización y guárdalo en este dispositivo.'}</p>
           <div class="empty-actions">
-            <button class="btn primary" data-action="new-recibo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
-            <button class="btn outline" data-action="new-cotizacion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
+            <button class="btn primary" data-action="new-recibo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo recibo</button>
+            <button class="btn outline" data-action="new-cotizacion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cotización</button>
           </div>
         </div>`;
       return;
     }
 
-    wrap.innerHTML = filtered.map((d, i) => {
+    const rows = filtered.map((d) => {
       const t = computeTotals(d);
-      const stamp = d.tipo === 'cotizacion'
-        ? '<span class="pill ghost">Cotización</span>'
-        : '<span class="pill solid">Recibo</span>';
+      const esCot = d.tipo === 'cotizacion';
+      const nombre = d.numero || (esCot ? 'Cotización' : 'Recibo');
+      const datos = [
+        d.numero ? '<span>' + esc(d.numero) + '</span>' : '',
+        d.representante ? '<span>' + esc(d.representante) + '</span>' : '',
+        d.email && !d.representante ? '<span>' + esc(d.email) + '</span>' : '',
+        d.fecha ? '<span>' + window.fmtDate(d.fecha) + '</span>' : ''
+      ].filter(Boolean).join(SEP);
+      const meta = '<span class="pill mini ' + (esCot ? 'ghost' : 'solid') + '">'
+        + (esCot ? 'Cotización' : 'Recibo') + '</span>' + (datos ? SEP + datos : '');
+      const nota = t.abonado > 0.005
+        ? window.fmtMoney(t.total) + ' · abonado ' + window.fmtMoney(t.abonado)
+        : t.n + ' concepto' + (t.n !== 1 ? 's' : '');
       return `
-      <div class="card" style="--i:${Math.min(i, 14)}">
-        <div class="card-top">
-          ${stamp}
-          <span class="card-num">${esc(d.numero)}</span>
-          <span class="card-date">${window.fmtDate(d.fecha)}</span>
+      <li class="row row-doc">
+        <div class="row-main">
+          <p class="row-title">${esc(d.proyecto || 'Sin proyecto')}</p>
+          <p class="row-meta">${meta}</p>
         </div>
-        <div class="card-title">${esc(d.proyecto || 'Sin proyecto')}</div>
-        <div class="card-sub">${esc(d.representante || '')}${d.representante ? ' · ' : ''}${esc(d.email || '')}</div>
-        <div class="perf"></div>
-        <div class="card-foot">
-          <div class="card-amount"><span class="card-money-label">Importe total</span><strong>${window.fmtMoney(t.total)}</strong></div>
-          <span class="pill mini ${t.pagado ? 'ok' : 'warn'}">${t.pagado ? 'Liquidado' : 'Pendiente'}</span>
-          <span class="card-count">${t.n} concepto${t.n !== 1 ? 's' : ''}</span>
+        <div class="row-figure">
+          <strong>${window.fmtMoney(t.total)}</strong>
+          <span class="row-figure-note">${esc(nota)}</span>
         </div>
-        <div class="card-actions">
-          <button class="btn small outline" data-action="edit" data-id="${d.id}">Editar</button>
-          <button class="btn small outline" data-action="duplicate" data-id="${d.id}">Duplicar</button>
-          <button class="btn small danger" data-action="delete-list" data-id="${d.id}">Eliminar</button>
+        <div class="row-status">
+          <span class="pill mini ${t.pagado ? 'ok' : 'warn'}">${t.pagado ? 'Liquidado' : (t.porPagar < t.total ? 'Pago parcial' : 'Pendiente')}</span>
+          ${esCot && d.vigencia ? '<span class="row-figure-note">Vigente hasta ' + window.fmtDate(d.vigencia) + '</span>' : ''}
         </div>
-      </div>`;
+        <div class="row-actions">
+          ${actBtn('edit', d.id, 'Editar ' + nombre, ICO.edit, 'Editar')}
+          ${actBtn('duplicate', d.id, 'Duplicar ' + nombre, ICO.copy)}
+          ${trashBtn('delete-list', d.id, 'Eliminar ' + nombre)}
+        </div>
+      </li>`;
     }).join('');
+
+    wrap.innerHTML = '<ul class="rows">' + rows + '</ul>';
   }
 
   /* ================= NAVEGACIÓN PRINCIPAL + MENÚ ================= */
@@ -277,7 +325,11 @@
 
   function setBackgroundInert() {
     const locked = document.body.classList.contains('nav-open') || !!$('.modal.open');
-    ['#main-content', '#topbar', '#mobile-nav'].forEach(function (id) { $(id).inert = locked; });
+    // #shell cubre barra superior, riel y contenido de una sola vez
+    ['#shell', '#mobile-nav'].forEach(function (id) {
+      const el = $(id);
+      if (el) el.inert = locked;
+    });
   }
 
   function openNavPop() {
@@ -722,17 +774,20 @@
       return '<div class="todo-area">'
         + '<div class="todo-area-head"><span class="todo-area-name">' + area.label + '</span>'
         + '<span class="todo-area-count">' + list.length + '</span></div>'
-        + rows + '</div>';
+        + '<div class="todo-rows">' + rows + '</div></div>';
     }).join('');
   }
 
+  /* Cifras del mes: una lectura compacta por renglón, en el panel de
+     apoyo. Icono + etiqueta a la izquierda, número a la derecha y el
+     detalle (variación o acción) debajo. */
   function statCardHtml(o) {
-    return '<div class="stat-card tone-' + (o.tone || 'brand') + '">'
-      + '<div class="stat-head"><span class="stat-ico">' + o.icon + '</span>'
-      + '<span class="stat-label">' + o.label + '</span></div>'
-      + '<div class="stat-value" data-count="' + o.value + '" data-money="' + (o.money ? 1 : 0) + '">'
-      + (o.money ? window.fmtMoney(0) : '0') + '</div>'
-      + '<div class="stat-foot">' + (o.foot || '') + '</div>'
+    return '<div class="fig tone-' + (o.tone || 'accent') + '">'
+      + '<span class="fig-ico">' + o.icon + '</span>'
+      + '<span class="fig-label">' + o.label + '</span>'
+      + '<span class="fig-value" data-count="' + o.value + '" data-money="' + (o.money ? 1 : 0) + '">'
+      + (o.money ? window.fmtMoney(0) : '0') + '</span>'
+      + '<span class="fig-foot">' + (o.foot || '') + '</span>'
       + '</div>';
   }
 
@@ -898,9 +953,11 @@
             + (saldados ? ' · <span>' + saldados + ' saldado' + (saldados !== 1 ? 's' : '') + '</span>' : ''))
       });
 
-    $$('#stat-grid .stat-value').forEach(function (el) {
+    $$('#stat-grid .fig-value').forEach(function (el) {
       countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
     });
+    const figsNote = $('#figs-note');
+    if (figsNote) figsNote.textContent = MESES_LARGOS[now.getMonth()] + ' ' + now.getFullYear();
 
     /* ---------- Cobranza: gráfica en el héroe + lista de documentos ---------- */
     const cob = cobranzaStats();
@@ -969,6 +1026,8 @@
       return text.indexOf(q) >= 0;
     });
 
+    setCount('cxc-count', filtered.length, 'cliente con saldo', 'clientes con saldo');
+
     var wrap = $('#cxc-list');
     if (!filtered.length) {
       wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.coin('ic-lg') + '</span>'
@@ -977,40 +1036,47 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c, ci) {
+    var rows = filtered.map(function(c) {
+      var origen = c.docs.reduce(function(s, d) { return s + d.total; }, 0);
+      var abonado = c.docs.reduce(function(s, d) { return s + d.abonado; }, 0);
+      var pct = origen > 0 ? Math.min(100, (abonado / origen) * 100) : 0;
+
       var docsHtml = c.docs.map(function(d) {
         var badge = d.tipo === 'cotizacion'
           ? '<span class="pill mini ghost">COT</span>'
           : '<span class="pill mini solid">REC</span>';
-        return '<div class="card-doc-item">'
-          + '<div>' + badge + ' <span>' + esc(d.numero) + '</span>'
-          + (d.proyecto ? ' <span class="muted">— ' + esc(d.proyecto) + '</span>' : '')
-          + '</div>'
-          + '<div><strong>' + window.fmtMoney(d.saldo) + '</strong> <span class="muted">de ' + window.fmtMoney(d.total) + '</span></div>'
+        return '<div class="row-doc-item">'
+          + '<span>' + badge + ' ' + esc(d.numero)
+          + (d.proyecto ? ' <span class="muted">— ' + esc(d.proyecto) + '</span>' : '') + '</span>'
+          + '<span><strong>' + window.fmtMoney(d.saldo) + '</strong> <span class="muted">de ' + window.fmtMoney(d.total) + '</span></span>'
           + '</div>';
       }).join('');
 
-      var pctGlobal = c.docs.reduce(function(s, d) { return s + d.abonado; }, 0);
-      var pctTotal = c.docs.reduce(function(s, d) { return s + d.total; }, 0);
-      var pct = pctTotal > 0 ? Math.min(100, (pctGlobal / pctTotal) * 100) : 0;
+      var meta = [
+        c.email ? '<span>' + esc(c.email) + '</span>' : '',
+        '<span>' + c.docs.length + ' documento' + (c.docs.length !== 1 ? 's' : '') + '</span>'
+      ].filter(Boolean).join(SEP);
 
-      return '<div class="card-cxc" style="--i:' + Math.min(ci, 14) + '" data-cliente="' + esc(c.cliente) + '">'
-        + '<div class="card-top">'
-        + '<span class="pill mini warn">Pendiente</span>'
-        + '<div class="card-title">' + esc(c.cliente) + '</div>'
-        + '<div style="margin-left:auto;text-align:right">'
-        + '<div class="card-cxc-saldo">' + window.fmtMoney(c.saldoTotal) + '</div>'
-        + '<div class="card-total-orig">de ' + window.fmtMoney(pctTotal) + '</div>'
+      return '<li class="row row-cxc" data-cliente="' + esc(c.cliente) + '">'
+        + '<div class="row-main">'
+        + '<p class="row-title">' + esc(c.cliente) + '</p>'
+        + '<p class="row-meta">' + meta + '</p>'
         + '</div>'
+        + '<div class="row-figure">'
+        + '<strong>' + window.fmtMoney(c.saldoTotal) + '</strong>'
+        + '<span class="row-figure-note">de ' + window.fmtMoney(origen) + ' · ' + Math.round(pct) + '% abonado</span>'
         + '</div>'
-        + (c.email ? '<div class="card-sub">' + esc(c.email) + '</div>' : '')
-        + '<div class="card-progress"><div class="card-progress-bar" style="width:' + pct.toFixed(1) + '%"></div></div>'
-        + '<div class="card-docs">' + docsHtml + '</div>'
-        + '<div class="card-actions">'
-        + '<button class="btn small outline" data-action="view-cxc-doc" data-docid="' + c.docs[0].id + '">' + window.ICONS.docs() + ' Ver documento</button>'
+        + '<div class="row-progress"><span class="row-progress-bar" style="width:' + pct.toFixed(1) + '%"></span></div>'
+        + '<div class="row-docs">' + docsHtml + '</div>'
+        + '<div class="row-status"><span class="pill mini warn">Saldo pendiente</span></div>'
+        + '<div class="row-actions">'
+        + '<button type="button" class="btn small outline" data-action="view-cxc-doc" data-docid="' + esc(c.docs[0].id) + '" aria-label="Ver documento de ' + esc(c.cliente) + '" title="Ver documento">'
+        + ICO.open + '<span class="btn-label">Ver documento</span></button>'
         + '</div>'
-        + '</div>';
+        + '</li>';
     }).join('');
+
+    wrap.innerHTML = '<ul class="rows">' + rows + '</ul>';
   }
 
   /* ================= CUENTAS POR PAGAR ================= */
@@ -1056,53 +1122,67 @@
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
+    setCount('cxp-count', filtered.length, 'cuenta', 'cuentas',
+      cxpFilter === 'todas' ? '' : ({ pendiente: 'pendientes', pagada: 'pagadas', parcial: 'con pago parcial' })[cxpFilter]);
+
     var wrap = $('#cxp-list');
     if (!filtered.length) {
       wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.clipboard('ic-lg') + '</span>'
         + '<h3>' + (cuentasXPagar.length ? 'No hay coincidencias' : 'No hay cuentas por pagar') + '</h3>'
         + '<p>' + (cuentasXPagar.length ? 'Prueba con otra búsqueda o filtro.' : 'Registra tus gastos y facturas pendientes de pago.') + '</p>'
-        + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
+        + '<div class="empty-actions"><button class="btn primary" data-action="new-cxp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva cuenta por pagar</button></div></div>';
       return;
     }
 
-    wrap.innerHTML = filtered.map(function(c, ci) {
+    var catLabels = {
+      material: 'Material', servicio: 'Servicio', renta: 'Renta',
+      servicios: 'Servicios', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro'
+    };
+
+    var rows = filtered.map(function(c) {
       var abonosTotal = (c.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
       var saldo = c.monto - abonosTotal;
       var status, statusClass, statusPill;
-      if (saldo <= 0.005) { status = 'Pagada'; statusClass = 'pagada'; statusPill = 'ok'; }
-      else if (abonosTotal > 0) { status = 'Parcial'; statusClass = 'parcial'; statusPill = 'warn'; }
-      else { status = 'Pendiente'; statusClass = 'pendiente'; statusPill = 'ghost'; }
+      if (saldo <= 0.005) { status = 'Pagada'; statusClass = 'is-paid'; statusPill = 'ok'; }
+      else if (abonosTotal > 0) { status = 'Pago parcial'; statusClass = 'is-partial'; statusPill = 'warn'; }
+      else { status = 'Pendiente'; statusClass = 'is-open'; statusPill = 'ghost'; }
 
       var pct = c.monto > 0 ? Math.min(100, (abonosTotal / c.monto) * 100) : 0;
       var vencida = c.vencimiento && c.vencimiento < window.todayISO() && saldo > 0.005;
+      var nombre = c.proveedor || c.folio || 'esta cuenta';
 
-      var catLabels = {
-        material: 'Material', servicio: 'Servicio', renta: 'Renta',
-        servicios: 'Servicios', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro'
-      };
+      var meta = [
+        '<span class="pill mini">' + esc(catLabels[c.categoria] || c.categoria || 'Otro') + '</span>',
+        c.folio ? '<span>' + esc(c.folio) + '</span>' : '',
+        (c.fechaEmision || c.fecha) ? '<span>Emitida ' + window.fmtDate(c.fechaEmision || c.fecha) + '</span>' : '',
+        c.vencimiento ? '<span>Vence ' + window.fmtDate(c.vencimiento) + '</span>' : ''
+      ].filter(Boolean).join(SEP);
 
-      return '<div class="card-cxp ' + statusClass + '" style="--i:' + Math.min(ci, 14) + '">'
-        + '<div class="card-top">'
+      return '<li class="row row-cxp ' + statusClass + (vencida ? ' is-overdue' : '') + '">'
+        + '<div class="row-main">'
+        + '<p class="row-title">' + esc(c.proveedor || 'Sin proveedor') + '</p>'
+        + (c.concepto ? '<p class="row-sub">' + esc(c.concepto) + '</p>' : '')
+        + '<p class="row-meta">' + meta + '</p>'
+        + '</div>'
+        + '<div class="row-figure">'
+        + '<strong>' + window.fmtMoney(saldo) + '</strong>'
+        + '<span class="row-figure-note">de ' + window.fmtMoney(c.monto) + '</span>'
+        + '</div>'
+        + '<div class="row-progress"><span class="row-progress-bar" style="width:' + pct.toFixed(1) + '%"></span></div>'
+        + '<div class="row-status">'
         + '<span class="pill mini ' + statusPill + '">' + status + '</span>'
-        + '<span class="card-categoria">' + (catLabels[c.categoria] || c.categoria) + '</span>'
-        + (c.folio ? '<span class="card-num">' + esc(c.folio) + '</span>' : '')
         + (vencida ? '<span class="cxp-vencida">' + window.ICONS.warning() + ' Vencida ' + window.fmtDate(c.vencimiento) + '</span>' : '')
+        + (abonosTotal > 0 && !vencida ? '<span class="row-figure-note">' + (c.abonos || []).length + ' abono' + ((c.abonos || []).length !== 1 ? 's' : '') + '</span>' : '')
         + '</div>'
-        + '<div class="card-title">' + esc(c.proveedor || 'Sin proveedor') + '</div>'
-        + '<div class="card-sub">' + esc(c.concepto || 'Sin concepto') + '</div>'
-        + '<div class="card-foot">'
-        + '<span class="card-saldo">' + window.fmtMoney(saldo) + '</span>'
-        + '<span class="muted">de ' + window.fmtMoney(c.monto) + '</span>'
-        + (vencida ? '' : (c.vencimiento ? '<span class="muted">· Vence: ' + window.fmtDate(c.vencimiento) + '</span>' : ''))
+        + '<div class="row-actions">'
+        + actBtn('edit-cxp', c.id, 'Editar cuenta de ' + nombre, ICO.edit, 'Editar')
+        + actBtn('quick-pay-cxp', c.id, 'Abonar a ' + nombre, ICO.cash, 'Abonar')
+        + trashBtn('del-cxp', c.id, 'Eliminar cuenta de ' + nombre)
         + '</div>'
-        + '<div class="card-progress"><div class="card-progress-bar" style="width:' + pct.toFixed(1) + '%"></div></div>'
-        + '<div class="card-actions">'
-        + '<button class="btn small" data-action="edit-cxp" data-id="' + c.id + '">' + window.ICONS.save() + ' Editar</button>'
-        + '<button class="btn small outline" data-action="quick-pay-cxp" data-id="' + c.id + '">' + window.ICONS.cash() + ' Abonar</button>'
-        + '<button class="btn small danger" data-action="del-cxp" data-id="' + c.id + '">' + window.ICONS.trash() + '</button>'
-        + '</div>'
-        + '</div>';
+        + '</li>';
     }).join('');
+
+    wrap.innerHTML = '<ul class="rows">' + rows + '</ul>';
   }
 
   function openCxpModal(cxp) {
@@ -1228,6 +1308,9 @@
       c.classList.toggle('active', c.dataset.cliFilter === cliFilter);
     });
 
+    setCount('cli-count', filtered.length, 'contacto', 'contactos',
+      cliFilter === 'todos' ? '' : (cliFilter === 'cliente' ? 'clientes' : 'prospectos'));
+
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty" role="status">
@@ -1242,86 +1325,47 @@
       return;
     }
 
-    const plural = filtered.length === 1 ? 'contacto' : 'contactos';
-    const rows = filtered.map(function(c, ci) {
+    const rows = filtered.map(function(c) {
       const tipo = cliTipo(c);
       const nombre = String(c.nombre || '').trim() || 'Sin nombre';
       const initials = nombre.trim().split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function(part) { return part.charAt(0); }).join('').toUpperCase();
       const stamp = tipo === 'prospecto'
-        ? '<span class="pill ghost mini cli-type">Prospecto</span>'
-        : '<span class="pill solid mini cli-type">Cliente</span>';
+        ? '<span class="pill ghost mini">Prospecto</span>'
+        : '<span class="pill solid mini">Cliente</span>';
       const estado = (tipo === 'prospecto' && c.estado)
         ? `<span class="cli-estado" data-estado="${esc(c.estado)}">${esc(CLI_ESTADOS[c.estado] || c.estado)}</span>`
         : '';
-      const contactInfo = [
-        c.email ? { label: 'Correo', value: c.email } : null,
-        c.telefono ? { label: 'Teléfono', value: c.telefono } : null,
-        c.direccion ? { label: 'Dirección', value: c.direccion } : null
-      ].filter(Boolean);
-      const contactDetails = contactInfo.length
-        ? contactInfo.map(function(item) {
-            return `<span class="cli-contact-item" title="${esc(item.label + ': ' + item.value)}">${esc(item.value)}</span>`;
-          }).join('')
-        : '<span class="cli-contact-empty">Sin datos de contacto</span>';
+      const contacto = [
+        c.email ? `<span title="Correo: ${esc(c.email)}">${esc(c.email)}</span>` : '',
+        c.telefono ? `<span title="Teléfono: ${esc(c.telefono)}">${esc(c.telefono)}</span>` : '',
+        c.direccion ? `<span title="Dirección: ${esc(c.direccion)}">${esc(c.direccion)}</span>` : ''
+      ].filter(Boolean).join(SEP);
       const id = esc(c.id);
       const safeName = esc(nombre);
 
       return `
-        <tr style="--i:${Math.min(ci, 14)}">
-          <td class="cli-cell-main">
-            <div class="cli-person">
-              <span class="cli-avatar" aria-hidden="true">${esc(initials || '·')}</span>
-              <span class="cli-person-copy">
-                <span class="cli-name" title="${safeName}">${safeName}</span>
-                ${c.empresa ? `<span class="cli-company" title="${esc(c.empresa)}">${esc(c.empresa)}</span>` : ''}
-                ${c.notas ? `<span class="cli-note" title="${esc(c.notas)}">${esc(c.notas)}</span>` : ''}
-              </span>
-            </div>
-          </td>
-          <td class="cli-cell-contact"><span class="cli-contact-lines">${contactDetails}</span></td>
-          <td class="cli-cell-status">
-            <span class="cli-statuses">${stamp}${estado}</span>
-          </td>
-          <td class="cli-cell-date">${fmtCliFecha(c.updatedAt) || '—'}</td>
-          <td class="cli-cell-actions">
-            <span class="cli-actions">
-              <button class="btn small outline" data-action="edit-cliente" data-id="${id}" aria-label="Editar ${safeName}">Editar</button>
-              <button class="btn small danger cli-delete" data-action="del-cliente-card" data-id="${id}" aria-label="Eliminar ${safeName}" title="Eliminar contacto">${window.ICONS.trash()}</button>
-            </span>
-          </td>
-        </tr>`;
+        <li class="row row-cli">
+          <span class="row-avatar" aria-hidden="true">${esc(initials || '·')}</span>
+          <div class="row-main">
+            <p class="row-title" title="${safeName}">${safeName}</p>
+            ${c.empresa ? `<p class="row-meta"><span>${esc(c.empresa)}</span></p>` : ''}
+            <p class="row-meta">${contacto || '<span>Sin datos de contacto</span>'}</p>
+            ${c.notas ? `<p class="row-sub">${esc(c.notas)}</p>` : ''}
+          </div>
+          <div class="row-figure">
+            <span class="row-figure-note">Actualizado</span>
+            <strong>${fmtCliFecha(c.updatedAt) || '—'}</strong>
+          </div>
+          <div class="row-status">${stamp}${estado}</div>
+          <div class="row-actions">
+            ${actBtn('edit-cliente', c.id, 'Editar ' + nombre, ICO.edit, 'Editar')}
+            ${trashBtn('del-cliente-card', c.id, 'Eliminar ' + nombre)}
+          </div>
+        </li>`;
     }).join('');
 
-    wrap.innerHTML = `
-      <div class="cli-table-shell">
-        <div class="cli-table-summary" role="status">
-          <span><strong>${filtered.length}</strong> ${plural}</span>
-          <span class="cli-table-hint">Ordenados alfabéticamente</span>
-        </div>
-        <div class="cli-table-scroll">
-          <table class="cli-table" aria-label="Directorio de clientes y prospectos">
-            <caption class="sr-only">Clientes y prospectos registrados, con sus datos de contacto y acciones.</caption>
-            <colgroup>
-              <col class="cli-col-person">
-              <col class="cli-col-contact">
-              <col class="cli-col-status">
-              <col class="cli-col-date">
-              <col class="cli-col-actions">
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">Contacto</th>
-                <th scope="col">Datos de contacto</th>
-                <th scope="col">Tipo / seguimiento</th>
-                <th scope="col">Actualizado</th>
-                <th scope="col"><span class="sr-only">Acciones</span></th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </div>`;
+    wrap.innerHTML = `<ul class="rows" aria-label="Directorio de clientes y prospectos">${rows}</ul>`;
   }
 
   function setCliTipo(t) {
@@ -1406,6 +1450,9 @@
       c.classList.toggle('active', c.dataset.prodFilter === prodFilter);
     });
 
+    setCount('prod-count', filtered.length, 'ítem', 'ítems',
+      prodFilter === 'todos' ? '' : (prodFilter === 'producto' ? 'productos' : 'servicios'));
+
     if (!filtered.length) {
       wrap.innerHTML = `
         <div class="empty">
@@ -1422,30 +1469,36 @@
       return;
     }
 
-    wrap.innerHTML = filtered.map(function (p, i) {
+    const rows = filtered.map(function (p) {
       const tipo = prodTipo(p);
       const feats = splitCaract(p.caracteristicas);
+      const nombre = p.nombre || 'este ítem';
+      const metaFinal = '<span class="pill mini ' + (tipo === 'servicio' ? 'ghost' : 'solid') + '">'
+        + (tipo === 'servicio' ? 'Servicio' : 'Producto') + '</span>'
+        + [p.sku ? '<span>' + esc(p.sku) + '</span>' : '',
+           p.updatedAt ? '<span>Actualizado ' + fmtCliFecha(p.updatedAt) + '</span>' : '']
+          .filter(Boolean).map((x) => SEP + x).join('');
       return `
-      <div class="card card-prod" style="--i:${Math.min(i, 14)}">
-        <div class="card-top">
-          <span class="pill ${tipo === 'servicio' ? 'ghost' : 'solid'}">${tipo === 'servicio' ? 'Servicio' : 'Producto'}</span>
-          ${p.sku ? `<span class="card-num">${esc(p.sku)}</span>` : ''}
-          <span class="card-date">${fmtCliFecha(p.updatedAt)}</span>
+      <li class="row row-prod">
+        <div class="row-main">
+          <p class="row-title">${esc(p.nombre || 'Sin nombre')}</p>
+          <p class="row-meta">${metaFinal}</p>
         </div>
-        <div class="card-title">${esc(p.nombre || 'Sin nombre')}</div>
-        <div class="prod-price">
-          <b>${window.fmtMoney(p.precio)}</b>
-          <span>${p.unidad ? 'por ' + esc(p.unidad) : 'por unidad'}</span>
+        <div class="row-figure">
+          <strong>${window.fmtMoney(p.precio)}</strong>
+          <span class="row-figure-note">${p.unidad ? 'por ' + esc(p.unidad) : 'por unidad'}</span>
         </div>
         ${feats.length ? `<ul class="prod-feats">${feats.slice(0, 4).map((f) => `<li>${esc(f)}</li>`).join('')}${feats.length > 4 ? `<li class="prod-feat-more">+${feats.length - 4} más</li>` : ''}</ul>` : ''}
-        ${p.notas ? `<div class="cli-notas">${esc(p.notas)}</div>` : ''}
-        <div class="card-actions">
-          <button class="btn small outline" data-action="edit-producto" data-id="${p.id}">Editar</button>
-          <button class="btn small outline" data-action="dup-producto" data-id="${p.id}">Duplicar</button>
-          <button class="btn small danger" data-action="del-producto" data-id="${p.id}">Eliminar</button>
+        <div class="row-status">${p.notas ? `<span class="row-figure-note">${esc(p.notas)}</span>` : ''}</div>
+        <div class="row-actions">
+          ${actBtn('edit-producto', p.id, 'Editar ' + nombre, ICO.edit, 'Editar')}
+          ${actBtn('dup-producto', p.id, 'Duplicar ' + nombre, ICO.copy)}
+          ${trashBtn('del-producto', p.id, 'Eliminar ' + nombre)}
         </div>
-      </div>`;
+      </li>`;
     }).join('');
+
+    wrap.innerHTML = '<ul class="rows">' + rows + '</ul>';
   }
 
   function setProdTipo(t) {
@@ -1593,52 +1646,66 @@
       c.classList.toggle('active', c.dataset.tareaArea === tareaArea);
     });
 
-    // resumen
+    // resumen integrado en la cabecera de la vista
+    var pendientes = tareas.filter(function (t) { return !t.done; }).length;
+    var vencidas = tareas.filter(function (t) { return !t.done && t.deadline && t.deadline < hoy; }).length;
+    var hechas = tareas.filter(function (t) { return !!t.done; }).length;
     if (summary) {
-      var pendientes = tareas.filter(function (t) { return !t.done; }).length;
-      var vencidas = tareas.filter(function (t) { return !t.done && t.deadline && t.deadline < hoy; }).length;
-      var hechas = tareas.filter(function (t) { return !!t.done; }).length;
       summary.innerHTML = ''
-        + '<div class="summary-card' + (pendientes ? ' summary-warning' : '') + '"><span class="summary-label">Pendientes</span><strong class="summary-value">' + pendientes + '</strong></div>'
-        + '<div class="summary-card summary-danger"><span class="summary-label">Vencidas</span><strong class="summary-value">' + vencidas + '</strong></div>'
-        + '<div class="summary-card"><span class="summary-label">Hechas</span><strong class="summary-value">' + hechas + '</strong></div>';
+        + '<div class="head-fig' + (pendientes ? ' is-warn' : '') + '"><span class="head-fig-label">Pendientes</span><strong class="head-fig-value">' + pendientes + '</strong></div>'
+        + '<div class="head-fig' + (vencidas ? ' is-danger' : '') + '"><span class="head-fig-label">Vencidas</span><strong class="head-fig-value">' + vencidas + '</strong></div>'
+        + '<div class="head-fig is-ok"><span class="head-fig-label">Hechas</span><strong class="head-fig-value">' + hechas + '</strong></div>';
     }
+
+    setCount('tareas-count', filtered.length, 'tarea', 'tareas',
+      (tareaFilter === 'todas' ? '' : ({ pendiente: 'pendientes', hecha: 'hechas', vencida: 'vencidas' })[tareaFilter])
+      + (tareaArea === 'todas' ? '' : ' · ' + tareaAreaLabel(tareaArea)));
 
     if (!filtered.length) {
       wrap.innerHTML = '<div class="empty"><span class="empty-icon">' + window.ICONS.check('ic-lg') + '</span>'
         + '<h3>' + (tareas.length ? 'No hay tareas que coincidan' : 'Aún no hay tareas') + '</h3>'
         + '<p>' + (tareas.length ? 'Prueba con otra búsqueda o filtro.' : 'Crea tu primera tarea con título, área, prioridad, deadline y, si quieres, un recibo o cotización asociado. Las pendientes salen en el To-Do del inicio.') + '</p>'
-        + '<div class="empty-actions"><button class="btn primary" data-action="new-tarea"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2=\"19\"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva tarea</button></div></div>';
+        + '<div class="empty-actions"><button class="btn primary" data-action="new-tarea"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva tarea</button></div></div>';
       return;
     }
 
-    wrap.innerHTML = filtered.map(function (t, i) {
+    var rows = filtered.map(function (t) {
       var due = tareaDueMeta(t, hoy);
-      var prioPill = '<span class="pill mini ' + tareaPrioClass(t.prioridad) + '">' + esc(tareaPrioLabel(t.prioridad)) + '</span>';
+      var titulo = t.titulo || 'esta tarea';
+      var prioPill = '<span class="pill mini ' + tareaPrioClass(t.prioridad) + '">Prioridad ' + esc(tareaPrioLabel(t.prioridad)) + '</span>';
       var areaPill = '<span class="pill mini ghost">' + esc(tareaAreaLabel(t.area)) + '</span>';
-      var duePill = due.text ? '<span class="pill mini ' + (due.tone === 'danger' ? 'danger' : due.tone === 'warn' ? 'warn' : due.tone === 'ok' ? 'ok' : 'ghost') + '">' + esc(due.text) + '</span>' : '';
+      var duePill = due.text ? '<span class="pill mini' + (due.tone ? ' ' + due.tone : '') + '">' + esc(due.text) + '</span>' : '';
       var docHtml = '';
       if (t.docId) {
         var d = docs.find(function (x) { return x.id === t.docId; });
         if (d) {
           docHtml = '<div class="tarea-doc"><span class="pill mini ' + (d.tipo === 'cotizacion' ? 'ghost' : 'solid') + '">' + (d.tipo === 'cotizacion' ? 'COT' : 'REC') + ' ' + esc(d.numero || '') + '</span>'
-            + '<span class="muted"> ' + esc(d.representante || d.proyecto || '') + '</span>'
-            + ' <button class="btn small outline" data-action="view-tarea-doc" data-docid="' + esc(d.id) + '">Ver</button></div>';
+            + '<span class="muted">' + esc(d.representante || d.proyecto || '') + '</span>'
+            + '<button type="button" class="btn small quiet" data-action="view-tarea-doc" data-docid="' + esc(d.id) + '" aria-label="Ver el documento ' + esc(d.numero || '') + '">Ver documento</button></div>';
         }
       }
-      return '<div class="card card-tarea' + (t.done ? ' tarea-hecha' : '') + '" style="--i:' + Math.min(i, 14) + '">'
-        + '<div class="card-top">' + prioPill + areaPill + duePill + '</div>'
-        + '<div class="card-title">' + esc(t.titulo || 'Sin título') + '</div>'
-        + (t.descripcion ? '<div class="card-sub" style="white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + esc(t.descripcion) + '</div>' : '')
+      return '<li class="row row-tarea' + (t.done ? ' is-done' : '') + '">'
+        + '<div class="row-main">'
+        + '<p class="row-title">' + esc(t.titulo || 'Sin título') + '</p>'
+        + '<p class="row-meta">' + prioPill + SEP + areaPill + (duePill ? SEP + duePill : '') + '</p>'
+        + (t.descripcion ? '<p class="row-sub">' + esc(t.descripcion) + '</p>' : '')
+        + '</div>'
         + docHtml
-        + '<div class="card-actions">'
-        + '<button class="btn small outline" data-action="edit-tarea" data-id="' + esc(t.id) + '">Editar</button>'
+        + '<div class="row-status">'
+        + (t.done ? '<span class="pill mini ok">Hecha</span>' : '<span class="pill mini warn">Pendiente</span>')
+        + (t.updatedAt ? '<span class="row-figure-note">Actualizada ' + fmtCliFecha(t.updatedAt) + '</span>' : '')
+        + '</div>'
+        + '<div class="row-actions">'
+        + actBtn('edit-tarea', t.id, 'Editar ' + titulo, ICO.edit, 'Editar')
         + (t.done
-          ? '<button class="btn small outline" data-action="toggle-tarea" data-id="' + esc(t.id) + '">Reabrir</button>'
-          : '<button class="btn small" data-action="toggle-tarea" data-id="' + esc(t.id) + '">' + window.ICONS.check() + ' Hecha</button>')
-        + '<button class="btn small danger" data-action="del-tarea" data-id="' + esc(t.id) + '">' + window.ICONS.trash() + '</button>'
-        + '</div></div>';
+          ? actBtn('toggle-tarea', t.id, 'Reabrir ' + titulo, ICO.open, 'Reabrir')
+          : actBtn('toggle-tarea', t.id, 'Marcar hecha ' + titulo, window.ICONS.check(), 'Hecha', 'outline'))
+        + trashBtn('del-tarea', t.id, 'Eliminar ' + titulo)
+        + '</div>'
+        + '</li>';
     }).join('');
+
+    wrap.innerHTML = '<ul class="rows">' + rows + '</ul>';
   }
 
   function openTareaModal(id) {
@@ -1802,15 +1869,18 @@
       (isCot ? 'Cotización' : 'Recibo') + ' Nro. ' + (editing.numero || '');
     $('#editor-form').innerHTML = `
       <section class="fsec">
-        <h2>Tipo de documento</h2>
+        <div class="fsec-head"><h2>Tipo de documento</h2></div>
+        <div class="fsec-body">
         <div class="seg">
           <button class="seg-btn ${!isCot ? 'on' : ''}" data-action="set-tipo" data-tipo="recibo">Recibo</button>
           <button class="seg-btn ${isCot ? 'on' : ''}" data-action="set-tipo" data-tipo="cotizacion">Cotización</button>
         </div>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Datos generales</h2>
+        <div class="fsec-head"><h2>Datos generales</h2></div>
+        <div class="fsec-body">
         <div class="grid2">
           <label>Número
             <input id="f-numero" type="text" value="${esc(editing.numero)}">
@@ -1822,10 +1892,12 @@
         ${isCot ? `<label>Vigencia (válida hasta)
             <input id="f-vigencia" type="date" value="${esc(editing.vigencia || '')}">
           </label>` : ''}
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Cliente / Proyecto</h2>
+        <div class="fsec-head"><h2>Cliente / Proyecto</h2></div>
+        <div class="fsec-body">
         <label>Cliente guardado
           <div class="client-pick">
             <select id="f-cliente">
@@ -1850,10 +1922,12 @@
         <label>Email
           <input id="f-email" type="email" value="${esc(editing.email)}">
         </label>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Conceptos</h2>
+        <div class="fsec-head"><h2>Conceptos</h2></div>
+        <div class="fsec-body">
         ${catalogoPickerHtml()}
         <div id="items-list">
           ${(editing.items || []).map((it, i) => itemRow(it, i)).join('')}
@@ -1872,10 +1946,12 @@
           <div><span>Abonado</span><b id="t-abonado"></b></div>
           <div class="grand"><span>Por pagar</span><b id="t-porpagar"></b></div>
         </div>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Datos para pagos</h2>
+        <div class="fsec-head"><h2>Datos para pagos</h2></div>
+        <div class="fsec-body">
         <div class="grid2">
           <label>Cuenta Nro.
             <input id="f-cuenta" type="text" value="${esc(editing.pagos.cuenta)}">
@@ -1890,20 +1966,24 @@
             <input id="f-banco" type="text" value="${esc(editing.pagos.banco)}">
           </label>
         </div>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Abonos <span class="hint">(opcional)</span></h2>
+        <div class="fsec-head"><h2>Abonos</h2><p class="fsec-note">(opcional)</p></div>
+        <div class="fsec-body">
         <div id="abonos-list">
           ${(editing.abonos || []).map((a, i) => abonoRow(a, i)).join('')}
         </div>
         <button class="btn outline small" data-action="add-abono"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agregar abono</button>
         <div class="abono-foot"><span>Saldo pendiente</span><b id="saldo-pendiente">—</b></div>
         <p class="hint">El saldo se recalcula automáticamente con cada abono. En el documento impreso se muestran hasta 4 abonos.</p>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Condiciones de Entrega</h2>
+        <div class="fsec-head"><h2>Condiciones de Entrega</h2></div>
+        <div class="fsec-body">
         <div class="grid2">
           <label>Fecha de entrega
             <input id="f-entrega-fecha" type="date" value="${esc(editing.entregaFecha)}">
@@ -1914,12 +1994,15 @@
         </div>
         <p class="hint">Estos datos aparecen junto al icono de reloj y caja del documento.</p>
         <textarea id="f-condiciones" rows="2">${esc(editing.condiciones)}</textarea>
+        </div>
       </section>
 
       <section class="fsec">
-        <h2>Términos <span class="hint">un punto por línea</span></h2>
+        <div class="fsec-head"><h2>Términos</h2><p class="fsec-note">un punto por línea</p></div>
+        <div class="fsec-body">
         <p class="hint">Formato «Título: texto». El título sale en negrita en el documento.</p>
         <textarea id="f-terminos" rows="9">${esc(editing.terminos)}</textarea>
+        </div>
       </section>
     `;
     updateTotalsBox();
@@ -2180,59 +2263,76 @@
   function openSettings() {
     const s = settings;
     const cuenta = (window.SYNC && window.SYNC.accountEmail && window.SYNC.accountEmail()) || '';
+    /* Ajustes en dos columnas de bloques: cada grupo tiene su propio
+       espacio, en lugar de una lista larga de títulos apilados. */
     $('#settings-body').innerHTML = `
-      <h3 style="margin-top:0">Datos del estudio</h3>
-      <div class="sgrid">
-        <label>Empresa (línea 1)
-          <input id="s-empresa" type="text" value="${esc(s.empresa)}"></label>
-        <label>Empresa (línea 2)
-          <input id="s-empresasub" type="text" value="${esc(s.empresaSub)}"></label>
-        <label>Email
-          <input id="s-email" type="text" value="${esc(s.email)}"></label>
-        <label>Teléfono
-          <input id="s-telefono" type="text" value="${esc(s.telefono)}"></label>
-        <label>Sitio web
-          <input id="s-web" type="text" value="${esc(s.web)}"></label>
-        <label>Ciudad
-          <input id="s-ciudad" type="text" value="${esc(s.ciudad)}"></label>
-        <label>IVA (%)
-          <input id="s-iva" type="number" min="0" max="30" step="0.1" value="${esc(s.iva)}"></label>
-      </div>
-      <h3>Datos de pago por defecto</h3>
-      <div class="sgrid">
-        <label>Cuenta Nro.
-          <input id="s-p-cuenta" type="text" value="${esc(s.pagos.cuenta)}"></label>
-        <label>Nro. Clabe
-          <input id="s-p-clabe" type="text" value="${esc(s.pagos.clabe)}"></label>
-        <label>Beneficiario
-          <input id="s-p-beneficiario" type="text" value="${esc(s.pagos.beneficiario)}"></label>
-        <label>Banco
-          <input id="s-p-banco" type="text" value="${esc(s.pagos.banco)}"></label>
-      </div>
-      <h3>Textos por defecto</h3>
-      <label>Condiciones de Entrega
-        <textarea id="s-condiciones" rows="2">${esc(s.condiciones)}</textarea></label>
-      <label>Términos <span class="hint">formato «Título: texto», uno por línea</span>
-        <textarea id="s-terminos" rows="9">${esc(s.terminos)}</textarea></label>
-      <h3>Código QR de pago (opcional)</h3>
-      <div class="qr-row">
-        <input id="s-qr-file" type="file" accept="image/png,image/jpeg,image/webp">
-        ${s.qr ? `<div class="qr-prev"><img src="${esc(s.qr)}" alt="QR"><button class="btn small danger" data-action="clear-qr">Quitar</button></div>` : ''}
-      </div>
-      <h3>Cuenta y sincronización</h3>
-      <div class="account-row">
-        <span>${cuenta ? 'Sincronizando como <b>' + esc(cuenta) + '</b> entre tus equipos.' : 'Sin cuenta: tus datos viven solo en este dispositivo.'}</span>
-        ${cuenta ? '<button class="btn small outline" data-action="logout">Cerrar sesión</button>' : ''}
-      </div>
-      <h3>Clientes guardados (${clientes.length})</h3>
-      <div class="client-list">
-        ${clientes.length
-          ? clientes.map((c) => `
-              <div class="client-item">
-                <span><b>${esc(c.nombre)}</b>${c.email ? `<br><span class="muted">${esc(c.email)}</span>` : ''}${c.telefono ? ` <span class="muted">· ${esc(c.telefono)}</span>` : ''}</span>
-                <button class="btn small danger" data-action="del-client-settings" data-id="${c.id}">Eliminar</button>
-              </div>`).join('')
-          : '<p class="hint">Aún no hay clientes guardados. Guárdalos desde el editor de un documento (botón Guardar).</p>'}
+      <div class="set-grid">
+        <section class="set-block">
+          <h3>Datos del estudio</h3>
+          <label>Empresa (línea 1)
+            <input id="s-empresa" type="text" value="${esc(s.empresa)}"></label>
+          <label>Empresa (línea 2)
+            <input id="s-empresasub" type="text" value="${esc(s.empresaSub)}"></label>
+          <label>Email
+            <input id="s-email" type="text" value="${esc(s.email)}"></label>
+          <label>Teléfono
+            <input id="s-telefono" type="text" value="${esc(s.telefono)}"></label>
+          <label>Sitio web
+            <input id="s-web" type="text" value="${esc(s.web)}"></label>
+          <label>Ciudad
+            <input id="s-ciudad" type="text" value="${esc(s.ciudad)}"></label>
+          <label>IVA (%)
+            <input id="s-iva" type="number" min="0" max="30" step="0.1" value="${esc(s.iva)}"></label>
+        </section>
+
+        <section class="set-block">
+          <h3>Datos de pago por defecto</h3>
+          <label>Cuenta Nro.
+            <input id="s-p-cuenta" type="text" value="${esc(s.pagos.cuenta)}"></label>
+          <label>Nro. Clabe
+            <input id="s-p-clabe" type="text" value="${esc(s.pagos.clabe)}"></label>
+          <label>Beneficiario
+            <input id="s-p-beneficiario" type="text" value="${esc(s.pagos.beneficiario)}"></label>
+          <label>Banco
+            <input id="s-p-banco" type="text" value="${esc(s.pagos.banco)}"></label>
+          <h3>Código QR de pago <span class="hint">(opcional)</span></h3>
+          <div class="qr-row">
+            <input id="s-qr-file" type="file" accept="image/png,image/jpeg,image/webp">
+            ${s.qr ? `<div class="qr-prev"><img src="${esc(s.qr)}" alt="QR de pago"><button class="btn small danger" data-action="clear-qr">Quitar</button></div>` : ''}
+          </div>
+        </section>
+
+        <section class="set-block is-wide">
+          <h3>Textos por defecto</h3>
+          <div class="set-texts">
+            <label>Condiciones de Entrega
+              <textarea id="s-condiciones" rows="2">${esc(s.condiciones)}</textarea></label>
+            <label>Términos <span class="hint">formato «Título: texto», uno por línea</span>
+              <textarea id="s-terminos" rows="9">${esc(s.terminos)}</textarea></label>
+          </div>
+        </section>
+
+        <section class="set-block">
+          <h3>Cuenta y sincronización</h3>
+          <div class="account-row">
+            <span>${cuenta ? 'Sincronizando como <b>' + esc(cuenta) + '</b> entre tus equipos.' : 'Sin cuenta: tus datos viven solo en este dispositivo.'}</span>
+            ${cuenta ? '<button class="btn small outline" data-action="logout">Cerrar sesión</button>' : ''}
+          </div>
+          <p class="hint">Los recibos, cotizaciones, contactos, catálogo y tareas viajan con tu cuenta.</p>
+        </section>
+
+        <section class="set-block">
+          <h3>Clientes guardados (${clientes.length})</h3>
+          <div class="client-list">
+            ${clientes.length
+              ? clientes.map((c) => `
+                  <div class="client-item">
+                    <span><b>${esc(c.nombre)}</b>${c.email ? `<br><span class="muted">${esc(c.email)}</span>` : ''}${c.telefono ? ` <span class="muted">· ${esc(c.telefono)}</span>` : ''}</span>
+                    <button class="btn small danger" data-action="del-client-settings" data-id="${c.id}" aria-label="Eliminar ${esc(c.nombre)}">Eliminar</button>
+                  </div>`).join('')
+              : '<p class="hint">Aún no hay clientes guardados. Guárdalos desde el editor de un documento (botón Guardar).</p>'}
+          </div>
+        </section>
       </div>
     `;
     $('#modal-settings').classList.add('open');
@@ -2836,7 +2936,17 @@
     }
   }
 
+  /* Pie del riel: con qué cuenta se está sincronizando este equipo. */
+  function paintRailAccount() {
+    const el = $('#rail-account');
+    if (!el) return;
+    const cuenta = (window.SYNC && window.SYNC.accountEmail && window.SYNC.accountEmail()) || '';
+    el.textContent = cuenta || 'Solo en este dispositivo';
+    el.title = cuenta ? 'Sincronizando como ' + cuenta : 'Sin cuenta: los datos viven solo en este dispositivo';
+  }
+
   function bootApp() {
+    paintRailAccount();
     // releer colecciones (el primer pull pudo traer datos remotos)
     settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
     settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
