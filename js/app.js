@@ -78,7 +78,6 @@
   let cxpFilter = 'todas';
   let cxpQuery = '';
   let cxcQuery = '';
-  let cxcDetailDocId = null;
   let heroDebtorsOpen = false;
   let navReturnFocus = null;
 
@@ -2640,9 +2639,8 @@
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
-        var did = btn.dataset.docid;
-        var dd = docs.find(function(x) { return x.id === did; });
-        if (dd) { cxcDetailDocId = did; showEditor(dd); }
+        var dd = docs.find(function(x) { return x.id === btn.dataset.docid; });
+        if (dd) showEditor(dd);
         break;
       }
 
@@ -2696,7 +2694,6 @@
         }
         break;
       }
-      case 'close-cxc-detail': $('#modal-cxc-detail').classList.remove('open'); break;
 
       /* --- Tareas --- */
       case 'new-tarea': openTareaModal(null); break;
