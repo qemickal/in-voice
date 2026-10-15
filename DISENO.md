@@ -140,8 +140,9 @@ dispositivos instalados descarten los recursos viejos.
 ### 6.1 Logo e iconos
 
 `assets/img/logo-clerki.svg` es la fuente única de la marca: una **llama con
-la C en espacio negativo** (cuerpo naranja, lenguas y media luna interior en
-rojo profundo). Todo lo demás se deriva de ahí.
+la C en espacio negativo**, en degradados de naranja a rojo (naranja casi
+rojo). `assets/img/logo-clerki-sin-fondo.png` es la misma imagen en raster
+con transparencia, por si someplace se necesita un PNG.
 
 ```sh
 npm run icons          # regenera los cuatro PNG de icons/
@@ -156,8 +157,9 @@ npm run icons          # regenera los cuatro PNG de icons/
 
 El icono *maskable* va sobre un fondo oscuro **a propósito**: la C es espacio
 negativo, así que con un fondo claro el hueco se pierde y la letra deja de
-leerse. Además la llama se reduce para quedar dentro de la zona segura (el
-círculo del 80 % del lienzo) y no ser recortada por el lanzador.
+leerse. Para ajustarlo a la zona segura (el círculo del 80 % del lienzo) el
+generador **mide la forma real** del logo y escala en consecuencia, en vez de
+estimarlo con la caja del dibujo; así funciona con cualquier logo.
 
 Para cambiar el logo: editar el SVG, correr `npm run icons` y subir la
 versión de la caché en `sw.js`.

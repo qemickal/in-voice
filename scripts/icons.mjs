@@ -114,15 +114,46 @@ async function iconoSobreFondo(size, altoRelativo, fondo) {
 }
 
 /* La zona segura de un icono maskable es un círculo de diámetro 80% del
-   lienzo. La llama es más alta que ancha, así que el alto relativo se
-   calcula a partir de su diagonal: alto <= 0.40 * size * 2 / hypot(aspect,1). */
-const diagonal = Math.hypot(aspect, 1);
-const ALTO_MASKABLE = Math.min(0.58, 0.80 / diagonal);
+   lienzo (radio 40%). En vez de estimarlo con la caja del dibujo —que
+   desperdicia espacio porque la llama no llena su rectángulo— se mide la
+   forma real: se renderiza, se busca el píxel opaco más lejano del centro
+   y se escala para que quepa dentro del círculo con un margen de seguridad.
+   Así funciona con cualquier logo, sea alto, ancho o irregular. */
+async function altoQueCabeEnZonaSegura(size) {
+  const ref = await sharp(sizedSvg(size * 0.9).buf, { density: 300 })
+    .resize(Math.round(size * 0.9 * aspect), Math.round(size * 0.9), { fit: 'fill' })
+    .png().toBuffer();
+  const meta = await sharp(ref).metadata();
+  const { data } = await sharp({
+    create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([{
+      input: ref,
+      left: Math.round((size - meta.width) / 2),
+      top: Math.round((size - meta.height) / 2),
+    }])
+    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+
+  let maxRadio = 0;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (data[(y * size + x) * 4 + 3] < 128) continue;
+      const r = Math.hypot(x - size / 2, y - size / 2);
+      if (r > maxRadio) maxRadio = r;
+    }
+  }
+  if (!maxRadio) return 0.8;
+  const radioSeguro = size * 0.40 * 0.95;   // 5% de margen
+  const factor = radioSeguro / maxRadio;    // el render de referencia usa 0.9
+  return Math.min(0.9, 0.9 * factor);
+}
+
+const ALTO_MASKABLE = await altoQueCabeEnZonaSegura(512);
 
 const salidas = [
-  ['icons/icon-192.png', 192, await iconoAny(192, 0.80)],
-  ['icons/icon-512.png', 512, await iconoAny(512, 0.80)],
-  ['icons/icon-180.png', 180, await iconoSobreFondo(180, 0.72, fondoBlanco)],
+  ['icons/icon-192.png', 192, await iconoAny(192, 0.86)],
+  ['icons/icon-512.png', 512, await iconoAny(512, 0.86)],
+  ['icons/icon-180.png', 180, await iconoSobreFondo(180, 0.76, fondoBlanco)],
   ['icons/icon-maskable-512.png', 512, await iconoSobreFondo(512, ALTO_MASKABLE, fondoDegradado)],
 ];
 
