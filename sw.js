@@ -7,7 +7,7 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v70';
+const CACHE = 'mc-pwa-v73';
 const ASSETS = [
   './',
   './index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
   './assets/fonts/Archivo-Medium.ttf',
   './assets/fonts/Archivo-Bold.ttf',
   './assets/img/logo-clerki.svg',
+  './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',

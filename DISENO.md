@@ -123,7 +123,7 @@ lateral sin romper `position: sticky`. Todas las columnas flexibles usan
 
 ## 6. PWA y documentos
 
-- Caché actual: **`mc-pwa-v61`**. HTML, CSS y JS siguen con estrategia
+- Caché actual: **`mc-pwa-v71`**. HTML, CSS y JS siguen con estrategia
   *network-first*; fuentes, logo e iconos conservan *cache-first*.
 - Las cuatro TTF de Archivo continúan precargadas para que la **primera
   generación de PDF funcione sin conexión**.
@@ -136,6 +136,48 @@ lateral sin romper `position: sticky`. Todas las columnas flexibles usan
 
 Al actualizar la interfaz, subir siempre la versión de la caché para que los
 dispositivos instalados descarten los recursos viejos.
+
+### 6.1 Logo e iconos
+
+`assets/img/logo-clerki.svg` es la fuente única de la marca: una **llama con
+la C en espacio negativo**, en degradados de naranja a rojo (naranja casi
+rojo). `assets/img/logo-clerki-sin-fondo.png` es la misma imagen en raster
+con transparencia, por si someplace se necesita un PNG.
+
+```sh
+npm run icons          # regenera los cuatro PNG de icons/
+```
+
+| Archivo | Uso | Fondo |
+|---|---|---|
+| `icons/icon-192.png` | icono *any* | transparente |
+| `icons/icon-512.png` | icono *any* | transparente |
+| `icons/icon-180.png` | *apple-touch-icon* | blanco opaco |
+| `icons/icon-maskable-512.png` | icono *maskable* | transparente (ver nota) |
+
+**Sobre el fondo del icono.** En el móvil nunca se ve un PNG crudo: el
+lanzador recorta el icono a su forma (círculo, "squircle"…). Si el icono es
+transparente, el lanzador le pone su propio disco —casi siempre blanco— detrás,
+y el resultado es el mismo que si el icono fuera blanco. Con el fondo
+transparente, además, los lanzadores que sí respetan el alfa muestran
+**sólo la llama**, sin nada detrás.
+
+Excepción: **iOS no admite transparencia** en el *apple-touch-icon*; si el
+PNG la tiene, Safari la pinta de negro. Por eso `icons/icon-180.png` se
+genera siempre con fondo blanco opaco.
+
+El icono *maskable* puede volver al fondo oscuro con
+`MASKABLE_SIN_FONDO = false` en `scripts/icons.mjs`. Ese fondo oscuro se
+puso a propósito en su momento: la C del logo es espacio NEGATIVO, así que
+con un fondo claro el hueco se pierde y la letra deja de leerse. Hoy, con el
+logo actual, la C se lee perfectamente sobre blanco.
+
+Para ajustarlo a la zona segura (el círculo del 80 % del lienzo) el generador
+**mide la forma real** del logo y escala en consecuencia, en vez de estimarlo
+con la caja del dibujo; así funciona con cualquier logo.
+
+Para cambiar el logo: editar el SVG, correr `npm run icons` y subir la
+versión de la caché en `sw.js`.
 
 ## 7. Vista previa local
 
