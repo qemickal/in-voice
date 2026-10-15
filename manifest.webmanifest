@@ -1,13 +1,13 @@
 {
-  "name": "Recibos & Cotizaciones — Mono Cromat & Co.",
-  "short_name": "Recibos",
+  "name": "CLERKI — Recibos & Cotizaciones",
+  "short_name": "CLERKI",
   "description": "Crea, guarda, imprime y envía recibos y cotizaciones.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f4f5fa",
-  "theme_color": "#f4f5fa",
+  "background_color": "#ffffff",
+  "theme_color": "#E8770E",
   "lang": "es-MX",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },

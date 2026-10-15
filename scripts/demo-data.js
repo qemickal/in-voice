@@ -7,7 +7,7 @@
   let nativeStorage;
   try { nativeStorage = window.localStorage; } catch (error) { /* privacidad estricta: memoria local */ }
   const memory = new Map();
-  const prefix = 'in-voice-preview:';
+  const prefix = 'clerki-preview:';
   const isolatedStorage = {
     getItem: (key) => {
       if (memory.has(key)) return memory.get(key);

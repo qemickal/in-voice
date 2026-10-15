@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="fc" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#F5A623"/>
+      <stop offset="50%" stop-color="#E8770E"/>
+      <stop offset="100%" stop-color="#D94408"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer flame C -->
+  <path fill-rule="evenodd" fill="url(#fc)" d="
+    M65 12C74 10 82 18 83 28C85 42 78 55 66 62C75 69 81 81 78 93C76 102 67 108 56 110
+    C47 111 39 106 34 98C30 92 29 84 31 76C33 69 39 65 47 65C54 65 59 70 61 77
+    C60 72 56 68 50 67C43 65 36 70 33 78C28 88 29 100 34 108C26 112 15 105 11 95
+    C6 82 9 67 20 58C11 50 5 37 8 23C11 11 22 4 35 4L35 12C28 14 23 20 21 28
+    C19 38 23 47 32 52C24 48 20 40 21 32C22 22 32 16 42 16C52 16 60 22 63 32
+    C59 24 52 18 44 18C37 18 32 24 32 30C32 38 38 42 46 42C55 42 62 36 64 28
+    C66 20 62 14 56 12Z
+  "/>
+</svg>

@@ -1,5 +1,5 @@
 /* ============================================================
-   APP — PWA de Recibos y Cotizaciones (Mono Cromat & Co.)
+   APP — PWA de Recibos y Cotizaciones (CLERKI)
    ============================================================ */
 (function () {
   'use strict';
@@ -24,12 +24,12 @@
 
   /* ---------------- Ajustes ---------------- */
   const DEFAULT_SETTINGS = {
-    empresa: 'Mono Cromat & Co.',
-    empresaSub: 'Estudio Creativo',
-    email: 'hola@monocromatyco.com',
-    telefono: '(+52) 55 4929 1166',
-    web: 'www.monocromatyco.com',
-    ciudad: 'CDMX',
+    empresa: 'CLERKI',
+    empresaSub: 'Recibos & Cotizaciones',
+    email: '',
+    telefono: '',
+    web: '',
+    ciudad: '',
     iva: 16,
     pagos: { cuenta: '', clabe: '', beneficiario: '', banco: '' },
     condiciones: 'Entrega de 7 a 10 días hábiles después de confirmar el pago.',
@@ -183,7 +183,7 @@
   async function preloadImages() {
     try {
       // la marca de agua se dibuja con el propio logo escalado (LAYOUT.watermark)
-      const blue = await toDataURL('assets/img/logo-blue.png', 500, 327);
+      const blue = await toDataURL('assets/img/logo-clerki.svg', 500, 327);
       images = { blue };
     } catch (e) { /* sin imágenes, el PDF saldrá sin logo */ }
   }

@@ -131,7 +131,7 @@
 
     // Nombre de la empresa y bajada, a la misma sangría, justo a la
     // derecha del logo: el bloque queda alineado con él.
-    const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
+    const empresa = (s.empresa || 'CLERKI').toUpperCase();
     F('bold'); pdf.setFontSize(LAY.brandLine1.size); C(BLUE);
     pdf.text(empresa, LAY.brandLine1.x, LAY.brandLine1.y);
     F('medium'); pdf.setFontSize(LAY.brandSlash.size); C(GREY);
