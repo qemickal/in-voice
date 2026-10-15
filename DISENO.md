@@ -123,7 +123,7 @@ lateral sin romper `position: sticky`. Todas las columnas flexibles usan
 
 ## 6. PWA y documentos
 
-- Caché actual: **`mc-pwa-v61`**. HTML, CSS y JS siguen con estrategia
+- Caché actual: **`mc-pwa-v71`**. HTML, CSS y JS siguen con estrategia
   *network-first*; fuentes, logo e iconos conservan *cache-first*.
 - Las cuatro TTF de Archivo continúan precargadas para que la **primera
   generación de PDF funcione sin conexión**.
@@ -136,6 +136,31 @@ lateral sin romper `position: sticky`. Todas las columnas flexibles usan
 
 Al actualizar la interfaz, subir siempre la versión de la caché para que los
 dispositivos instalados descarten los recursos viejos.
+
+### 6.1 Logo e iconos
+
+`assets/img/logo-clerki.svg` es la fuente única de la marca: una **llama con
+la C en espacio negativo** (cuerpo naranja, lenguas y media luna interior en
+rojo profundo). Todo lo demás se deriva de ahí.
+
+```sh
+npm run icons          # regenera los cuatro PNG de icons/
+```
+
+| Archivo | Uso | Fondo |
+|---|---|---|
+| `icons/icon-192.png` | icono *any* | transparente |
+| `icons/icon-512.png` | icono *any* | transparente |
+| `icons/icon-180.png` | *apple-touch-icon* | blanco opaco (iOS no admite alfa) |
+| `icons/icon-maskable-512.png` | icono *maskable* | degradado oscuro a sangre |
+
+El icono *maskable* va sobre un fondo oscuro **a propósito**: la C es espacio
+negativo, así que con un fondo claro el hueco se pierde y la letra deja de
+leerse. Además la llama se reduce para quedar dentro de la zona segura (el
+círculo del 80 % del lienzo) y no ser recortada por el lanzador.
+
+Para cambiar el logo: editar el SVG, correr `npm run icons` y subir la
+versión de la caché en `sw.js`.
 
 ## 7. Vista previa local
 
