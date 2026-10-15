@@ -145,7 +145,7 @@ npm run preview
 
 Abre el puerto 3000 en `0.0.0.0`, con datos de ejemplo identificados como
 **«Demo local»**. Se guardan en un espacio de almacenamiento separado
-(`in-voice-preview:`); no se crean tokens, no se envían datos a una API y no se
+(`clerki-preview:`); no se crean tokens, no se envían datos a una API y no se
 instala el service worker. `/?auth=1` permite inspeccionar el acceso real.
 
 ```sh

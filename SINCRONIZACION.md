@@ -23,7 +23,7 @@ y secreto de sesión. Se hace todo desde el dashboard de Vercel, sin tocar códi
 
 ### 1. Crea la base de datos (gratis)
 
-1. Entra a [vercel.com/dashboard](https://vercel.com/dashboard) y abre tu proyecto **in-voice**.
+1. Entra a [vercel.com/dashboard](https://vercel.com/dashboard) y abre tu proyecto **clerki**.
 2. Pestaña **Storage** → botón **Add** → **Postgres** → **Add**.
 3. Elige una región (la que más cerca esté de ti, ej. `South America (São Paulo)`).
 4. Al terminar, Vercel crea la base y **automáticamente configura la variable
@@ -50,7 +50,7 @@ que instala `pg` (dependencia nueva) y despliega 3 funciones:
 
 ### 4. Prueba
 
-1. Abre tu sitio (`in-voice-ecru.vercel.app`). Si el service worker tiene caché vieja,
+1. Abre tu sitio (`clerki.vercel.app`). Si el service worker tiene caché vieja,
    haz **recarga dura** (Ctrl+Shift+R / en el menú del navegador → recargar sin caché).
 2. Aparece la puerta de cuenta → **Crear cuenta** → email + contraseña.
 3. Tus datos actuales (de ese dispositivo) se suben solos.

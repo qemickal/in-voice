@@ -119,15 +119,15 @@
 
     /* ---------- Fondos ---------- */
     const wm = L.watermark;
-    h += imgAbs('assets/img/logo-blue.png', wm.x, wm.y, wm.w, wm.h, `opacity:${wm.opacity};`);
+    h += imgAbs('assets/img/logo-clerki.svg', wm.x, wm.y, wm.w, wm.h, `opacity:${wm.opacity};`);
     h += lineArtSVG();
 
     /* ---------- Cabecera ---------- */
-    h += imgAbs('assets/img/logo-blue.png', lp.x, lp.y, lp.w, lp.h);
+    h += imgAbs('assets/img/logo-clerki.svg', lp.x, lp.y, lp.w, lp.h);
 
     // Nombre de la empresa y bajada, a la misma sangría, justo a la
     // derecha del logo: el bloque queda alineado con él.
-    const empresa = (s.empresa || 'Mono Cromat & Co.').toUpperCase();
+    const empresa = (s.empresa || 'CLERKI').toUpperCase();
     h += txt(L.brandLine1.x, L.brandLine1.y, L.brandLine1.size, 700, empresa, { ls: -0.3 });
     h += txt(L.brandSlash.x, L.brandSlash.y, L.brandSlash.size, 500,
       '// ' + (s.empresaSub || 'estudio creativo').toLowerCase(), { color: GREY, ls: 0.3 });
@@ -288,8 +288,8 @@
     /* ---------- Pie ---------- */
     h += rule(L.contentL, L.footRuleY, L.contentR - L.contentL, L.footRuleW, BLUE);
     const FS = L.footSize, FY = L.footYs;
-    h += txt(L.footColL, FY[0], FS, 700, (s.empresa || 'Mono Cromat & Co.').toUpperCase(), { color: BLUE });
-    const wf = measurePt((s.empresa || 'Mono Cromat & Co.').toUpperCase(), FS, 700);
+    h += txt(L.footColL, FY[0], FS, 700, (s.empresa || 'CLERKI').toUpperCase(), { color: BLUE });
+    const wf = measurePt((s.empresa || 'CLERKI').toUpperCase(), FS, 700);
     h += txt(L.footColL + wf + 5, FY[0], FS, 400, (s.empresaSub || 'estudio creativo').toLowerCase(), { color: BODY, italic: true });
     h += txt(L.footColL, FY[1], FS, 400, (s.ciudad || 'Ciudad de México') + ', México', { color: BODY, italic: true });
     if (s.telefono) h += txt(L.footColM, FY[0], FS, 400, s.telefono, { color: BODY, italic: true });

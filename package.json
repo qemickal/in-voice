@@ -1,7 +1,7 @@
 {
-  "name": "in-voice",
+  "name": "clerki",
   "private": true,
-  "description": "PWA de Recibos y Cotizaciones — Mono Cromat & Co. (con sync vía Vercel Functions + Postgres)",
+  "description": "PWA de Recibos y Cotizaciones — CLERKI (con sync vía Vercel Functions + Postgres)",
   "engines": {
     "node": ">=18"
   },
