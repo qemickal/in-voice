@@ -72,7 +72,15 @@ function fondoBlanco(size) {
 /* Fondo a sangre del icono maskable.
    Tiene que ser oscuro a propósito: la C del logo es espacio NEGATIVO, así
    que si el fondo es claro el hueco se pierde y la C deja de leerse. Con un
-   fondo profundo la llama destaca y la C se mantiene. */
+   fondo profundo la llama destaca y la C se mantiene.
+
+   Se puede desactivar con MASKABLE_SIN_FONDO = true: el icono queda
+   transparente y en el móvil se ve sólo la llama. Ojo: en iOS el icono
+   nunca puede ser transparente (el apple-touch-icon necesita fondo opaco
+   o iOS lo pinta de negro), y muchos lanzadores de Android le ponen su
+   propio disco blanco o de color detrás al icono transparente. */
+const MASKABLE_SIN_FONDO = true;
+
 function fondoDegradado(size) {
   const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
     <defs>
@@ -153,8 +161,12 @@ const ALTO_MASKABLE = await altoQueCabeEnZonaSegura(512);
 const salidas = [
   ['icons/icon-192.png', 192, await iconoAny(192, 0.86)],
   ['icons/icon-512.png', 512, await iconoAny(512, 0.86)],
+  // iOS exige fondo opaco en el apple-touch-icon: si no, lo pinta de negro.
   ['icons/icon-180.png', 180, await iconoSobreFondo(180, 0.76, fondoBlanco)],
-  ['icons/icon-maskable-512.png', 512, await iconoSobreFondo(512, ALTO_MASKABLE, fondoDegradado)],
+  // El maskable va transparente si así se quiere ver sólo la llama.
+  ['icons/icon-maskable-512.png', 512, MASKABLE_SIN_FONDO
+    ? await iconoAny(512, ALTO_MASKABLE)
+    : await iconoSobreFondo(512, ALTO_MASKABLE, fondoDegradado)],
 ];
 
 for (const [rel, size, buf] of salidas) {
