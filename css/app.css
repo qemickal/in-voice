@@ -1922,3 +1922,67 @@ body.in-editor .mobile-nav, body.auth-open .mobile-nav { display: none; }
   }
   #print-area > div + * { display: none !important; }
 }
+/* Dashboard refresh: clean white canvas with a warm orange-red balance card. */
+:root {
+  --brand: #F05A24;
+  --brand-900: #7B2415;
+  --brand-800: #A83219;
+  --brand-700: #D9481E;
+  --brand-600: #F05A24;
+  --brand-500: #F4773D;
+  --brand-400: #F89969;
+  --brand-300: #FBB798;
+  --brand-200: #FDD8C8;
+  --brand-ink: #B83B1C;
+  --brand-soft: #FFF3EE;
+  --brand-soft-2: #FFE4D8;
+  --accent: #D94408;
+  --accent-ink: #B83A06;
+  --accent-soft: #FFF0E8;
+  --grad-brand: linear-gradient(125deg, #F4773D, #D9442B);
+  --ring: 0 0 0 3px rgba(240, 90, 36, .18);
+}
+
+.band-glass {
+  background: #fff;
+  border-color: #F2E7E2;
+  box-shadow: 0 12px 36px -24px rgba(117, 47, 26, .22);
+}
+.band-glass::before { display: none; }
+.band-side {
+  color: #fff;
+  background: linear-gradient(145deg, #F4773D 0%, #D9442B 100%);
+  border: 0;
+  box-shadow: 0 14px 28px -20px rgba(190, 53, 31, .65);
+}
+.band-side .balance-label,
+.band-side .balance-detail,
+.band-side .balance-icon,
+.band-side .balance-caret,
+.band-side .band-chart-title,
+.band-side .hero-chart-empty { color: rgba(255,255,255,.82); }
+.band-side .balance-icon { background: rgba(255,255,255,.16); }
+.band-side #hero-balance-value,
+.band-side .balance-btn,
+.band-side .band-chart-note { color: #fff; }
+.band-side .band-chart { border-color: rgba(255,255,255,.24); }
+.band-side .band-chart-note { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.25); }
+.band-side .hero-debtors { background: rgba(255,255,255,.95); border: 0; }
+.band-side .hero-debtor { color: var(--ink); }
+.band-side .hero-debtor-more { color: var(--brand-ink); }
+.band-actions .hero-primary { background: var(--grad-brand); }
+.quick-strip, .zone { border-color: #F0E8E5; box-shadow: 0 8px 24px -20px rgba(85, 45, 32, .28); }
+.zone-head { background: #FFFCFB; }
+.quick-ico, .zone-icon { background: var(--brand-soft); color: var(--brand-ink); }
+.quick:nth-child(2) .quick-ico { background: #FFF0E8; color: #B83A06; }
+.mobile-nav { border-color: #F0E8E5; }
+.mobile-nav-item.active { color: var(--brand-ink); background: var(--brand-soft); }
+
+@media (max-width: 760px) {
+  main { padding-top: 14px; }
+  .band-glass { padding: 18px 16px; gap: 14px; }
+  .band-side { padding: 17px; }
+  .band-actions .hero-primary { box-shadow: 0 8px 18px -12px rgba(190, 53, 31, .7); }
+  .quick-strip { border-radius: 16px; }
+  .zone { border-radius: 16px; }
+}
