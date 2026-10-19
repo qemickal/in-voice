@@ -502,27 +502,40 @@
       + '</div></div>';
   }
 
-  /* La gráfica horizontal (barra abonado / por cobrar + leyenda) vive dentro
-     del héroe, en una franja de vidrio claro; el panel de inicio conserva
-     la lista de documentos con saldo pendiente. */
+  /* La dona de cobranza vive dentro de la tarjeta de saldo: un anillo
+     SVG sin dependencias, con el porcentaje abonado al centro. */
   function cobranzaChartHTML(c) {
-    if (!c.abiertos) {
-      return '<div class="hero-chart-empty' + (c.saldados ? ' is-ok' : '') + '">'
-        + '<div class="cob-bar is-empty" aria-hidden="true"></div><p>'
-        + (c.saldados ? 'Todo liquidado. Un pendiente menos.' : 'Aquí verás el avance de tus cobros.')
-        + '</p></div>';
+    const hasData = !!(c.abiertos || c.saldados);
+    const pct = hasData ? Math.min(100, Math.max(0, c.pct)) : 0;
+    const r = 52;
+    const circ = 2 * Math.PI * r;
+    const paid = (pct / 100) * circ;
+    const label = hasData
+      ? 'Abonado ' + Math.round(pct) + ' por ciento, por cobrar ' + Math.round(100 - pct) + ' por ciento'
+      : 'Sin cobros registrados';
+    return '<div class="donut' + (!hasData ? ' is-empty' : '') + '" role="img" aria-label="' + label + '">'
+      + '<svg viewBox="0 0 120 120" aria-hidden="true">'
+      + '<circle class="donut-track" cx="60" cy="60" r="' + r + '"></circle>'
+      + '<circle class="donut-paid" cx="60" cy="60" r="' + r + '" stroke-dasharray="' + paid.toFixed(1) + ' ' + circ.toFixed(1) + '" transform="rotate(-90 60 60)"></circle>'
+      + '</svg>'
+      + '<span class="donut-center"><b>' + (hasData ? Math.round(pct) + '%' : '—') + '</b><small>' + (hasData ? 'abonado' : 'sin cobros') + '</small></span>'
+      + '</div>';
+  }
+
+  /* Reparto del saldo en dos columnas, separado por una regla fina. */
+  function cobranzaSplitHTML(c) {
+    if (!c.abiertos && !c.saldados) {
+      return '<div class="split-item"><span class="split-dot is-paid"></span><span class="split-label">Abonado</span>'
+        + '<strong>' + window.fmtMoney(0) + '</strong><small>—</small></div>'
+        + '<div class="split-item"><span class="split-dot is-open"></span><span class="split-label">Por cobrar</span>'
+        + '<strong>' + window.fmtMoney(0) + '</strong><small>—</small></div>';
     }
     const pct = Math.min(100, Math.max(0, c.pct));
-    const seg = (pct > 0.4 ? '<span class="cob-seg is-paid" style="width:' + pct.toFixed(2) + '%"></span>' : '')
-      + (pct < 99.6 ? '<span class="cob-seg is-open" style="width:' + (100 - pct).toFixed(2) + '%"></span>' : '');
-    return '<div class="cob-bar" role="img" aria-label="Abonado ' + Math.round(pct) + ' por ciento, por cobrar ' + Math.round(100 - pct) + ' por ciento">'
-      + seg + '</div>'
-      + '<div class="cob-legend">'
-      + '<div class="cob-item"><span class="cob-dot is-paid"></span>'
-      + '<span class="cob-name">Abonado</span><b>' + window.fmtMoney(c.pagado) + '</b><small>' + Math.round(pct) + '%</small></div>'
-      + '<div class="cob-item"><span class="cob-dot is-open"></span>'
-      + '<span class="cob-name">Por cobrar</span><b>' + window.fmtMoney(c.porCobrar) + '</b><small>' + Math.round(100 - pct) + '%</small></div>'
-      + '</div>';
+    const open = 100 - pct;
+    return '<div class="split-item"><span class="split-dot is-paid"></span><span class="split-label">Abonado</span>'
+      + '<strong>' + window.fmtMoney(c.pagado) + '</strong><small>' + pct.toFixed(0) + '%</small></div>'
+      + '<div class="split-item"><span class="split-dot is-open"></span><span class="split-label">Por cobrar</span>'
+      + '<strong>' + window.fmtMoney(c.porCobrar) + '</strong><small>' + open.toFixed(0) + '%</small></div>';
   }
 
   function cobranzaDocsHTML(c, hoy) {
@@ -745,36 +758,29 @@
     return tasks;
   }
 
+  /* En Inicio se ve el siguiente paso, no el archivo entero: tres tareas
+     como máximo y un enlace a la vista completa. */
   function tareasHTML(tasks) {
     if (!tasks.length) {
       return '<div class="todo-empty"><span class="panel-empty-icon" aria-hidden="true">' + window.ICONS.check('ic-lg') + '</span>'
         + '<strong>Un poco de espacio para crear</strong><p>Todo en orden. Agrega tu siguiente tarea cuando quieras.</p>'
         + '<button type="button" class="btn small outline" data-action="new-tarea">Nueva tarea</button></div>';
     }
-    const areas = [
-      { id: 'contabilidad', label: 'Contabilidad' },
-      { id: 'ventas', label: 'Ventas' },
-      { id: 'cobranza', label: 'Cobranza' },
-      { id: 'general', label: 'General' }
-    ];
-    return areas.map(function (area) {
-      const list = tasks.filter(function (t) { return t.area === area.id; });
-      if (!list.length) return '';
-      const rows = list.map(function (t) {
-        return '<div class="todo-row">'
-          + '<button type="button" class="todo-check" data-action="todo-done" data-tid="' + esc(t.id) + '" aria-label="Marcar hecha: ' + esc(t.title) + '" title="Marcar hecha"></button>'
-          + '<div class="todo-body">'
-          + '<span class="todo-title"><span class="todo-prio ' + t.prio + '" title="Prioridad"></span>' + esc(t.title) + '</span>'
-          + '<span class="todo-meta">' + esc(t.meta || '') + '</span>'
-          + '</div>'
-          + '<button type="button" class="btn outline small todo-go" data-action="todo-go" data-go="' + esc(t.go || '') + '" data-id="' + esc(t.idGo || '') + '" aria-label="Ver: ' + esc(t.title) + '"><span class="todo-go-label">Ver</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>'
-          + '</div>';
-      }).join('');
-      return '<div class="todo-area">'
-        + '<div class="todo-area-head"><span class="todo-area-name">' + area.label + '</span>'
-        + '<span class="todo-area-count">' + list.length + '</span></div>'
-        + '<div class="todo-rows">' + rows + '</div></div>';
+    const top = tasks.slice(0, 3);
+    const rows = top.map(function (t) {
+      return '<div class="todo-row">'
+        + '<button type="button" class="todo-check" data-action="todo-done" data-tid="' + esc(t.id) + '" aria-label="Marcar hecha: ' + esc(t.title) + '" title="Marcar hecha"></button>'
+        + '<div class="todo-body">'
+        + '<span class="todo-title"><span class="todo-prio ' + t.prio + '" title="Prioridad"></span>' + esc(t.title) + '</span>'
+        + '<span class="todo-meta">' + esc(t.meta || '') + '</span>'
+        + '</div>'
+        + '<button type="button" class="btn outline small todo-go" data-action="todo-go" data-go="' + esc(t.go || '') + '" data-id="' + esc(t.idGo || '') + '" aria-label="Ver: ' + esc(t.title) + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>'
+        + '</div>';
     }).join('');
+    return '<div class="todo-rows">' + rows + '</div>'
+      + (tasks.length > 3
+        ? '<p class="todo-more">+' + (tasks.length - 3) + ' tarea' + (tasks.length - 3 !== 1 ? 's' : '') + ' más en Tareas</p>'
+        : '');
   }
 
   /* Cifras del mes: una lectura compacta por renglón, en el panel de
@@ -888,11 +894,14 @@
       }
     }
 
+    const chev = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>';
     $('#hero-chips').innerHTML = [
-      '<span class="hero-chip"><b>' + docs.length + '</b> documentos</span>',
+      '<button type="button" class="hero-chip" data-action="go-docs">'
+        + '<b>' + docs.length + '</b> documento' + (docs.length !== 1 ? 's' : '') + ' ' + chev + '</button>',
       (vencidos || vencHoy)
-        ? '<span class="hero-chip is-alert"><b>' + (vencidos || vencHoy) + '</b> '
-          + (vencidos ? 'vencido' + (vencidos !== 1 ? 's' : '') : 'hoy') + '</span>'
+        ? '<button type="button" class="hero-chip is-alert" data-action="focus-tareas"><b>'
+          + (vencidos || vencHoy) + '</b> '
+          + (vencidos ? 'vencido' + (vencidos !== 1 ? 's' : '') : 'hoy') + '</button>'
         : '<span class="hero-chip is-ok">Al día</span>'
     ].join('');
 
@@ -958,21 +967,28 @@
     const figsNote = $('#figs-note');
     if (figsNote) figsNote.textContent = MESES_LARGOS[now.getMonth()] + ' ' + now.getFullYear();
 
-    /* ---------- Cobranza: gráfica en el héroe + lista de documentos ---------- */
+    /* ---------- Cobranza: dona en la tarjeta de saldo + lista de documentos ---------- */
     const cob = cobranzaStats();
     $('#hero-chart-host').innerHTML = cobranzaChartHTML(cob);
+    const splitHost = $('#hero-split');
+    if (splitHost) splitHost.innerHTML = cobranzaSplitHTML(cob);
     $('#chart-host').innerHTML = cobranzaDocsHTML(cob, hoy);
-    $('#hero-cob-note').textContent = cob.abiertos ? Math.round(cob.pct) + '% abonado' : '';
     $('#cob-note').textContent = cob.abiertos
       ? cob.abiertos + ' abierto' + (cob.abiertos !== 1 ? 's' : '')
       : (cob.saldados ? 'Liquidados' : '');
+    const generalCount = $('#general-count');
+    if (generalCount) generalCount.textContent = String(docs.length);
 
-    /* ---------- Áreas / To-Do ---------- */
+    /* ---------- Siguiente paso ---------- */
     const tasks = homeTasks(hoy, cxcData);
     const todoHost = $('#todo-host');
     if (todoHost) todoHost.innerHTML = tareasHTML(tasks);
     const todoNote = $('#todo-note');
-    if (todoNote) todoNote.textContent = tasks.length ? (tasks.length + ' tarea' + (tasks.length !== 1 ? 's' : '')) : 'Al día';
+    if (todoNote) {
+      todoNote.textContent = tasks.length
+        ? 'Tienes ' + tasks.length + ' tarea' + (tasks.length !== 1 ? 's' : '') + ' pendiente' + (tasks.length !== 1 ? 's' : '')
+        : 'Todo en orden por ahora.';
+    }
 
   }
 
@@ -1280,8 +1296,26 @@
     nuevo: 'Nuevo', contactado: 'Contactado', negociacion: 'En negociación',
     ganado: 'Ganado', perdido: 'Perdido'
   };
+  const CLI_ORIGENES = {
+    recomendacion: 'Recomendación', redes: 'Redes sociales', sitio: 'Sitio web',
+    cliente_existente: 'Cliente existente', evento: 'Evento o feria',
+    publicidad: 'Publicidad', otro: 'Otro'
+  };
+  const CLI_METODOS = {
+    efectivo: 'Efectivo', transferencia: 'Transferencia',
+    tarjeta_credito: 'Tarjeta de crédito', tarjeta_debito: 'Tarjeta de débito',
+    cheque: 'Cheque', otro: 'Otro'
+  };
 
   function cliTipo(c) { return (c && c.tipo === 'prospecto') ? 'prospecto' : 'cliente'; }
+  function cliOrigen(c) {
+    const key = String((c && c.origen) || '').trim();
+    return CLI_ORIGENES[key] || key;
+  }
+  function cliMetodo(c) {
+    const key = String((c && c.metodoPago) || '').trim();
+    return CLI_METODOS[key] || key;
+  }
 
   function fmtCliFecha(ts) {
     if (!ts) return '';
@@ -1296,7 +1330,8 @@
     const q = cliQuery.trim().toLowerCase();
     const filtered = clientes.filter(function(c) {
       const okTipo = cliFilter === 'todos' || cliTipo(c) === cliFilter;
-      const okQ = !q || [c.nombre, c.empresa, c.email, c.telefono, c.direccion, c.notas]
+      const okQ = !q || [c.nombre, c.empresa, c.email, c.telefono, c.direccion, c.notas,
+        c.rfc, cliOrigen(c), cliMetodo(c), c.seguimiento]
         .join(' ').toLowerCase().includes(q);
       return okTipo && okQ;
     }).sort(function(a, b) {
@@ -1336,10 +1371,22 @@
         ? `<span class="cli-estado" data-estado="${esc(c.estado)}">${esc(CLI_ESTADOS[c.estado] || c.estado)}</span>`
         : '';
       const contacto = [
+        c.rfc ? `<span title="RFC: ${esc(c.rfc)}">RFC ${esc(c.rfc)}</span>` : '',
         c.email ? `<span title="Correo: ${esc(c.email)}">${esc(c.email)}</span>` : '',
         c.telefono ? `<span title="Teléfono: ${esc(c.telefono)}">${esc(c.telefono)}</span>` : '',
         c.direccion ? `<span title="Dirección: ${esc(c.direccion)}">${esc(c.direccion)}</span>` : ''
       ].filter(Boolean).join(SEP);
+      const origen = (tipo === 'prospecto' && c.origen)
+        ? `<p class="row-meta"><span>Origen: ${esc(cliOrigen(c))}</span></p>`
+        : '';
+      const metodo = (tipo === 'cliente' && c.metodoPago)
+        ? `<span class="pill mini">${esc(cliMetodo(c))}</span>`
+        : '';
+      const hoyISO = window.todayISO();
+      const segOver = c.seguimiento < hoyISO && c.estado !== 'ganado' && c.estado !== 'perdido';
+      const seg = (tipo === 'prospecto' && c.seguimiento)
+        ? `<span class="cli-seg${segOver ? ' is-over' : ''}">Seguimiento ${esc(window.fmtDate(c.seguimiento))}</span>`
+        : '';
       const id = esc(c.id);
       const safeName = esc(nombre);
 
@@ -1350,13 +1397,14 @@
             <p class="row-title" title="${safeName}">${safeName}</p>
             ${c.empresa ? `<p class="row-meta"><span>${esc(c.empresa)}</span></p>` : ''}
             <p class="row-meta">${contacto || '<span>Sin datos de contacto</span>'}</p>
+            ${origen}
             ${c.notas ? `<p class="row-sub">${esc(c.notas)}</p>` : ''}
           </div>
           <div class="row-figure">
             <span class="row-figure-note">Actualizado</span>
             <strong>${fmtCliFecha(c.updatedAt) || '—'}</strong>
           </div>
-          <div class="row-status">${stamp}${estado}</div>
+          <div class="row-status">${stamp}${estado}${seg}${metodo}</div>
           <div class="row-actions">
             ${actBtn('edit-cliente', c.id, 'Editar ' + nombre, ICO.edit, 'Editar')}
             ${trashBtn('del-cliente-card', c.id, 'Eliminar ' + nombre)}
@@ -1367,29 +1415,73 @@
     wrap.innerHTML = `<ul class="rows" aria-label="Directorio de clientes y prospectos">${rows}</ul>`;
   }
 
+  /* La hoja de contacto cambia de copy y de campos según el tipo. */
+  function updateCliSheetCopy() {
+    const isProspect = cliModalTipo === 'prospecto';
+    const editing = !!editingCliente;
+    const kicker = $('#cl-kicker');
+    if (kicker) kicker.textContent = (editing ? 'Editando ' : 'Nuevo ') + (isProspect ? 'prospecto' : 'cliente');
+    const title = $('#modal-cliente-title');
+    if (title) title.textContent = (editing ? 'Editar ' : 'Crear ') + (isProspect ? 'prospecto' : 'cliente');
+    const sub = $('#cl-sub');
+    if (sub) {
+      sub.textContent = isProspect
+        ? 'Registra un contacto potencial para dar seguimiento y convertirlo en cliente.'
+        : 'Agrega un cliente para gestionar sus cotizaciones, recibos y documentos.';
+    }
+    const save = $('#cl-save-label');
+    if (save) save.textContent = 'Guardar ' + (isProspect ? 'prospecto' : 'cliente');
+  }
+
   function setCliTipo(t) {
     cliModalTipo = t === 'prospecto' ? 'prospecto' : 'cliente';
+    const isProspect = cliModalTipo === 'prospecto';
     $$('#cli-tipo-seg .seg-btn').forEach(function(b) {
-      b.classList.toggle('on', b.dataset.cliTipo === cliModalTipo);
+      const on = b.dataset.cliTipo === cliModalTipo;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    const wrap = $('#cl-estado-wrap');
-    if (wrap) wrap.hidden = cliModalTipo !== 'prospecto';
+    ['#cl-rfc-card', '#cl-metodo-card'].forEach(function(sel) {
+      const el = $(sel); if (el) el.hidden = isProspect;
+    });
+    ['#cl-origen-card', '#cl-seguimiento-pair'].forEach(function(sel) {
+      const el = $(sel); if (el) el.hidden = !isProspect;
+    });
+    const seg = $('#cl-seguimiento');
+    if (isProspect && seg && !seg.value) seg.value = window.todayISO();
+    updateCliSheetCopy();
+  }
+
+  /* La píldora de sync del formulario es un espejo de la barra superior. */
+  function mirrorSheetSync() {
+    const src = $('#sync-pill');
+    const dst = $('#sheet-sync');
+    if (!src || !dst) return;
+    dst.textContent = src.textContent;
+    dst.className = 'sync-pill ' + src.className.split(' ').filter(function(c) {
+      return c && c !== 'sync-pill';
+    }).join(' ');
   }
 
   function openClienteModal(id, tipoDef) {
     editingCliente = id ? (clientes.find(function(c) { return c.id === id; }) || null) : null;
     const c = editingCliente;
     const tipo = c ? cliTipo(c) : (tipoDef === 'prospecto' ? 'prospecto' : 'cliente');
-    $('#modal-cliente-title').textContent =
-      (c ? 'Editar ' : 'Nuevo ') + (tipo === 'prospecto' ? 'prospecto' : 'cliente');
     $('#cl-nombre').value = c ? (c.nombre || '') : '';
     $('#cl-empresa').value = c ? (c.empresa || '') : '';
     $('#cl-email').value = c ? (c.email || '') : '';
     $('#cl-telefono').value = c ? (c.telefono || '') : '';
     $('#cl-direccion').value = c ? (c.direccion || '') : '';
+    $('#cl-rfc').value = c ? (c.rfc || '') : '';
+    $('#cl-metodo').value = c ? (c.metodoPago || '') : '';
+    $('#cl-origen').value = c ? (c.origen || '') : '';
+    $('#cl-seguimiento').value = c ? (c.seguimiento || '') : (tipo === 'prospecto' ? window.todayISO() : '');
     $('#cl-estado').value = (c && c.estado) || 'nuevo';
     $('#cl-notas').value = c ? (c.notas || '') : '';
     setCliTipo(tipo);
+    mirrorSheetSync();
+    const body = $('#modal-cliente .sheet-body');
+    if (body) body.scrollTop = 0;
     $('#modal-cliente').classList.add('open');
     setTimeout(function() { const n = $('#cl-nombre'); if (n) n.focus(); }, 80);
   }
@@ -1416,6 +1508,10 @@
     c.telefono = g('cl-telefono');
     c.direccion = g('cl-direccion');
     c.notas = g('cl-notas');
+    c.rfc = g('cl-rfc').toUpperCase().replace(/\s+/g, '');
+    c.metodoPago = g('cl-metodo');
+    c.origen = g('cl-origen');
+    c.seguimiento = g('cl-seguimiento');
     c.estado = cliModalTipo === 'prospecto' ? ($('#cl-estado').value || 'nuevo') : '';
     c.updatedAt = now;
 
@@ -1423,6 +1519,7 @@
     $('#modal-cliente').classList.remove('open');
     editingCliente = null;
     if (mainView === 'clientes') renderClientes();
+    else if (mainView === 'inicio') renderInicio();
     toast((cliModalTipo === 'prospecto' ? 'Prospecto' : 'Cliente') + (esNuevo ? ' agregado ✓' : ' actualizado ✓'));
   }
 
@@ -2523,6 +2620,7 @@
         break;
       }
       case 'settings': closeNavPop(); openSettings(); break;
+      case 'sheet-settings': openSettings(); break;
       case 'save-settings': saveSettings(); break;
       case 'go-docs': closeNavPop(); switchMainView('docs'); break;
       case 'go-cxc': closeNavPop(); switchMainView('cxc'); break;
@@ -2781,7 +2879,7 @@
     if (e.key === 'Escape') {
       if (pop && !pop.hidden) closeNavPop();
       else if (overlay) {
-        const close = $('.modal-head [data-action^="close-"]', overlay);
+        const close = $('.modal-head [data-action^="close-"], .sheet-top [data-action^="close-"]', overlay);
         if (close) close.click();
       }
       return;
@@ -2853,7 +2951,7 @@
       open.forEach(function (el) {
         if (openBefore.has(el)) return;
         returnTargets.set(el, document.activeElement);
-        const close = $('.modal-head button', el);
+        const close = $('.modal-head button, .sheet-back', el);
         if (close && !el.contains(document.activeElement)) close.focus({ preventScroll: true });
       });
       document.body.classList.toggle('modal-open', open.size > 0);
@@ -2861,8 +2959,13 @@
       openBefore.forEach(function (el) {
         if (open.has(el)) return;
         const target = returnTargets.get(el);
-        if (!open.size && target && target.isConnected) target.focus({ preventScroll: true });
-        else if (!open.size) $('#main-content').focus({ preventScroll: true });
+        const inAnotherModal = target && target.isConnected &&
+          target.closest && target.closest('.modal.open');
+        if (target && target.isConnected && (!open.size || inAnotherModal)) {
+          target.focus({ preventScroll: true });
+        } else if (!open.size) {
+          $('#main-content').focus({ preventScroll: true });
+        }
         returnTargets.delete(el);
       });
       openBefore = open;
@@ -2892,6 +2995,12 @@
     }
     new MutationObserver(paint).observe(pill, { attributes: true, attributeFilter: ['class'] });
     paint();
+    if ($('#sheet-sync')) {
+      new MutationObserver(mirrorSheetSync).observe(pill, {
+        attributes: true, childList: true, characterData: true, subtree: true
+      });
+      mirrorSheetSync();
+    }
   })();
 
   /* ---------------- PWA install ---------------- */

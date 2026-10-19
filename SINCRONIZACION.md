@@ -69,14 +69,14 @@ que instala `pg` (dependencia nueva) y despliega 3 funciones:
 | `api/sync.js` | `GET /api/sync?since=` · `POST /api/sync` | Pull incremental / push con guarda "solo si es más nuevo" |
 | `js/sync.js` | cliente | Cola de cambios, pull+push, merge last-write-wins, tumbas, píldora de estado |
 | `js/app.js` | hooks | Notifica cambios/borrados al sincronizador; refresca vistas al llegar remoto |
-| `sw.js` v24 | PWA | Cachea `js/sync.js` |
+| `sw.js` v80 | PWA | Cachea `js/sync.js` y los archivos de la interfaz |
 
 **Esquema:** `app_records(owner_email, kind, record_id, data JSONB, updated_at BIGINT,
 deleted BOOL, PK(owner_email, kind, record_id))` — cada fila es un documento, cliente,
 cuenta por pagar, producto del catálogo, o los ajustes (id `_`).
 
 **Colecciones que viajan** (`COLLECTIONS` en `js/sync.js` · `KINDS` en `api/_lib.js`):
-`docs`, `settings`, `clientes`, `cxp` y `productos` (`localStorage: mc_productos`).
+`docs`, `settings`, `clientes`, `cxp`, `productos` y `tareas` (`localStorage: mc_*`).
 Para añadir una colección hay que darla de alta en los dos lados: si el `kind` no
 está en `KINDS`, el servidor rechaza el registro silenciosamente.
 
@@ -90,6 +90,8 @@ está en `KINDS`, el servidor rechaza el registro silenciosamente.
   tumba solo si es más reciente que su copia local.
 
 **Límites:** 500 registros por push (más que sobra); el body está limitado a 1 MB.
+Los campos de contacto (RFC, método de pago, origen y seguimiento) viajan dentro
+del JSON de cada cliente; no requieren cambios de esquema ni de `KINDS`.
 
 **Seguridad:** contraseñas con `scrypt` (sal por usuario, comparación en tiempo
 constante); tokens HMAC-SHA256 de 30 días sin estado; cada usuario solo ve sus filas.
