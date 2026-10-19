@@ -12,7 +12,7 @@ rutas, la sincronización (`js/sync.js`) y el documento impreso (`js/layout.js`,
 `js/render.js`, `js/pdf.js`) no cambian de motor.
 
 Cambian `index.html`, `css/app.css`, `js/app.js`, `manifest.webmanifest`,
-`sw.js` (caché `mc-pwa-v80`) y este documento.
+`sw.js` (caché `mc-pwa-v81`) y este documento.
 
 ## 1. Dirección visual
 
