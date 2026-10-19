@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>CLERKI — Recibos &amp; Cotizaciones</title>
   <meta name="description" content="Crea, guarda, imprime y envía recibos y cotizaciones.">
-  <meta name="theme-color" content="#E8770E">
+  <meta name="theme-color" content="#F3F6FB">
   <meta name="color-scheme" content="light">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
@@ -88,115 +88,105 @@
       <main id="main-content" tabindex="-1">
         <!-- ===== Vista: panel de inicio ===== -->
         <section id="view-inicio" aria-labelledby="hero-title">
-          <!-- Tarjeta principal: cristal translúcido sobre luces suaves -->
-          <div class="band">
-            <div class="band-aura" aria-hidden="true">
-              <span class="aura aura-lav"></span>
-              <span class="aura aura-mint"></span>
-              <span class="aura aura-blue"></span>
-              <svg class="band-rings" viewBox="0 0 600 600" fill="none">
-                <circle cx="300" cy="300" r="244" stroke="currentColor"/>
-                <circle cx="300" cy="300" r="190" stroke="currentColor" stroke-dasharray="3 9"/>
-                <ellipse cx="300" cy="300" rx="284" ry="110" stroke="currentColor" transform="rotate(-38 300 300)"/>
-              </svg>
+          <div class="home-top">
+            <div class="home-greeting">
+              <p class="kicker workspace-kicker"><span aria-hidden="true"></span> Tu espacio de trabajo</p>
+              <h1 class="home-title" id="hero-title">Buenos días</h1>
+              <p class="home-date" id="hero-kicker">Panel general</p>
+              <div class="hero-chips" id="hero-chips"></div>
             </div>
-            <div class="band-glass">
-              <div class="band-main">
-                <p class="kicker workspace-kicker"><span aria-hidden="true"></span> Tu espacio de trabajo</p>
-                <h1 class="band-title" id="hero-title">Buen día</h1>
-                <p class="band-date" id="hero-kicker">Panel general</p>
-                <div class="hero-chips" id="hero-chips"></div>
-                <div class="band-actions">
-                  <button type="button" class="btn hero-primary" data-action="new-recibo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nuevo recibo</button>
-                  <button type="button" class="btn hero-secondary" data-action="go-docs">Ver documentos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
-                </div>
-              </div>
-              <div class="band-side">
-                <div class="balance">
-                  <div class="balance-head">
-                    <span class="balance-label">Saldo por cobrar</span>
-                    <span class="balance-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
-                  </div>
-                  <button type="button" class="balance-btn" id="hero-balance-btn" data-action="toggle-debtors" aria-expanded="false" aria-controls="hero-debtors" title="Ver deudores">
-                    <strong id="hero-balance-value">$0.00</strong>
-                    <svg class="balance-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  <span class="balance-detail" id="hero-balance-detail">Tu resumen de cobranza</span>
-                  <div id="hero-debtors" class="hero-debtors" hidden></div>
-                </div>
-                <div class="band-chart">
-                  <div class="band-chart-head">
-                    <span class="band-chart-title">Así va tu cobranza</span>
-                    <span class="band-chart-note" id="hero-cob-note"></span>
-                  </div>
-                  <div id="hero-chart-host" class="cob-host"></div>
-                </div>
-              </div>
-              <p class="hero-sub" id="hero-sub">Este es el estado de tu estudio hoy.</p>
-            </div>
+            <button type="button" class="new-recibo-card" data-action="new-recibo">
+              <span class="new-recibo-plus" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="new-recibo-copy">
+                <strong>Nuevo recibo</strong>
+                <small>Registrar un nuevo cobro en segundos.</small>
+              </span>
+            </button>
           </div>
 
-          <!-- Franja de accesos directos -->
-          <nav class="quick-strip" aria-label="Acciones rápidas">
-            <button type="button" class="quick" data-action="new-cotizacion">
-              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 14h6M9 18h4"/></svg></span>
-              <span class="quick-copy"><span class="quick-label">Cotizar</span><span class="quick-desc">Tu próxima propuesta</span></span>
+          <section class="balance-card" aria-labelledby="balance-title">
+            <div class="balance-top">
+              <div class="balance-summary">
+                <p class="balance-label">
+                  <span class="balance-ico" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14h2"/></svg></span>
+                  <span id="balance-title">Saldo por cobrar</span>
+                </p>
+                <button type="button" class="balance-btn" id="hero-balance-btn" data-action="toggle-debtors" aria-expanded="false" aria-controls="hero-debtors" title="Ver deudores">
+                  <strong id="hero-balance-value">$0.00</strong>
+                  <svg class="balance-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                </button>
+                <span class="balance-detail" id="hero-balance-detail">Tu resumen de cobranza</span>
+              </div>
+              <div id="hero-chart-host" class="balance-donut"></div>
+            </div>
+            <div id="hero-debtors" class="hero-debtors" hidden></div>
+            <div id="hero-split" class="balance-split"></div>
+            <p class="hero-sub" id="hero-sub">Este es el estado de tu estudio hoy.</p>
+          </section>
+
+          <nav class="quick-grid" aria-label="Acciones rápidas">
+            <button type="button" class="quick-tile" data-action="new-cotizacion">
+              <span class="quick-tile-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
+              <span class="quick-tile-label">Cotizar</span>
             </button>
-            <button type="button" class="quick" data-action="new-recibo">
-              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h16v19l-4-2-4 2-4-2-4 2ZM8 8h8M8 12h6"/></svg></span>
-              <span class="quick-copy"><span class="quick-label">Recibo</span><span class="quick-desc">Cada pago, en orden</span></span>
+            <button type="button" class="quick-tile" data-action="new-recibo">
+              <span class="quick-tile-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v19l-4-2-4 2-4-2-4 2Z"/><path d="M8 8h8M8 12h6"/></svg></span>
+              <span class="quick-tile-label">Recibo</span>
             </button>
-            <button type="button" class="quick" data-action="new-cliente">
-              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M20 8v6M17 11h6"/><circle cx="10" cy="7" r="4"/></svg></span>
-              <span class="quick-copy"><span class="quick-label">Cliente</span><span class="quick-desc">Una nueva conexión</span></span>
+            <button type="button" class="quick-tile" data-action="new-cliente">
+              <span class="quick-tile-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M20 8v6M17 11h6"/><circle cx="10" cy="7" r="4"/></svg></span>
+              <span class="quick-tile-label">Cliente</span>
             </button>
-            <button type="button" class="quick" data-action="new-cxp">
-              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h2M7 3v4"/></svg></span>
-              <span class="quick-copy"><span class="quick-label">Gasto</span><span class="quick-desc">Cuida tu equilibrio</span></span>
+            <button type="button" class="quick-tile" data-action="new-cxp">
+              <span class="quick-tile-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14h2"/></svg></span>
+              <span class="quick-tile-label">Gasto</span>
             </button>
-            <button type="button" class="quick" data-action="new-producto">
-              <span class="quick-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8ZM3 8l9 5 9-5M12 13v8M7.5 5.5l9 5"/></svg></span>
-              <span class="quick-copy"><span class="quick-label">Producto</span><span class="quick-desc">Haz crecer tu catálogo</span></span>
+            <button type="button" class="quick-tile" data-action="new-producto">
+              <span class="quick-tile-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5v8l-9 5-9-5V8Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
+              <span class="quick-tile-label">Producto</span>
             </button>
           </nav>
 
-          <!-- Zona de trabajo: tarea principal + apoyo contextual -->
+          <section class="next-card" id="panel-tareas" aria-labelledby="todo-title">
+            <div class="next-head">
+              <span class="next-ico" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>
+              <div class="next-copy">
+                <h2 id="todo-title">Tu siguiente paso</h2>
+                <p id="todo-note"></p>
+              </div>
+              <button type="button" class="next-link" data-action="go-tareas">Ver todas <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+            </div>
+            <div id="todo-host" class="todo-host todo-host-home"></div>
+          </section>
+
+          <div class="general-head">
+            <p class="kicker">General</p>
+            <span class="general-rule" aria-hidden="true"></span>
+            <button type="button" class="general-count" data-action="go-docs" aria-label="Ver todos los documentos">
+              <b id="general-count">0</b>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+          </div>
+
           <div class="home-grid">
-            <section class="zone" id="panel-tareas" aria-labelledby="todo-title">
+            <section class="zone" aria-labelledby="cob-title">
               <div class="zone-head">
                 <div class="zone-heading">
-                  <span class="zone-icon mint"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11 3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                  <span class="zone-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>
                   <div>
-                    <h2 class="zone-title" id="todo-title">Tu siguiente paso</h2>
-                    <p class="zone-sub">Tareas y prioridades por área</p>
+                    <h2 class="zone-title" id="cob-title">Por cobrar</h2>
+                    <p class="zone-sub">Documentos con saldo</p>
                   </div>
                 </div>
                 <div class="zone-head-side">
-                  <span class="zone-note" id="todo-note"></span>
-                  <button type="button" class="zone-link" data-action="go-tareas">Ver todas <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+                  <span class="zone-note" id="cob-note"></span>
+                  <button type="button" class="zone-link" data-action="go-cxc" aria-label="Ver todas las cuentas por cobrar">Ver todo <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
                 </div>
               </div>
-              <div id="todo-host" class="todo-host"></div>
+              <div id="chart-host" class="cob-host"></div>
             </section>
 
             <div class="home-side">
-              <section class="zone" aria-labelledby="cob-title">
-                <div class="zone-head">
-                  <div class="zone-heading">
-                    <span class="zone-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>
-                    <div>
-                      <h2 class="zone-title" id="cob-title">Por cobrar</h2>
-                      <p class="zone-sub">Documentos con saldo</p>
-                    </div>
-                  </div>
-                  <div class="zone-head-side">
-                    <span class="zone-note" id="cob-note"></span>
-                    <button type="button" class="zone-link" data-action="go-cxc" aria-label="Ver todas las cuentas por cobrar">Ver todo <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
-                  </div>
-                </div>
-                <div id="chart-host" class="cob-host"></div>
-              </section>
-
               <section class="zone" aria-labelledby="figs-title">
                 <div class="zone-head zone-head-plain">
                   <h2 class="zone-title" id="figs-title">El mes en cifras</h2>
@@ -717,57 +707,164 @@
     </div>
   </div>
 
-  <!-- ===== Modal: Cliente / Prospecto (agregar/editar) ===== -->
-  <div id="modal-cliente" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
-    <div class="modal-box">
-      <div class="modal-head">
-        <div>
-          <h2 id="modal-cliente-title">Nuevo cliente</h2>
-          <p class="modal-sub">Se reutiliza en recibos y cotizaciones.</p>
+  <!-- ===== Modal: Cliente / Prospecto (crear/editar) ===== -->
+  <div id="modal-cliente" class="modal contact-modal" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
+    <div class="modal-box contact-sheet">
+      <header class="sheet-top">
+        <button type="button" class="sheet-back" data-action="close-cliente-modal" aria-label="Volver" title="Volver">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+        </button>
+        <div class="sheet-brand">
+          <span class="brand-mark"><img src="assets/img/logo-clerki.svg" alt="" width="24" height="24"></span>
+          <strong class="brand-wordmark">clerki<span class="brand-dot" aria-hidden="true">.</span></strong>
         </div>
-        <button class="icon-btn" data-action="close-cliente-modal" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
-      <div class="modal-body">
-        <label>Tipo de contacto</label>
-        <div class="seg" id="cli-tipo-seg" role="group" aria-label="Tipo de contacto">
-          <button type="button" class="seg-btn on" data-action="set-cli-tipo" data-cli-tipo="cliente">Cliente</button>
-          <button type="button" class="seg-btn" data-action="set-cli-tipo" data-cli-tipo="prospecto">Prospecto</button>
+        <div class="sheet-top-right">
+          <span class="sync-pill sync-off" id="sheet-sync" aria-hidden="true">Sync</span>
+          <button type="button" class="icon-btn sheet-gear" data-action="sheet-settings" aria-label="Ajustes" title="Ajustes">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+          </button>
         </div>
-        <label>Nombre / Representante *
-          <input id="cl-nombre" type="text" placeholder="Ej. Ana Martínez" autocomplete="off">
-        </label>
-        <label>Empresa
-          <input id="cl-empresa" type="text" placeholder="Ej. Restaurantes del Pacífico" autocomplete="off">
-        </label>
-        <div class="sgrid">
-          <label>Email
-            <input id="cl-email" type="email" placeholder="correo@ejemplo.com" autocomplete="off">
+      </header>
+
+      <div class="sheet-body">
+        <header class="sheet-intro">
+          <p class="kicker" id="cl-kicker">Nuevo cliente</p>
+          <h2 id="modal-cliente-title">Crear cliente</h2>
+          <p class="sheet-sub" id="cl-sub">Agrega un cliente para gestionar sus cotizaciones, recibos y documentos.</p>
+        </header>
+
+        <div class="seg sheet-seg" id="cli-tipo-seg" role="group" aria-label="Tipo de contacto">
+          <button type="button" class="seg-btn on" data-action="set-cli-tipo" data-cli-tipo="cliente" aria-pressed="true">Cliente</button>
+          <button type="button" class="seg-btn" data-action="set-cli-tipo" data-cli-tipo="prospecto" aria-pressed="false">Prospecto</button>
+        </div>
+
+        <div class="field-stack">
+          <label class="field-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Nombre completo <em aria-hidden="true">*</em></span>
+              <input id="cl-nombre" type="text" placeholder="Ej. Juan Pérez" autocomplete="off">
+            </span>
           </label>
-          <label>Teléfono / WhatsApp
-            <input id="cl-telefono" type="tel" placeholder="55 0000 0000" autocomplete="off">
+
+          <label class="field-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M15 9h4a2 2 0 0 1 2 2v10"/><path d="M9 7h2M9 11h2M9 15h2"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Empresa / Negocio</span>
+              <input id="cl-empresa" type="text" placeholder="Ej. Mi Negocio S.A. de C.V." autocomplete="off">
+            </span>
+          </label>
+
+          <label class="field-card" id="cl-rfc-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M7 9h4M7 13h3M17 9h-2v6"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">RFC</span>
+              <input id="cl-rfc" type="text" placeholder="Ej. PEJU900101XXX" autocomplete="off" maxlength="13" spellcheck="false">
+            </span>
+          </label>
+
+          <label class="field-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Teléfono</span>
+              <input id="cl-telefono" type="tel" placeholder="Ej. 55 1234 5678" autocomplete="off">
+            </span>
+          </label>
+
+          <label class="field-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m2 7 10 6 10-6"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Correo electrónico</span>
+              <input id="cl-email" type="email" placeholder="ejemplo@correo.com" autocomplete="off">
+            </span>
+          </label>
+
+          <label class="field-card field-card-area">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Dirección</span>
+              <textarea id="cl-direccion" rows="2" placeholder="Calle, número, colonia, ciudad, estado, CP"></textarea>
+            </span>
+          </label>
+
+          <label class="field-card" id="cl-metodo-card">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Método de pago</span>
+              <select id="cl-metodo">
+                <option value="">Selecciona…</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="tarjeta_credito">Tarjeta de crédito</option>
+                <option value="tarjeta_debito">Tarjeta de débito</option>
+                <option value="cheque">Cheque</option>
+                <option value="otro">Otro</option>
+              </select>
+            </span>
+          </label>
+
+          <label class="field-card" id="cl-origen-card" hidden>
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Origen del prospecto</span>
+              <select id="cl-origen">
+                <option value="">Selecciona…</option>
+                <option value="recomendacion">Recomendación</option>
+                <option value="redes">Redes sociales</option>
+                <option value="sitio">Sitio web</option>
+                <option value="cliente_existente">Cliente existente</option>
+                <option value="evento">Evento o feria</option>
+                <option value="publicidad">Publicidad</option>
+                <option value="otro">Otro</option>
+              </select>
+            </span>
+          </label>
+
+          <div class="field-pair" id="cl-seguimiento-pair" hidden>
+            <label class="field-card">
+              <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>
+              <span class="field-body">
+                <span class="field-label">Fecha de seguimiento</span>
+                <input id="cl-seguimiento" type="date">
+              </span>
+            </label>
+            <label class="field-card">
+              <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <span class="field-body">
+                <span class="field-label">Estado</span>
+                <select id="cl-estado">
+                  <option value="nuevo">Nuevo</option>
+                  <option value="contactado">Contactado</option>
+                  <option value="negociacion">En negociación</option>
+                  <option value="ganado">Ganado ✓</option>
+                  <option value="perdido">Perdido</option>
+                </select>
+              </span>
+            </label>
+          </div>
+
+          <label class="field-card field-card-area">
+            <span class="field-ico" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
+            <span class="field-body">
+              <span class="field-label">Notas</span>
+              <textarea id="cl-notas" rows="3" placeholder="Referencias, servicios de interés, seguimiento…"></textarea>
+            </span>
           </label>
         </div>
-        <label>Dirección
-          <input id="cl-direccion" type="text" placeholder="Calle, colonia, ciudad" autocomplete="off">
-        </label>
-        <label id="cl-estado-wrap" hidden>Estado del prospecto
-          <select id="cl-estado">
-            <option value="nuevo">Nuevo</option>
-            <option value="contactado">Contactado</option>
-            <option value="negociacion">En negociación</option>
-            <option value="ganado">Ganado ✓</option>
-            <option value="perdido">Perdido</option>
-          </select>
-        </label>
-        <label>Notas
-          <textarea id="cl-notas" rows="3" placeholder="Referencias, servicios de interés, seguimiento…"></textarea>
-        </label>
-        <p class="hint">Los contactos guardados aparecen en el selector «Cliente guardado» del editor de recibos y cotizaciones, y viajan con tu cuenta entre dispositivos.</p>
+
+        <p class="sheet-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0"/></svg>
+          <span>Los contactos se reutilizan en recibos y cotizaciones, y viajan con tu cuenta entre dispositivos.</span>
+        </p>
       </div>
-      <div class="modal-foot">
-        <button class="btn outline" data-action="close-cliente-modal">Cancelar</button>
-        <button class="btn primary" data-action="save-cliente">Guardar contacto</button>
-      </div>
+
+      <footer class="sheet-foot">
+        <button type="button" class="btn outline sheet-cancel" data-action="close-cliente-modal">Cancelar</button>
+        <button type="button" class="btn primary sheet-save" data-action="save-cliente">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span id="cl-save-label">Guardar cliente</span>
+        </button>
+      </footer>
     </div>
   </div>
 
