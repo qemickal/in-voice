@@ -2123,6 +2123,10 @@ main { padding-top: 22px; }
 .page-head-main h1 { font-size: clamp(30px, 3.6vw, 40px); }
 .page-desc { margin-top: 6px; color: var(--ink-2); }
 .page-head-actions { gap: 8px; }
+/* OJO: esta capa v8 va DESPUÉS de los @media de la base, así que cualquier
+   valor «de escritorio» declarado aquí pisa a los de móvil declarados antes.
+   La versión apilada de esta rejilla vive en «Adaptable», al final del
+   archivo; si se cambia el 262px, hay que revisar también aquélla. */
 .page-grid { grid-template-columns: 262px minmax(0, 1fr); }
 .page-side {
   padding: 18px;
@@ -2430,8 +2434,17 @@ body.in-editor .mobile-nav, body.auth-open .mobile-nav { display: none; }
   .home-top { grid-template-columns: minmax(0, 1fr) minmax(190px, 240px); }
   .home-grid { grid-template-columns: minmax(0, 1fr); }
   .home-side { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .page-grid { grid-template-columns: 232px minmax(0, 1fr); }
   .mobile-nav { display: grid; }
   main { padding-bottom: 118px; }
+}
+/* Filtros arriba y lista debajo, a todo el ancho.
+   Sin este bloque, el «262px» de la capa v8 (declarado sin @media y más
+   abajo que el de la base) dejaba la lista aplastada en la columna que
+   sobraba a la derecha en el celular. El panel ya se vuelve fila con
+   chips en el @media (max-width: 900px) de la base. */
+@media (max-width: 900px) {
+  .page-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 761px) {
   .contact-modal { padding: 26px; align-items: center; }
