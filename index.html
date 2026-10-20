@@ -14,7 +14,6 @@
   <link rel="preload" href="assets/fonts/archivo-latin-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/imprenta.css" media="screen">
 </head>
 <body class="tab-datos">
   <a class="skip-link" href="#main-content">Ir al contenido</a>
@@ -34,6 +33,7 @@
       <div class="topbar-right">
         <span id="sync-pill" class="sync-pill sync-off" title="Sincronización entre dispositivos">Sin cuenta</span>
         <div class="topbar-actions">
+          <button type="button" class="icon-btn" data-action="open-cmdk" aria-label="Buscar en todo CLERKI" title="Buscar (Ctrl o Cmd + K)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
           <button id="btn-install" class="btn small outline" data-action="install" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span class="btn-label-wide">Instalar</span></button>
           <button class="icon-btn hide-with-rail" data-action="settings" aria-label="Ajustes" title="Ajustes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
         </div>
@@ -230,9 +230,18 @@
               <div class="side-block">
                 <p class="side-label" id="docs-filter-label">Tipo de documento</p>
                 <div class="chips chips-col" role="group" aria-labelledby="docs-filter-label">
-                  <button class="chip active" data-filter="todos">Todos</button>
-                  <button class="chip" data-filter="recibo">Recibos</button>
-                  <button class="chip" data-filter="cotizacion">Cotizaciones</button>
+                  <button class="chip active" data-filter="todos" aria-pressed="true">Todos</button>
+                  <button class="chip" data-filter="recibo" aria-pressed="false">Recibos</button>
+                  <button class="chip" data-filter="cotizacion" aria-pressed="false">Cotizaciones</button>
+                </div>
+              </div>
+              <div class="side-block">
+                <p class="side-label" id="docs-status-label">Estado de cobro</p>
+                <div class="chips chips-col" role="group" aria-labelledby="docs-status-label">
+                  <button class="chip active" data-status="todos" aria-pressed="true">Cualquiera</button>
+                  <button class="chip" data-status="pendiente" aria-pressed="false">Pendientes</button>
+                  <button class="chip" data-status="parcial" aria-pressed="false">Pago parcial</button>
+                  <button class="chip" data-status="pagado" aria-pressed="false">Liquidados</button>
                 </div>
               </div>
               <p class="side-hint">Los documentos se ordenan del más reciente al más antiguo. Ábrelos para editar, imprimir o enviar.</p>
@@ -333,10 +342,10 @@
               <div class="side-block">
                 <p class="side-label" id="cxp-filter-label">Estado</p>
                 <div class="chips chips-col" role="group" aria-labelledby="cxp-filter-label">
-                  <button class="chip active" data-cxp-filter="todas">Todas</button>
-                  <button class="chip" data-cxp-filter="pendiente">Pendientes</button>
-                  <button class="chip" data-cxp-filter="pagada">Pagadas</button>
-                  <button class="chip" data-cxp-filter="parcial">Pago parcial</button>
+                  <button class="chip active" data-cxp-filter="todas" aria-pressed="true">Todas</button>
+                  <button class="chip" data-cxp-filter="pendiente" aria-pressed="false">Pendientes</button>
+                  <button class="chip" data-cxp-filter="pagada" aria-pressed="false">Pagadas</button>
+                  <button class="chip" data-cxp-filter="parcial" aria-pressed="false">Pago parcial</button>
                 </div>
               </div>
               <p class="side-hint">Las cuentas vencidas aparecen primero, con su fecha de vencimiento.</p>
@@ -379,9 +388,9 @@
               <div class="side-block">
                 <p class="side-label" id="cli-filter-label">Tipo de contacto</p>
                 <div class="chips chips-col" role="group" aria-labelledby="cli-filter-label">
-                  <button class="chip active" data-cli-filter="todos">Todos</button>
-                  <button class="chip" data-cli-filter="cliente">Clientes</button>
-                  <button class="chip" data-cli-filter="prospecto">Prospectos</button>
+                  <button class="chip active" data-cli-filter="todos" aria-pressed="true">Todos</button>
+                  <button class="chip" data-cli-filter="cliente" aria-pressed="false">Clientes</button>
+                  <button class="chip" data-cli-filter="prospecto" aria-pressed="false">Prospectos</button>
                 </div>
               </div>
               <p class="side-hint">Al guardar un contacto lo reutilizas en el editor con el selector «Cliente guardado».</p>
@@ -424,9 +433,9 @@
               <div class="side-block">
                 <p class="side-label" id="prod-filter-label">Tipo de ítem</p>
                 <div class="chips chips-col" role="group" aria-labelledby="prod-filter-label">
-                  <button class="chip active" data-prod-filter="todos">Todos</button>
-                  <button class="chip" data-prod-filter="producto">Productos</button>
-                  <button class="chip" data-prod-filter="servicio">Servicios</button>
+                  <button class="chip active" data-prod-filter="todos" aria-pressed="true">Todos</button>
+                  <button class="chip" data-prod-filter="producto" aria-pressed="false">Productos</button>
+                  <button class="chip" data-prod-filter="servicio" aria-pressed="false">Servicios</button>
                 </div>
               </div>
               <p class="side-hint">Al agregarlo a un documento se copian precio, unidad y características.</p>
@@ -469,20 +478,20 @@
               <div class="side-block">
                 <p class="side-label" id="tarea-filter-label">Estado</p>
                 <div class="chips chips-col" role="group" aria-labelledby="tarea-filter-label">
-                  <button class="chip active" data-tarea-filter="todas">Todas</button>
-                  <button class="chip" data-tarea-filter="pendiente">Pendientes</button>
-                  <button class="chip" data-tarea-filter="hecha">Hechas</button>
-                  <button class="chip" data-tarea-filter="vencida">Vencidas</button>
+                  <button class="chip active" data-tarea-filter="todas" aria-pressed="true">Todas</button>
+                  <button class="chip" data-tarea-filter="pendiente" aria-pressed="false">Pendientes</button>
+                  <button class="chip" data-tarea-filter="hecha" aria-pressed="false">Hechas</button>
+                  <button class="chip" data-tarea-filter="vencida" aria-pressed="false">Vencidas</button>
                 </div>
               </div>
               <div class="side-block">
                 <p class="side-label" id="tarea-area-label">Área</p>
                 <div class="chips chips-col" role="group" aria-labelledby="tarea-area-label">
-                  <button class="chip active" data-tarea-area="todas">Todas las áreas</button>
-                  <button class="chip" data-tarea-area="general">General</button>
-                  <button class="chip" data-tarea-area="contabilidad">Contabilidad</button>
-                  <button class="chip" data-tarea-area="ventas">Ventas</button>
-                  <button class="chip" data-tarea-area="cobranza">Cobranza</button>
+                  <button class="chip active" data-tarea-area="todas" aria-pressed="true">Todas las áreas</button>
+                  <button class="chip" data-tarea-area="general" aria-pressed="false">General</button>
+                  <button class="chip" data-tarea-area="contabilidad" aria-pressed="false">Contabilidad</button>
+                  <button class="chip" data-tarea-area="ventas" aria-pressed="false">Ventas</button>
+                  <button class="chip" data-tarea-area="cobranza" aria-pressed="false">Cobranza</button>
                 </div>
               </div>
             </aside>
@@ -995,6 +1004,24 @@
     <option value="rollo"></option>
     <option value="juego de archivos"></option>
   </datalist>
+
+  <!-- ===== Búsqueda global (Ctrl/⌘ + K) ===== -->
+  <div id="cmdk" class="cmdk" role="dialog" aria-modal="true" aria-label="Buscar" hidden>
+    <div class="cmdk-box">
+      <div class="cmdk-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cmdk-input" class="cmdk-input" type="search" placeholder="Buscar documentos, clientes, gastos, catálogo, tareas…"
+               autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="cmdk-list" aria-autocomplete="list">
+        <button type="button" class="cmdk-hint" data-action="close-cmdk" aria-label="Cerrar la búsqueda">esc</button>
+      </div>
+      <div id="cmdk-list" class="cmdk-list" role="listbox" aria-label="Resultados"></div>
+      <div class="cmdk-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+        <span><kbd>↵</kbd> abrir</span>
+        <span><kbd>esc</kbd> cerrar</span>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== Puerta de cuenta (sincronización) ===== -->
   <div id="auth-gate" class="auth-gate" role="main" aria-labelledby="auth-heading" hidden>

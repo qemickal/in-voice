@@ -62,7 +62,8 @@
   let editingTarea = null; // tarea en edición (null = nueva)
   let selectedClientId = null;
   let images = null;    // dataURLs pre-cargados para el PDF
-  let listFilter = 'todos';
+  let listFilter = 'todos';   // 'todos' | 'recibo' | 'cotizacion'
+  let listStatus = 'todos';   // 'todos' | 'pendiente' | 'parcial' | 'pagado'
   let listQuery = '';
   let cliFilter = 'todos';  // 'todos' | 'cliente' | 'prospecto'
   let cliQuery = '';
@@ -139,6 +140,16 @@
   }
   /* Separador de metadatos: no se lee, sólo ordena la línea. */
   const SEP = '<span class="row-sep" aria-hidden="true">·</span>';
+  /* Grupos de filtros: son conmutadores, así que el estado activo tiene
+     que oírse (aria-pressed), no sólo verse. */
+  function paintChips(sel, attr, activo) {
+    $$(sel).forEach(function (c) {
+      const on = c.dataset[attr] === activo;
+      c.classList.toggle('active', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
   /* Cuenta de resultados de cada lista (aviso visible y para lectores). */
   function setCount(id, n, singular, plural, extra) {
     const el = $('#' + id);
@@ -188,8 +199,8 @@
     } catch (e) { /* sin imágenes, el PDF saldrá sin logo */ }
   }
 
-  /* ================= LISTA ================= */
-  function showList() {
+  /* ================= PANEL DE INICIO (entrada) ================= */
+  function showHome() {
     switchMainView('inicio');
   }
 
@@ -197,14 +208,24 @@
     const wrap = $('#doc-list');
     const filtered = docs.filter((d) => {
       const okTipo = listFilter === 'todos' || d.tipo === listFilter;
+      if (!okTipo) return false;
+      if (listStatus !== 'todos') {
+        const t = computeTotals(d);
+        if (listStatus === 'pagado' && !t.pagado) return false;
+        if (listStatus === 'parcial' && (t.pagado || t.abonado <= 0)) return false;
+        if (listStatus === 'pendiente' && (t.pagado || t.abonado > 0)) return false;
+      }
       const q = listQuery.trim().toLowerCase();
       const okQ = !q || [d.numero, d.proyecto, d.representante, d.email].join(' ').toLowerCase().includes(q);
-      return okTipo && okQ;
+      return okQ;
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-    $$('.chip[data-filter]').forEach((c) => c.classList.toggle('active', c.dataset.filter === listFilter));
+    paintChips('.chip[data-filter]', 'filter', listFilter);
+    paintChips('.chip[data-status]', 'status', listStatus);
+    const STATUS_NOTA = { pendiente: 'pendientes', parcial: 'con pago parcial', pagado: 'liquidados' };
     setCount('docs-count', filtered.length, 'documento', 'documentos',
-      listFilter === 'todos' ? '' : (listFilter === 'recibo' ? 'recibos' : 'cotizaciones'));
+      (listFilter === 'todos' ? '' : (listFilter === 'recibo' ? 'recibos' : 'cotizaciones'))
+      + (listStatus === 'todos' ? '' : (listFilter === 'todos' ? '' : ' · ') + STATUS_NOTA[listStatus]));
 
     if (!filtered.length) {
       wrap.innerHTML = `
@@ -307,6 +328,7 @@
     document.body.classList.remove('in-editor');
     closeNavPop();
     refreshMobileNav();
+    closeCmdk();
     if (view === 'inicio') renderInicio();
     if (view === 'docs') renderList();
     if (view === 'cxc') renderCxC();
@@ -323,7 +345,9 @@
   function navPopEl() { return $('#nav-pop'); }
 
   function setBackgroundInert() {
-    const locked = document.body.classList.contains('nav-open') || !!$('.modal.open');
+    const pop = cmdkEl();
+    const locked = document.body.classList.contains('nav-open') || !!$('.modal.open')
+      || !!(pop && !pop.hidden);
     // #shell cubre barra superior, riel y contenido de una sola vez
     ['#shell', '#mobile-nav'].forEach(function (id) {
       const el = $(id);
@@ -389,7 +413,7 @@
     return Math.round((a - b) / 86400000);
   }
   /* Las cifras se pintan de una vez: sin conteo animado (v4.0). */
-  function countUp(el, to, money) {
+  function paintFigure(el, to, money) {
     if (!el) return;
     const val = Number(to) || 0;
     el.textContent = money ? window.fmtMoney(val) : String(Math.round(val));
@@ -585,7 +609,7 @@
     storeSet('mc_home_done', m);
   }
 
-  function homeTasks(hoy, cxcData) {
+  function homeTasks(hoy, cxcData, mes) {
     const done = homeDoneMap();
     const tasks = [];
     function add(t) { if (!done[t.id]) tasks.push(t); }
@@ -625,7 +649,7 @@
         prio: 'mid', go: 'go-cxp'
       });
     }
-    const cobMes = monthTotals(0).cobrado;
+    const cobMes = mes.cobrado;
     if (cobMes > 0) {
       add({
         id: 'bank-' + String(hoy).slice(0, 7), area: 'contabilidad',
@@ -677,7 +701,7 @@
         meta: prospects.length + ' pendiente' + (prospects.length !== 1 ? 's' : ''),
         prio: 'mid', go: prospects.length === 1 ? 'new-cotizacion' : 'go-clientes'
       });
-    } else if (clientes.length && !quotesHoy.length && !quotesVencidas.length && monthTotals(0).facturado <= 0) {
+    } else if (clientes.length && !quotesHoy.length && !quotesVencidas.length && mes.facturado <= 0) {
       add({
         id: 'emit-quote', area: 'ventas',
         title: 'Emitir cotización',
@@ -864,7 +888,7 @@
       }
       subEl.textContent = sub;
     }
-    countUp($('#hero-balance-value'), cxcTotal, true);
+    paintFigure($('#hero-balance-value'), cxcTotal, true);
     $('#hero-balance-detail').textContent = cxcData.length
       ? 'Ver saldos de ' + cxcData.length + ' cliente' + (cxcData.length !== 1 ? 's' : '')
       : 'Sin saldos pendientes. Todo en equilibrio.';
@@ -962,7 +986,7 @@
       });
 
     $$('#stat-grid .fig-value').forEach(function (el) {
-      countUp(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
+      paintFigure(el, Number(el.dataset.count) || 0, el.dataset.money === '1');
     });
     const figsNote = $('#figs-note');
     if (figsNote) figsNote.textContent = MESES_LARGOS[now.getMonth()] + ' ' + now.getFullYear();
@@ -980,7 +1004,7 @@
     if (generalCount) generalCount.textContent = String(docs.length);
 
     /* ---------- Siguiente paso ---------- */
-    const tasks = homeTasks(hoy, cxcData);
+    const tasks = homeTasks(hoy, cxcData, mes);
     const todoHost = $('#todo-host');
     if (todoHost) todoHost.innerHTML = tareasHTML(tasks);
     const todoNote = $('#todo-note');
@@ -1087,6 +1111,12 @@
         + '<div class="row-actions">'
         + '<button type="button" class="btn small outline" data-action="view-cxc-doc" data-docid="' + esc(c.docs[0].id) + '" aria-label="Ver documento de ' + esc(c.cliente) + '" title="Ver documento">'
         + ICO.open + '<span class="btn-label">Ver documento</span></button>'
+        + (c.docs.length === 1
+          ? '<button type="button" class="btn small outline" data-action="cob-pay" data-id="' + esc(c.docs[0].id) + '" aria-label="Registrar cobro de ' + esc(c.cliente) + '" title="Registrar cobro">'
+            + ICO.cash + '<span class="btn-label">Cobrar</span></button>'
+            + '<button type="button" class="btn small outline" data-action="cob-settle" data-id="' + esc(c.docs[0].id) + '" aria-label="Marcar pagado a ' + esc(c.cliente) + '" title="Marcar pagado">'
+            + window.ICONS.check() + '<span class="btn-label">Liquidar</span></button>'
+          : '')
         + '</div>'
         + '</li>';
     }).join('');
@@ -1108,9 +1138,7 @@
     $('#cxp-pagadas').textContent = String(totalPagadas);
     $('#cxp-pendientes').textContent = String(totalPendientes);
 
-    $$('.chip[data-cxp-filter]').forEach(function(c) {
-      c.classList.toggle('active', c.dataset.cxpFilter === cxpFilter);
-    });
+    paintChips('.chip[data-cxp-filter]', 'cxpFilter', cxpFilter);
 
     var q = cxpQuery.trim().toLowerCase();
     var filtered = cuentasXPagar.filter(function(c) {
@@ -1338,9 +1366,7 @@
       return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
     });
 
-    $$('.chip[data-cli-filter]').forEach(function(c) {
-      c.classList.toggle('active', c.dataset.cliFilter === cliFilter);
-    });
+    paintChips('.chip[data-cli-filter]', 'cliFilter', cliFilter);
 
     setCount('cli-count', filtered.length, 'contacto', 'contactos',
       cliFilter === 'todos' ? '' : (cliFilter === 'cliente' ? 'clientes' : 'prospectos'));
@@ -1542,9 +1568,7 @@
       return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
     });
 
-    $$('.chip[data-prod-filter]').forEach(function (c) {
-      c.classList.toggle('active', c.dataset.prodFilter === prodFilter);
-    });
+    paintChips('.chip[data-prod-filter]', 'prodFilter', prodFilter);
 
     setCount('prod-count', filtered.length, 'ítem', 'ítems',
       prodFilter === 'todos' ? '' : (prodFilter === 'producto' ? 'productos' : 'servicios'));
@@ -1735,12 +1759,8 @@
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
 
-    $$('.chip[data-tarea-filter]').forEach(function (c) {
-      c.classList.toggle('active', c.dataset.tareaFilter === tareaFilter);
-    });
-    $$('.chip[data-tarea-area]').forEach(function (c) {
-      c.classList.toggle('active', c.dataset.tareaArea === tareaArea);
-    });
+    paintChips('.chip[data-tarea-filter]', 'tareaFilter', tareaFilter);
+    paintChips('.chip[data-tarea-area]', 'tareaArea', tareaArea);
 
     // resumen integrado en la cabecera de la vista
     var pendientes = tareas.filter(function (t) { return !t.done; }).length;
@@ -1954,7 +1974,7 @@
     $$('.editor-tabs [data-tab]').forEach((t) => t.classList.toggle('on', t.dataset.tab === 'datos'));
     closeNavPop();
     renderEditor();
-    renderPreview();
+    renderPreviewNow();
     watchPreview();
     window.scrollTo(0, 0);
   }
@@ -2216,8 +2236,21 @@
     if (pend) pend.textContent = window.fmtMoney(saldo);
   }
 
-  /* ---------------- Vista previa ---------------- */
+  /* ---------------- Vista previa ----------------
+     Reconstruir la hoja implica medir textos en canvas. Con el borrador
+     abierto eso pasaba en cada tecla: se agrupa en un fotograma y la
+     escritura deja de trabarse en equipos modestos. */
+  let _previewPendiente = false;
   function renderPreview() {
+    if (_previewPendiente) return;
+    _previewPendiente = true;
+    requestAnimationFrame(function () {
+      _previewPendiente = false;
+      renderPreviewNow();
+    });
+  }
+  function renderPreviewNow() {
+    if (!editing) return;
     $('#preview-inner').innerHTML = window.receiptHTML(editing, settings);
     autoscale();
   }
@@ -2242,6 +2275,38 @@
     if (!frame) return;
     _previewRO = new ResizeObserver(() => autoscale());
     _previewRO.observe(frame);
+  }
+
+  /* ---------------- Salida del editor ----------------
+     «Nuevo recibo» crea el documento al instante para poder editarlo. Si
+     se sale sin escribir nada, ese cascarón vacío se descarta: el archivo
+     deja de llenarse de documentos fantasma. */
+  function esBorradorVacio(doc) {
+    if (!doc) return false;
+    if (String(doc.proyecto || '').trim()) return false;
+    if (String(doc.representante || '').trim()) return false;
+    if (String(doc.email || '').trim()) return false;
+    if (String(doc.telefono || '').trim()) return false;
+    if ((doc.abonos || []).length) return false;
+    return !(doc.items || []).some(function (it) {
+      return String(it.desc || '').trim() || (Number(it.precioU) || 0) > 0;
+    });
+  }
+
+  function descartarBorradorVacio() {
+    if (!editing || !esBorradorVacio(editing)) return false;
+    const id = editing.id;
+    docs = docs.filter(function (d) { return d.id !== id; });
+    storeSet('mc_docs', docs);
+    if (window.SYNC) window.SYNC.tombstone('docs', id);
+    editing = null;
+    return true;
+  }
+
+  /* Guarda lo que haya y vuelve a la vista de la que se salió. */
+  function exitEditor(destino) {
+    if (editing && !$('#view-editor').hidden && !descartarBorradorVacio()) saveDoc(true);
+    switchMainView(destino || previousView, { replaceHistory: true });
   }
 
   /* ---------------- Acciones ---------------- */
@@ -2461,7 +2526,7 @@
     if (MAIN_VIEW_IDS.indexOf(state.view) === -1) return;
 
     closeNavPop();
-    if (!$('#view-editor').hidden && editing) saveDoc(true);
+    if (!$('#view-editor').hidden && editing && !descartarBorradorVacio()) saveDoc(true);
     switchMainView(state.view, { fromPopstate: true });
   });
 
@@ -2473,21 +2538,27 @@
     switch (a) {
       case 'new-recibo': { const d = blankDoc('recibo'); docs.push(d); storeSet('mc_docs', docs); showEditor(d); break; }
       case 'new-cotizacion': { const d = blankDoc('cotizacion'); docs.push(d); storeSet('mc_docs', docs); showEditor(d); break; }
-      case 'back': saveDoc(true); switchMainView(previousView, { replaceHistory: true }); break;
+      case 'back': exitEditor(previousView); break;
       case 'go-home':
-        if (!$('#view-editor').hidden && editing) {
-          saveDoc(true);
-          switchMainView('inicio', { replaceHistory: true });
-        } else {
-          switchMainView('inicio');
-        }
+        if (!$('#view-editor').hidden && editing) exitEditor('inicio');
+        else switchMainView('inicio');
         break;
       case 'save': saveDoc(false); break;
       case 'print': printDoc(); break;
       case 'email': sendEmail(); break;
-      case 'delete':
-        if (editing) { if (confirm('¿Eliminar este documento?')) { docs = docs.filter((d) => d.id !== editing.id); storeSet('mc_docs', docs); if (window.SYNC) window.SYNC.tombstone('docs', editing.id); switchMainView(previousView, { replaceHistory: true }); } }
+      case 'delete': {
+        if (!editing) break;
+        // un borrador que nadie tocó se descarta sin preguntar
+        const confirmar = !esBorradorVacio(editing) || confirm('¿Eliminar este documento?');
+        if (!confirmar) break;
+        const idBorrar = editing.id;
+        editing = null;
+        docs = docs.filter((d) => d.id !== idBorrar);
+        storeSet('mc_docs', docs);
+        if (window.SYNC) window.SYNC.tombstone('docs', idBorrar);
+        switchMainView(previousView, { replaceHistory: true });
         break;
+      }
       case 'edit': { const d = docs.find((x) => x.id === btn.dataset.id); if (d) showEditor(d); break; }
       case 'duplicate': {
         const src = docs.find((x) => x.id === btn.dataset.id);
@@ -2509,12 +2580,13 @@
         if (editing) { editing.items.push({ desc: '', q: 1, precioU: 0, unidad: '', caracteristicas: [] }); renderEditor(); renderPreview(); }
         break;
       case 'del-item': {
+        if (!editing) break;
         editing.items.splice(Number(btn.dataset.index), 1);
         if (!editing.items.length) editing.items = [{ desc: '', q: 1, precioU: 0, unidad: '', caracteristicas: [] }];
         renderEditor(); renderPreview(); break;
       }
-      case 'add-abono': { editing.abonos.push({ fecha: window.todayISO(), monto: 0 }); renderEditor(); renderPreview(); break; }
-      case 'del-abono': { editing.abonos.splice(Number(btn.dataset.index), 1); renderEditor(); renderPreview(); break; }
+      case 'add-abono': { if (editing) { editing.abonos.push({ fecha: window.todayISO(), monto: 0 }); renderEditor(); renderPreview(); } break; }
+      case 'del-abono': { if (editing) { editing.abonos.splice(Number(btn.dataset.index), 1); renderEditor(); renderPreview(); } break; }
       case 'save-client': {
         syncForm();
         const nombre = (editing.representante || '').trim();
@@ -2721,7 +2793,11 @@
       case 'close-settings': $('#modal-settings').classList.remove('open'); break;
       case 'clear-qr': { settings.qr = ''; openSettings(); break; }
       case 'tab': {
-        $$('[data-tab]').forEach((t) => t.classList.toggle('on', t === btn));
+        $$('[data-tab]').forEach((t) => {
+          const on = t === btn;
+          t.classList.toggle('on', on);
+          t.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
         document.body.classList.toggle('tab-datos', btn.dataset.tab === 'datos');
         document.body.classList.toggle('tab-preview', btn.dataset.tab === 'preview');
         // al mostrar la vista previa, recalcular escala (pudo medirse oculta)
@@ -2734,6 +2810,9 @@
       case 'toggle-menu':
         toggleNavPop();
         break;
+
+      case 'open-cmdk': openCmdk(); break;
+      case 'close-cmdk': closeCmdk(); break;
 
       /* --- Navegación principal --- */
       case 'view-cxc-doc': {
@@ -2869,14 +2948,53 @@
 
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
+  $$('.chip[data-status]').forEach((c) => c.addEventListener('click', () => { listStatus = c.dataset.status; renderList(); }));
+
+  // Búsqueda global: tecleo, clic y cierre al tocar fuera de la tarjeta
+  const cmdkInput = $('#cmdk-input');
+  if (cmdkInput) cmdkInput.addEventListener('input', (e) => paintCmdk(e.target.value));
+  const cmdkList = $('#cmdk-list');
+  if (cmdkList) {
+    cmdkList.addEventListener('click', (e) => {
+      const item = e.target.closest('.cmdk-item');
+      if (item) cmdkAbrir(cmdk.planos[Number(item.dataset.index)]);
+    });
+  }
+  const cmdkBox = $('#cmdk');
+  if (cmdkBox) cmdkBox.addEventListener('click', (e) => { if (e.target === cmdkBox) closeCmdk(); });
 
   // Menú a pantalla completa: se cierra con Esc (o con su ✕ y al elegir
   // sección). Ya no hay «tocar fuera»: la capa cubre todo el viewport, y
   // tampoco se cierra al redimensionar (el teclado móvil lo disparaba).
   document.addEventListener('keydown', function (e) {
+    const paleta = cmdkEl();
+    const paletaAbierta = paleta && !paleta.hidden;
+
+    /* Atajos globales: ⌘K / Ctrl+K busca, ⌘S guarda el documento abierto.
+       Se ignoran dentro de campos salvo el propio buscador. */
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'k') { e.preventDefault(); if (paletaAbierta) closeCmdk(); else openCmdk(); return; }
+      if (k === 's' && editing && !$('#view-editor').hidden) {
+        e.preventDefault(); saveDoc(false); return;
+      }
+    }
+
     const pop = navPopEl();
-    const overlay = pop && !pop.hidden ? pop : $('.modal.open');
+    const overlay = paletaAbierta ? paleta : (pop && !pop.hidden ? pop : $('.modal.open'));
+
+    if (paletaAbierta && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      cmdkMover(e.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (paletaAbierta && e.key === 'Enter') {
+      e.preventDefault();
+      cmdkAbrir(cmdk.planos[cmdk.activo]);
+      return;
+    }
     if (e.key === 'Escape') {
+      if (paletaAbierta) { closeCmdk(); return; }
       if (pop && !pop.hidden) closeNavPop();
       else if (overlay) {
         const close = $('.modal-head [data-action^="close-"], .sheet-top [data-action^="close-"]', overlay);
@@ -3003,6 +3121,270 @@
     }
   })();
 
+
+  /* ================= BÚSQUEDA GLOBAL (Ctrl / ⌘ + K) =================
+     Un solo campo para llegar a cualquier dato: documentos, contactos,
+     cuentas por pagar, catálogo, tareas y acciones. Nada de recorrer
+     menús para encontrar un folio o un cliente. */
+  const CMDK_MAX = 6;   // resultados por grupo
+
+  const CMDK_ACCIONES = [
+    { action: 'new-recibo',     title: 'Nuevo recibo',             meta: 'Registrar un cobro' },
+    { action: 'new-cotizacion', title: 'Nueva cotización',         meta: 'Enviar un presupuesto' },
+    { action: 'new-cliente',    title: 'Nuevo cliente',            meta: 'Agregar al directorio' },
+    { action: 'new-cxp',        title: 'Nueva cuenta por pagar',   meta: 'Registrar un gasto' },
+    { action: 'new-producto',   title: 'Nuevo producto o servicio', meta: 'Agregar al catálogo' },
+    { action: 'new-tarea',      title: 'Nueva tarea',              meta: 'Agendar un pendiente' },
+    { action: 'go-docs',        title: 'Ir a Documentos',          meta: 'Archivo general' },
+    { action: 'go-cxc',         title: 'Ir a Por cobrar',          meta: 'Saldos por cliente' },
+    { action: 'go-cxp',         title: 'Ir a Por pagar',           meta: 'Gastos y facturas' },
+    { action: 'go-clientes',    title: 'Ir al Directorio',         meta: 'Clientes y prospectos' },
+    { action: 'go-productos',   title: 'Ir al Catálogo',           meta: 'Productos y servicios' },
+    { action: 'go-tareas',      title: 'Ir a Tareas',              meta: 'Pendientes y proyectos' },
+    { action: 'settings',       title: 'Ajustes',                  meta: 'Estudio, pagos y cuenta' }
+  ];
+
+  /* Búsqueda tolerante: sin acentos, sin distinguir mayúsculas, y con
+     todas las palabras en cualquier orden. */
+  function normaliza(txt) {
+    return String(txt == null ? '' : txt).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function cmdkTokens(q) { return normaliza(q).split(/\s+/).filter(Boolean); }
+  function cmdkCoincide(tokens, campos) {
+    if (!tokens.length) return true;
+    const pajar = normaliza(campos.filter(Boolean).join(' '));
+    return tokens.every(function (t) { return pajar.indexOf(t) >= 0; });
+  }
+
+  function buscarTodo(q) {
+    const tokens = cmdkTokens(q);
+    const grupos = [];
+    function add(label, items) { if (items.length) grupos.push({ label: label, items: items }); }
+    const cortar = function (arr) { return arr.slice(0, CMDK_MAX); };
+
+    add('Acciones', cortar(CMDK_ACCIONES.filter(function (a) {
+      return cmdkCoincide(tokens, [a.title, a.meta]);
+    })).map(function (a) {
+      return { title: a.title, meta: a.meta, icono: 'plus', run: a.action };
+    }));
+
+    add('Documentos', cortar(docs.filter(function (d) {
+      return cmdkCoincide(tokens, [d.numero, d.proyecto, d.representante, d.email,
+        d.tipo === 'cotizacion' ? 'cotizacion presupuesto' : 'recibo']);
+    }).sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })).map(function (d) {
+      const esCot = d.tipo === 'cotizacion';
+      const t = computeTotals(d);
+      return {
+        title: d.proyecto || ((esCot ? 'Cotización' : 'Recibo') + ' ' + (d.numero || '')),
+        meta: [esCot ? 'Cotización' : 'Recibo', d.numero, d.representante,
+          t.pagado ? 'liquidado' : (t.abonado > 0 ? 'pago parcial' : 'pendiente')]
+          .filter(Boolean).join(' · '),
+        amount: window.fmtMoney(t.total),
+        icono: esCot ? 'quote' : 'doc',
+        openDoc: d.id
+      };
+    }));
+
+    add('Directorio', cortar(clientes.filter(function (c) {
+      return cmdkCoincide(tokens, [c.nombre, c.empresa, c.email, c.telefono, c.rfc,
+        cliTipo(c) === 'prospecto' ? 'prospecto' : 'cliente']);
+    }).sort(function (a, b) {
+      return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
+    })).map(function (c) {
+      return {
+        title: c.nombre || 'Sin nombre',
+        meta: [cliTipo(c) === 'prospecto' ? 'Prospecto' : 'Cliente', c.empresa, c.email]
+          .filter(Boolean).join(' · '),
+        icono: 'user',
+        openCliente: c.id
+      };
+    }));
+
+    add('Por pagar', cortar(cuentasXPagar.filter(function (c) {
+      return cmdkCoincide(tokens, [c.proveedor, c.concepto, c.folio, c.notas]);
+    }).sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })).map(function (c) {
+      const abonado = (c.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
+      const saldo = (Number(c.monto) || 0) - abonado;
+      return {
+        title: c.proveedor || 'Sin proveedor',
+        meta: [c.concepto, c.folio, saldo <= 0.005 ? 'pagada' : (abonado > 0 ? 'pago parcial' : 'pendiente')]
+          .filter(Boolean).join(' · '),
+        amount: window.fmtMoney(saldo),
+        icono: 'clipboard',
+        openCxp: c.id
+      };
+    }));
+
+    add('Catálogo', cortar(productos.filter(function (p) {
+      return cmdkCoincide(tokens, [p.nombre, p.sku, p.unidad, p.notas,
+        splitCaract(p.caracteristicas).join(' '), prodTipo(p) === 'servicio' ? 'servicio' : 'producto']);
+    }).sort(function (a, b) {
+      return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
+    })).map(function (p) {
+      return {
+        title: p.nombre || 'Sin nombre',
+        meta: [prodTipo(p) === 'servicio' ? 'Servicio' : 'Producto', p.sku,
+          p.unidad ? 'por ' + p.unidad : ''].filter(Boolean).join(' · '),
+        amount: window.fmtMoney(p.precio),
+        icono: 'box',
+        openProducto: p.id
+      };
+    }));
+
+    add('Tareas', cortar(tareas.filter(function (t) {
+      return cmdkCoincide(tokens, [t.titulo, t.descripcion, tareaAreaLabel(t.area)]);
+    }).sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })).map(function (t) {
+      return {
+        title: t.titulo || 'Sin título',
+        meta: [t.done ? 'hecha' : 'pendiente', tareaAreaLabel(t.area),
+          t.deadline ? 'vence ' + window.fmtDate(t.deadline) : ''].filter(Boolean).join(' · '),
+        icono: 'check',
+        openTarea: t.id
+      };
+    }));
+
+    return grupos;
+  }
+
+  const CMDK_ICONS = {
+    doc: window.ICONS.docs,
+    quote: window.ICONS.docs,
+    user: window.ICONS.user,
+    clipboard: window.ICONS.clipboard,
+    box: window.ICONS.box,
+    check: window.ICONS.check,
+    plus: function () {
+      return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    }
+  };
+
+  const cmdk = { grupos: [], planos: [], activo: 0 };
+
+  function cmdkEl() { return $('#cmdk'); }
+
+  function openCmdk() {
+    const el = cmdkEl();
+    if (!el || !el.hidden) return;
+    closeNavPop();
+    $$('.modal.open').forEach(function (m) { m.classList.remove('open'); });
+    el.hidden = false;
+    el.classList.add('open');
+    setBackgroundInert();
+    const input = $('#cmdk-input');
+    if (input) { input.value = ''; input.focus({ preventScroll: true }); }
+    paintCmdk('');
+  }
+
+  function closeCmdk() {
+    const el = cmdkEl();
+    if (!el || el.hidden) return;
+    const dentro = el.contains(document.activeElement);
+    el.hidden = true;
+    el.classList.remove('open');
+    cmdk.grupos = []; cmdk.planos = []; cmdk.activo = 0;
+    setBackgroundInert();
+    if (!dentro) return;
+    const btn = $('[data-action="open-cmdk"]');
+    if (btn && btn.getClientRects().length) btn.focus({ preventScroll: true });
+    else $('#main-content').focus({ preventScroll: true });
+  }
+
+  function paintCmdk(q) {
+    const list = $('#cmdk-list');
+    if (!list) return;
+    cmdk.grupos = q.trim() ? buscarTodo(q) : [
+      { label: 'Acciones', items: CMDK_ACCIONES.slice(0, CMDK_MAX).map(function (a) {
+        return { title: a.title, meta: a.meta, icono: 'plus', run: a.action };
+      }) },
+      { label: 'Reciente', items: docs.slice().sort(function (a, b) {
+        return (b.updatedAt || 0) - (a.updatedAt || 0);
+      }).slice(0, 4).map(function (d) {
+        const esCot = d.tipo === 'cotizacion';
+        return {
+          title: d.proyecto || ((esCot ? 'Cotización' : 'Recibo') + ' ' + (d.numero || '')),
+          meta: [esCot ? 'Cotización' : 'Recibo', d.numero, d.representante].filter(Boolean).join(' · '),
+          amount: window.fmtMoney(computeTotals(d).total),
+          icono: esCot ? 'quote' : 'doc',
+          openDoc: d.id
+        };
+      }) }
+    ];
+
+    cmdk.planos = [];
+    let html = '';
+    cmdk.grupos.forEach(function (g) {
+      html += '<p class="cmdk-group" role="presentation">' + esc(g.label) + '</p>';
+      g.items.forEach(function (item) {
+        const i = cmdk.planos.length;
+        cmdk.planos.push(item);
+        html += '<button type="button" class="cmdk-item" role="option" id="cmdk-opt-' + i + '"'
+          + ' data-index="' + i + '" aria-selected="false">'
+          + '<span class="cmdk-ico" aria-hidden="true">' + (CMDK_ICONS[item.icono] || CMDK_ICONS.doc)() + '</span>'
+          + '<span class="cmdk-title">' + esc(item.title) + '</span>'
+          + '<span class="cmdk-meta">' + esc(item.meta || '') + '</span>'
+          + (item.amount ? '<span class="cmdk-amt">' + esc(item.amount) + '</span>' : '')
+          + '</button>';
+      });
+    });
+
+    if (!cmdk.planos.length) {
+      html = '<div class="cmdk-empty"><strong>Sin resultados</strong>'
+        + 'Prueba con otro término: número de folio, cliente, proveedor…</div>';
+    }
+    list.innerHTML = html;
+    cmdk.activo = 0;
+    cmdkPintarActivo();
+  }
+
+  function cmdkPintarActivo() {
+    const items = $$('#cmdk-list .cmdk-item');
+    items.forEach(function (el, i) {
+      const on = i === cmdk.activo;
+      el.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+    });
+    const input = $('#cmdk-input');
+    if (input && cmdk.planos[cmdk.activo]) {
+      input.setAttribute('aria-activedescendant', 'cmdk-opt-' + cmdk.activo);
+    } else if (input) {
+      input.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  function cmdkMover(delta) {
+    if (!cmdk.planos.length) return;
+    const n = cmdk.planos.length;
+    cmdk.activo = (cmdk.activo + delta + n) % n;
+    cmdkPintarActivo();
+  }
+
+  function cmdkAbrir(res) {
+    closeCmdk();
+    if (!res) return;
+    if (res.openDoc) {
+      const d = docs.find(function (x) { return x.id === res.openDoc; });
+      if (d) {
+        if (editing && !$('#view-editor').hidden) saveDoc(true);
+        showEditor(d);
+      }
+      return;
+    }
+    if (res.openCliente) { switchMainView('clientes'); openClienteModal(res.openCliente); return; }
+    if (res.openProducto) { switchMainView('productos'); openProductoModal(res.openProducto); return; }
+    if (res.openTarea) { openTareaModal(res.openTarea); return; }
+    if (res.openCxp) {
+      const c = cuentasXPagar.find(function (x) { return x.id === res.openCxp; });
+      if (c) { switchMainView('cxp'); openCxpModal(c); }
+      return;
+    }
+    if (res.run) {
+      // se reutiliza el cableado de la interfaz: el mismo botón, el mismo caso
+      const btn = $('[data-action="' + res.run + '"]');
+      if (btn) btn.click();
+    }
+  }
+
   /* ---------------- PWA install ---------------- */
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -3061,7 +3443,7 @@
     cuentasXPagar = storeGet('mc_cxp', []);
     productos = storeGet('mc_productos', []);
     tareas = storeGet('mc_tareas', []);
-    showList();
+    showHome();
   }
 
   /* ---------------- Init ---------------- */
