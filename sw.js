@@ -7,12 +7,11 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v82';
+const CACHE = 'mc-pwa-v90';
 const ASSETS = [
   './',
   './index.html',
   './css/app.css',
-  './css/imprenta.css',
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',

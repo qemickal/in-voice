@@ -2,8 +2,6 @@
  * npm run dev: interfaz real, con puerta de cuenta.
  * npm run preview: demo aislada con datos de ejemplo, sin backend ni SW.
  * En la demo, ?auth=1 permite inspeccionar también la pantalla de acceso.
- * En ambos modos, ?estilo=pizarra quita la capa css/imprenta.css para
- * comparar la propuesta «Imprenta» con la v8 «Pizarra» sin tocar código.
  */
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -50,11 +48,6 @@ const server = http.createServer(async (req, res) => {
     if (isHTML && demo && !url.searchParams.has('auth')) {
       body = Buffer.from(body.toString().replace('<script src="js/sync.js"></script>', '<script src="/__preview/demo.js"></script>'));
     }
-    if (isHTML && url.searchParams.get('estilo') === 'pizarra') {
-      body = Buffer.from(body.toString()
-        .replace(/\s*<link rel="stylesheet" href="css\/imprenta\.css"[^>]*>/, '')
-        .replace(/\s*<link rel="preload" href="assets\/fonts\/archivo-latin-variable\.woff2"[^>]*>/, ''));
-    }
     res.writeHead(200, { 'Content-Type': mime[extname(file)] || 'application/octet-stream' });
     res.end(req.method === 'HEAD' ? undefined : body);
   } catch (error) {
@@ -65,5 +58,4 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, '0.0.0.0', () => {
   console.log(`In-Voice · ${demo ? 'Vista previa con datos de ejemplo' : 'Interfaz real'} · http://0.0.0.0:${port}`);
   if (demo) console.log('La demo guarda sus cambios en un espacio local separado y no llama a ninguna API. Acceso: /?auth=1');
-  console.log('Comparar con el estilo anterior (v8 «Pizarra»): /?estilo=pizarra');
 });

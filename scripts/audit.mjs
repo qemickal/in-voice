@@ -13,7 +13,10 @@
  *   E) ids del HTML que ningún script ni atributo consulta;
  *   F) data-action sin `case` que lo atienda;
  *   G) `case` sin ningún data-action que lo dispare;
- *   H) funciones declaradas en js/app.js sin uso.
+ *   H) funciones declaradas en js/app.js sin uso;
+ *   I) iconos de window.ICONS que nadie pide;
+ *   J) variables CSS (--token) declaradas y nunca usadas;
+ *   K) claves de window.LAYOUT que ningún helper consulta.
  *
  * Uso: npm run audit
  */
@@ -25,7 +28,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFile(resolve(root, p), 'utf8');
 
 const html = await read('index.html');
-const cssFiles = ['css/app.css', 'css/imprenta.css'];
+const cssFiles = ['css/app.css'];
 const css = (await Promise.all(cssFiles.map(read))).join('\n');
 const jsNames = ['layout', 'render', 'pdf', 'sync', 'app'];
 const jsTexts = await Promise.all(jsNames.map((n) => read('js/' + n + '.js')));
@@ -110,6 +113,27 @@ const actionsNoHandler = [...actionsMarkup].filter((a) => !actionsCode.has(a)).s
 const mentions = (name) => (blob.match(new RegExp('[\'"`]' + esc(name) + '[\'"`]', 'g')) || []).length;
 const actionsNoTrigger = [...actionsCode].filter((a) => mentions(a) < 2).sort();
 
+/* ---------- I: iconos que nadie pide ---------- */
+const iconos = [...jsAll.matchAll(/^\s{4}([a-zA-Z]+): function\(cls\) \{$/gm)].map((m) => m[1]);
+const iconosSinUso = iconos.filter((n) => (jsAll.match(new RegExp('ICONS\\.' + esc(n) + '\\(', 'g')) || []).length === 0).sort();
+
+/* ---------- J: variables CSS declaradas y nunca usadas ---------- */
+const declaradas = new Set([...css.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((m) => m[1]));
+const tokensSinUso = [...declaradas].filter((v) => !new RegExp('var\\(' + esc(v) + '\\)').test(css)).sort();
+
+/* ---------- K: claves de LAYOUT que ningún helper consulta ---------- */
+const layoutSrc = jsTexts[jsNames.indexOf('layout')];
+const restoJs = jsNames.filter((n) => n !== 'layout').map((n) => jsTexts[jsNames.indexOf(n)]).join('\n');
+const layoutKeys = [...layoutSrc.matchAll(/^\s{2}([a-zA-Z][\w]*):/gm)].map((m) => m[1])
+  .filter((k) => !['pageW', 'pageH'].includes(k));
+const usadasEnLayout = new Set([...layoutSrc.matchAll(/L\.([a-zA-Z][\w]*)/g)].map((m) => m[1]));
+// Los colores se consultan por su gemelo «…Hex» (L.brand → L.brandHex).
+const layoutSinUso = [...new Set(layoutKeys)]
+  .filter((k) => !usadasEnLayout.has(k) && !usadasEnLayout.has(k + 'Hex'))
+  .filter((k) => !new RegExp('L\\.' + esc(k) + '(?:Hex)?(?![\\w])').test(restoJs))
+  .filter((k) => !new RegExp('LAYOUT\\.' + esc(k) + '(?:Hex)?(?![\\w])').test(restoJs))
+  .sort();
+
 /* ---------- H: funciones ---------- */
 const fns = [...appJs.matchAll(/^\s*function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
 const fnsUnused = fns
@@ -124,6 +148,9 @@ const sections = [
   ['F · data-action sin `case` que lo atienda', actionsNoHandler],
   ['G · `case` sin ningún data-action que lo dispare', actionsNoTrigger],
   ['H · Funciones de js/app.js sin uso', fnsUnused],
+  ['I · Iconos de window.ICONS que nadie pide', iconosSinUso],
+  ['J · Variables CSS declaradas y nunca usadas', tokensSinUso],
+  ['K · Claves de window.LAYOUT que ningún helper consulta', layoutSinUso],
 ];
 
 let hallazgos = 0;
