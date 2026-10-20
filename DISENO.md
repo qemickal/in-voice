@@ -12,7 +12,11 @@ rutas, la sincronización (`js/sync.js`) y el documento impreso (`js/layout.js`,
 `js/render.js`, `js/pdf.js`) no cambian de motor.
 
 Cambian `index.html`, `css/app.css`, `js/app.js`, `manifest.webmanifest`,
-`sw.js` (caché `mc-pwa-v81`) y este documento.
+`sw.js` (caché `mc-pwa-v81`; hoy `mc-pwa-v82`, ver §10) y este documento.
+
+> **En evaluación: piel v9.0 «Imprenta»** (§10). Misma paleta y misma
+> diagramación, con rótulos condensados, marcos de tinta y esquinas rectas.
+> Vive en `css/imprenta.css`; para comparar, `/?estilo=pizarra` la quita.
 
 ## 1. Dirección visual
 
@@ -176,3 +180,85 @@ los textos largos `overflow-wrap: anywhere` o elipsis.
   pago, origen y seguimiento; listas en tarjetas y navegación inferior
   flotante. Se retiran las clases de la franja de vidrio y de la barra de
   cobranza anteriores.
+- **v9.0 «Imprenta»** *(propuesta, §10)*: misma paleta y diagramación; piel
+  editorial con Archivo condensada, marcos de tinta de 1.5 px, esquinas rectas,
+  mosaicos de icono negros, tarjeta de saldo azul y tramado de puntos.
+
+## 10. Propuesta v9.0 «Imprenta»
+
+Propuesta del 20 de octubre de 2026 a partir de una referencia móvil de estilo
+neo-brutalista/editorial. **No cambia la paleta ni la diagramación**: cada
+pantalla conserva su rejilla, su orden y sus breakpoints. Sólo cambia la piel.
+
+### Cómo está montada
+
+- `css/imprenta.css` se enlaza **después** de `css/app.css` con
+  `media="screen"`: el documento impreso y el PDF (`js/render.js` pinta con
+  estilos en línea) no se tocan.
+- Reinterpreta los tokens de la v8 (`--r-*` a 0, `--shadow-*` a `none`,
+  `--grad-brand` plano) y añade los suyos: `--display`, `--ancho-titular`
+  (72 %), `--ancho-rotulo` (86 %), `--trazo` (1.5 px), `--marco`, `--regla`,
+  `--franja` (7 px), `--r-card` (14 px) y `--tramado`.
+- Como va después de los `@media` de `app.css`, sus reglas sin media ganan; por
+  eso repite al final sólo los tamaños que cambian con la letra condensada
+  (760, 620, 420 y 359 px).
+- Comparar: `npm run preview` y abrir `/?estilo=pizarra` (el servidor local
+  quita la hoja). Revertir: borrar la línea de `css/imprenta.css` en
+  `index.html` y en `sw.js`.
+
+### Tipografía
+
+- Misma familia: **Archivo**, ahora también en su eje de anchura. El texto
+  corrido sigue con los cuatro woff2 estáticos; sólo títulos, cifras, rótulos,
+  botones y navegación usan `'Archivo Variable'`.
+- `assets/fonts/archivo-latin-variable.woff2` (45 KB) sale del archivo latino
+  de `@fontsource-variable/archivo` 5.3.0, limitado a peso 600–900 y anchura
+  62–100 % (dibujo idéntico píxel a píxel dentro de ese rango):
+
+  ```
+  python -m fontTools.varLib.instancer archivo-latin-wdth-normal.woff2 \
+    wght=600:900 wdth=62:100 --no-recalc-timestamp -o archivo-latin-variable.woff2
+  ```
+
+  Licencia OFL 1.1 en `assets/fonts/OFL-Archivo.txt`. Se precarga en
+  `index.html` y entra en la caché del SW (`mc-pwa-v82`).
+
+### Traducción de la referencia
+
+| Referencia | Componente existente |
+|---|---|
+| Saludo enorme y condensado | `.home-title`, `h1` de cada página y de la hoja |
+| Caja de fecha con marco | `.hero-chip` (documentos / estado) |
+| Tarjetas KPI azules con mosaico negro | `.balance-card` (radio 14 px, texto blanco, dona blanca) |
+| Botón negro «Ver todas» | `.next-link`, `.zone-link`, `.general-count` |
+| Lista con marco y franja azul | `.rows`, `.next-card`, `.zone` |
+| Píldoras de estado redondas | `.pill`, `.zone-note` (las únicas formas redondas) |
+| Accesos con trazo compartido | `.quick-grid` (el primero, en negro; tramado en celdas vacías) |
+| Botones cuadrados con marco | `.icon-btn`, `.brand-mark`, `.sync-pill`, `.todo-go` |
+| Barra inferior azul sólida | `.mobile-nav` (activo en `--brand-200`, «+» negro) |
+| Tramado de puntos | `.general-rule`, `.new-recibo-card`, `.auth-showcase` y las celdas vacías de `.quick-grid` y `.totals-box` |
+
+Roles de color: el azul pizarra sigue siendo **acción y selección** (botón
+primario, chip/segmento activo, riel activo); la tinta `--ink` es
+**estructura** (marcos, mosaicos de icono, botones «Ver todas»); verde, ámbar
+y rojo siguen sólo en estados. Los íconos de cifras conservan su tono como
+mosaico sólido (ámbar «Por pagar», verde «Cobrado»).
+
+### Contraste
+
+Blanco sobre `--brand` 4.9:1 (por eso todo texto sobre azul es blanco puro);
+tinta sobre `--brand-400` (píldoras) 7.5:1; tinta sobre `--brand-200` (activo
+de la barra) 14:1; ámbar y rojo sobre sus fondos suaves 5.5:1 y 4.6:1 (avisos
+dentro de la tarjeta azul). Sin transparencias ni blur: la preferencia
+`prefers-reduced-transparency` queda cubierta por diseño.
+
+### Validación y pendientes
+
+- `npm run audit` revisa ahora `app.css` + `imprenta.css`: **0 hallazgos**.
+- Capturas con Chromium sin interfaz en 320, 360, 390, 820 y 1440 px: Inicio,
+  las seis listas, editor, hoja de contacto, ajustes, menú, modales y acceso;
+  sin errores de JavaScript ni desbordes nuevos.
+- Cambios de criterio a validar: los accesos rápidos pierden sus fondos de
+  color (monocromo, como la referencia) y los campos llevan marco de tinta.
+- Si se aprueba: fundir `imprenta.css` en `app.css` (y retirar la piel v8 que
+  pisa) para volver a una sola hoja, y quitar `?estilo=pizarra`.

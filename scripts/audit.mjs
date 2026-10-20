@@ -1,9 +1,9 @@
 /* Auditoría de código huérfano — sin dependencias.
  *
- * Cruza el marcado (index.html + las plantillas dentro de js/*.js) con la
- * hoja de estilos (css/app.css) y con el despachador de acciones de
- * js/app.js. Sirve para que un rediseño no deje selectores, ids ni
- * acciones sueltas: cada hallazgo es un candidato a borrar.
+ * Cruza el marcado (index.html + las plantillas dentro de js/*.js) con las
+ * hojas de estilos (css/app.css y la capa css/imprenta.css) y con el
+ * despachador de acciones de js/app.js. Sirve para que un rediseño no deje
+ * selectores, ids ni acciones sueltas: cada hallazgo es un candidato a borrar.
  *
  *   A) clases declaradas en el CSS que ya nadie menciona;
  *   B) clases del CSS que no aparecen en ningún class="…" (pueden vivir
@@ -25,7 +25,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFile(resolve(root, p), 'utf8');
 
 const html = await read('index.html');
-const css = await read('css/app.css');
+const cssFiles = ['css/app.css', 'css/imprenta.css'];
+const css = (await Promise.all(cssFiles.map(read))).join('\n');
 const jsNames = ['layout', 'render', 'pdf', 'sync', 'app'];
 const jsTexts = await Promise.all(jsNames.map((n) => read('js/' + n + '.js')));
 const jsAll = jsTexts.join('\n');
