@@ -7,11 +7,12 @@
  * versión nueva y se refresca la caché; si no hay, se usa la caché.
  * Los demás assets (fuentes, logo, íconos) siguen cache-first.
  */
-const CACHE = 'mc-pwa-v81';
+const CACHE = 'mc-pwa-v82';
 const ASSETS = [
   './',
   './index.html',
   './css/app.css',
+  './css/imprenta.css',
   './js/layout.js',
   './js/render.js',
   './js/pdf.js',
@@ -24,6 +25,8 @@ const ASSETS = [
   './assets/fonts/archivo-latin-400.woff2',
   './assets/fonts/archivo-latin-500.woff2',
   './assets/fonts/archivo-latin-700.woff2',
+  // Archivo variable (anchura + peso): rótulos condensados de «Imprenta».
+  './assets/fonts/archivo-latin-variable.woff2',
   // Fuentes del PDF: listas también para la primera exportación offline.
   './assets/fonts/Archivo-Light.ttf',
   './assets/fonts/Archivo-Regular.ttf',
