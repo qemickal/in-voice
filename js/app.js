@@ -3536,17 +3536,7 @@
     }
   }
 
-  /* Pie del riel: con qué cuenta se está sincronizando este equipo. */
-  function paintRailAccount() {
-    const el = $('#rail-account');
-    if (!el) return;
-    const cuenta = (window.SYNC && window.SYNC.accountEmail && window.SYNC.accountEmail()) || '';
-    el.textContent = cuenta || 'Solo en este dispositivo';
-    el.title = cuenta ? 'Sincronizando como ' + cuenta : 'Sin cuenta: los datos viven solo en este dispositivo';
-  }
-
   function bootApp() {
-    paintRailAccount();
     // releer colecciones (el primer pull pudo traer datos remotos)
     settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
     settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});

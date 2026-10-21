@@ -1,9 +1,15 @@
-# Diseño de la interfaz — v10
+# Diseño de la interfaz — v11
 
-Rediseño y consolidación del 20 de octubre de 2026. Las dos capas que
-convivían —`css/app.css` (v8 «Pizarra») y `css/imprenta.css` (v9 «Imprenta»,
-cargada encima)— se funden en **una sola hoja**: `css/app.css`. Desaparece la
-bandera `/?estilo=pizarra` y con ella la duplicidad de reglas que se pisaban.
+Revisión del 21 de octubre de 2026. La v10 ya había dejado una sola hoja; esta
+iteración ataca un problema de lectura: **todo vivía sobre el mismo fondo
+claro y las secciones se sucedían sin frontera**. La v11 demarca con bloques
+—lienzo más profundo, paneles con cabecera propia y un único panel oscuro
+para la cobranza— y mueve el menú de escritorio del riel lateral a la barra
+superior.
+
+La base sigue siendo la v10: la paleta azul pizarra, Archivo en local y la
+misma lógica. Cambian `index.html`, `css/app.css`, `js/app.js`, `sw.js`
+(caché `mc-pwa-v100`), `manifest.webmanifest` y este documento.
 
 Se conserva lo que funcionaba: la **paleta azul pizarra**, la **tipografía
 Archivo** (ahora también en su eje de anchura para titulares, cifras y
@@ -16,17 +22,32 @@ externas, todos los recursos locales**. La lógica de datos, la sincronización
 (`js/sync.js`) y el documento impreso (`js/layout.js`, `js/render.js`,
 `js/pdf.js`) no cambian de motor.
 
-Cambian `index.html`, `css/app.css` (antes dos hojas), `js/app.js`,
-`js/layout.js`, `scripts/dev-server.mjs`, `scripts/audit.mjs`, `sw.js`
-(caché `mc-pwa-v90`) y este documento.
+En la v11 cambian `index.html`, `css/app.css`, `js/app.js`, `sw.js`
+(caché `mc-pwa-v100`), `manifest.webmanifest` y este documento. El documento
+impreso (`js/layout.js`, `js/render.js`, `js/pdf.js`) y `js/sync.js` quedan
+intactos.
 
 ## 1. Dirección visual
 
-- **Un solo clima cromático.** Fondo hielo (`#F4F7FC`) con dos luces radiales
-  muy tenues, superficies blancas y una tinta azul casi negra. El azul pizarra
-  es el color de acción; verde para cobranza y positivo; ámbar y rojo sólo
-  para alertas.
-- **Una sola escala de radios y sombras.** `20 / 16 / 11 / 8 px` y tres
+- **Secciones con frontera.** El lienzo baja un tono (`#E8EEF7`) y los
+  paneles suben a blanco: cada bloque tiene borde, radio de 26 px y sombra
+  baja. Entre sección y sección hay una cabecera de capítulo —kicker, título
+  y regla— y 28 px de aire. El inicio ya no es una lista vertical: es un
+  tablero de piezas.
+- **El saldo es el único bloque oscuro.** La tarjeta de cobranza pasa a
+  tinta azul casi negra, con el anillo, el reparto y los deudores en claro.
+  Es el peso visual de la pantalla y, de paso, la frontera más clara entre el
+  saludo y el resto.
+- **Menú arriba en escritorio.** El riel lateral desaparece. La barra
+  superior reúne marca, las siete secciones y las acciones; el elemento
+  activo es una píldora azul sólida. Por debajo de 1240 px los iconos se
+  retiran y sólo quedan los rótulos; por debajo de 1024 px manda la
+  navegación inferior de siempre.
+- **Un solo clima cromático.** Lienzo azul hielo (`#E8EEF7`) con dos luces
+  radiales muy tenues, superficies blancas y una tinta azul casi negra. El
+  azul pizarra es el color de acción; verde para cobranza y positivo; ámbar y
+  rojo sólo para alertas.
+- **Una sola escala de radios y sombras.** `26 / 20 / 13 / 9 px` y tres
   sombras cortas. Antes había tres escalas distintas compitiendo entre la capa
   base y la capa «Imprenta»; ahora cada componente sabe qué radio le toca.
 - **Profundidad por capas finas.** Nada de borrones de 60 px: borde de 1 px +
@@ -38,18 +59,24 @@ Cambian `index.html`, `css/app.css` (antes dos hojas), `js/app.js`,
 - **Movimiento corto y opcional.** Transiciones de 110–140 ms en botones,
   tarjetas, campos y filas; nunca en `*`; y anuladas por completo con
   `prefers-reduced-motion: reduce`.
-- **Inicio como tablero.** Saludo y fecha a la izquierda, tarjeta «Nuevo
-  recibo» a la derecha; debajo, la tarjeta de saldo con dona y reparto
-  abonado/por cobrar; cinco accesos cuadrados; tarjeta «Tu siguiente paso»; y
-  la sección «General» con las listas de apoyo.
+- **Inicio como tablero.** Saludo, fecha y píldoras en un panel tintado con
+  la tarjeta «Nuevo recibo» a la derecha; debajo, la tarjeta de saldo oscura
+  con dona y reparto abonado/por cobrar; cabecera de capítulo «Atajos» y
+  cinco accesos cuadrados; panel verde «Tu siguiente paso»; cabecera
+  «General» y las dos zonas de apoyo sobre el lienzo.
 - **El contacto es una hoja, no un modal pequeño.** En móvil ocupa toda la
   pantalla, con cabecera propia (volver, marca, sync y ajustes), campos con
   icono, segmento Cliente/Prospecto y botón de guardado al pie. En escritorio
   se centra como una hoja de 720 px.
-- **Listas legibles.** Cada registro es una tarjeta independiente; la identidad
-  va a la izquierda, la cifra a la derecha, y estado/acciones al pie.
-- **Navegación inferior flotante.** Barra clara con blur, elemento activo en
-  azul suave y botón central elevado de 52 px.
+- **Listas legibles.** Cada registro es una tarjeta independiente, con su
+  borde, su radio y 10 px de separación: la fila dejó de ser una línea de una
+  tabla larga. La identidad va a la izquierda, la cifra a la derecha y
+  estado/acciones al pie.
+- **Cabeceras que se ven.** La cabecera de cada pantalla es un panel con
+  degradado suave; el panel de filtros lleva su propio rótulo («Buscar y
+  filtrar») en una banda superior.
+- **Navegación inferior flotante (móvil).** Barra clara con blur, elemento
+  activo en azul suave y botón central elevado de 52 px.
 
 ## 2. Tokens principales
 
@@ -61,21 +88,22 @@ Cambian `index.html`, `css/app.css` (antes dos hojas), `js/app.js`,
 | `--brand-soft` / `-200` / `-300` | `#EDF3FC` / `#CFDDF3` / `#A9C0E6` | Rellenos, bordes y pistas |
 | `--accent-ink` / `-soft` | `#1F7355` / `#E7F6EF` | Cobranza y cotizaciones |
 | `--ok` / `--warn` / `--danger` | `#12805C` / `#9A6100` / `#B3372F` | Estados, con su variante `*-soft` |
-| `--bg` | `#F4F7FC` | Lienzo, `theme-color` y fondo de la PWA |
-| `--surface` / `-2` / `-3` | `#FFF` / `#F8FAFD` / `#EEF2F8` | Superficies y apoyos |
-| `--field` | `#F5F8FC` | Campos dentro de las tarjetas |
-| `--line` / `--line-2` | `#E4EAF3` / `#D3DCE8` | Bordes y separadores |
+| `--bg` | `#E8EEF7` | Lienzo, `theme-color` y fondo de la PWA |
+| `--surface` / `-2` / `-3` | `#FFF` / `#F4F7FC` / `#E8EEF8` | Superficies y apoyos |
+| `--field` | `#F2F6FC` | Campos dentro de las tarjetas |
+| `--line` / `--line-2` | `#DAE3F0` / `#C6D2E4` | Bordes y separadores |
 | `--ink` / `-2` / `-3` | `#0E1729` / `#4E5C72` / `#6B7A90` | Texto (16.4 / 7.0 / 4.9:1) |
 | `--grad-brand` | `#47659F → #33518C` | Botón primario y botón central |
 | `--grad-band` | `#101A2E → #1D2F4D → #2A4266` | Escaparate de acceso |
-| `--r-xl/-lg/-md/-sm` | `20 / 16 / 11 / 8 px` | Hojas, tarjetas, controles, píldoras |
-| `--shadow-1/-2/-3` | sombras azuladas de 16–64 px | Profundidad baja |
+| `--dark` / `--dark-line` | `#111D33` / `rgba(255,255,255,.13)` | Panel oscuro del saldo |
+| `--r-xl/-lg/-md/-sm` | `26 / 20 / 13 / 9 px` | Hojas, tarjetas, controles, píldoras |
+| `--shadow-1/-2/-3` | sombras azuladas de 24–80 px | Profundidad baja |
 | `--ring` | `0 0 0 3px rgba(58,90,152,.22)` | Foco accesible |
 | `--t-fast` / `--t` | `110ms` / `140ms` | Micro-transiciones |
 | `--display` | `'Archivo Variable'` | Titulares, cifras y rótulos |
 | `--ancho-titular` / `--ancho-rotulo` | `76 %` / `88 %` | Cuánto se condensa cada voz |
-| `--topbar-h` | `64px` (+ safe area) | Barra superior |
-| `--content-w` / `--rail-w` | `1180px` / `244px` | Estructura de escritorio |
+| `--topbar-h` | `72px` (+ safe area) | Barra superior con menú |
+| `--content-w` | `1200px` | Ancho de lectura en escritorio |
 
 **Archivo** sigue siendo la única familia, en WOFF2 local. El texto corrido usa
 los estáticos (400/500/700); titulares, cifras y rótulos usan el archivo
@@ -99,8 +127,8 @@ Licencia OFL 1.1 en `assets/fonts/OFL-Archivo.txt`. Se precarga en
 
 | Pantalla | Composición |
 |---|---|
-| **Inicio** | `home-top` (saludo + «Nuevo recibo»), `balance-card` con dona y reparto, `quick-grid` de cinco accesos, `next-card` con las tres primeras tareas, cabecera `general-head` y rejilla de apoyo: «Por cobrar» (documentos) y «El mes en cifras». |
-| **Documentos, CxC, CxP, Clientes, Catálogo, Tareas** | `page-head` con kicker, título, descripción y acciones; `page-grid` con panel lateral de búsqueda/filtros y tarjetas de registro. |
+| **Inicio** | `home-top` como panel tintado (saludo, fecha, píldoras y «Nuevo recibo»), `balance-card` oscura con dona y reparto, cabecera `board-head` de Atajos, `quick-grid` de cinco accesos, `next-card` verde con las tres primeras tareas, cabecera `board-head` de General y rejilla de apoyo: «Por cobrar» y «El mes en cifras». |
+| **Documentos, CxC, CxP, Clientes, Catálogo, Tareas** | `page-head` como panel con kicker, título, descripción y acciones; `page-grid` con panel lateral (`side-title` + búsqueda/filtros) y registros sueltos, uno por tarjeta. |
 | **Hoja de cliente / prospecto** | Cabecera con volver, marca, sync y ajustes; kicker y título («Crear cliente» / «Crear prospecto»); segmento de tipo; campos con icono; pie fijo con guardar. |
 | **Editor** | Barra superior con volver, guardar, imprimir, enviar y eliminar; formulario en secciones numeradas; vista previa sticky. |
 | **Ajustes, CxP, producto, tarea** | Modales con cabecera, cuerpo desplazable y pie. En móvil se apoyan en el borde inferior. |
@@ -154,8 +182,8 @@ clientes muestran RFC y método de pago.
 
 | Tamaño | Navegación y composición |
 |---|---|
-| 1024 px o más | Riel lateral en tarjetas; Inicio en dos columnas; listas con panel lateral; hoja de contacto centrada de 720 px |
-| 761–1023 px | Sin riel; navegación inferior flotante; Inicio a una columna con el saldo a lo ancho |
+| 1240 px o más | Menú completo en la barra superior (icono + rótulo); Inicio en dos columnas; listas con panel lateral; hoja de contacto centrada de 720 px |
+| 1023 px o menos | Sin menú superior ni iconos; navegación inferior flotante; Inicio a una columna con el saldo a lo ancho |
 | Hasta 900 px | El panel de filtros pasa arriba y la lista debajo, a todo el ancho; los chips se vuelven fila; el editor apila formulario y vista previa |
 | Hasta 760 px | Barra superior compacta sin subtítulo; pestañas Datos/Vista previa en el editor; modales como hoja inferior; hoja de contacto a pantalla completa |
 | Hasta 700 px | **Modo compacto**: barra del editor en rejilla, etiquetas de acción abreviadas, acciones de fila convertidas en iconos, parejas de campos a una columna |
@@ -217,7 +245,7 @@ textos con canvas). Ahora se agrupa en un fotograma con
   cierra con `Esc`; el filtro por estado filtra; el editor recalcula totales y
   pinta la vista previa; el borrador vacío se descarta al salir; sin errores
   de JavaScript.
-- CSS parseado con `css-tree`: 774 reglas y 21 bloques `@media`, sin errores
+- CSS parseado con `css-tree`: 783 reglas y 16 bloques `@media`, sin errores
   de sintaxis.
 - **Pendiente de revisión humana**: el recorrido visual en un navegador real
   (el entorno de trabajo no tiene binario de navegador). La vista previa queda
@@ -238,8 +266,13 @@ textos con canvas). Ahora se agrupa en un fotograma con
 - **v9.0 «Imprenta»**: piel editorial con Archivo condensada, marcos de tinta y
   esquinas rectas. Se entregó como capa aparte (`css/imprenta.css`) para
   comparar.
-- **v10** *(actual)*: las dos capas se funden en una sola hoja con lo mejor de
-  cada una; radios y sombras unificados; cifras alineadas; micro-transiciones
+- **v10**: las dos capas se funden en una sola hoja con lo mejor de cada
+  una; radios y sombras unificados; cifras alineadas; micro-transiciones
   opcionales; búsqueda global, atajos de teclado, filtros por estado y
   descartado de borradores vacíos. Se retiran `css/imprenta.css` y
   `?estilo=pizarra`.
+- **v11** *(actual)*: demarcación por bloques. Lienzo más profundo, paneles
+  con cabecera de capítulo, saldo en panel oscuro, panel verde para las
+  tareas y cada registro en su propia tarjeta. El menú de escritorio pasa
+  del riel lateral a la barra superior; se retira el riel y su bloque de
+  cuenta. Caché `mc-pwa-v100`.
