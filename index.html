@@ -236,6 +236,20 @@
                 </div>
               </div>
               <div class="side-block">
+                <p class="side-label" id="docs-estado-label">Estado del proceso</p>
+                <div class="chips chips-col" role="group" aria-labelledby="docs-estado-label">
+                  <button class="chip active" data-estado="activos" aria-pressed="true">Activos</button>
+                  <button class="chip" data-estado="cotizado" aria-pressed="false">Cotizado</button>
+                  <button class="chip" data-estado="aprobado" aria-pressed="false">Aprobado</button>
+                  <button class="chip" data-estado="produccion" aria-pressed="false">En producción</button>
+                  <button class="chip" data-estado="enviado" aria-pressed="false">Enviado</button>
+                  <button class="chip" data-estado="entregado" aria-pressed="false">Entregado</button>
+                  <button class="chip" data-estado="pagado" aria-pressed="false">Pagado</button>
+                  <button class="chip" data-estado="devuelto" aria-pressed="false">Devuelto</button>
+                  <button class="chip" data-estado="cerrados" aria-pressed="false" id="chip-cerrados">Archivo (cerrados)</button>
+                </div>
+              </div>
+              <div class="side-block">
                 <p class="side-label" id="docs-status-label">Estado de cobro</p>
                 <div class="chips chips-col" role="group" aria-labelledby="docs-status-label">
                   <button class="chip active" data-status="todos" aria-pressed="true">Cualquiera</button>
@@ -244,7 +258,7 @@
                   <button class="chip" data-status="pagado" aria-pressed="false">Liquidados</button>
                 </div>
               </div>
-              <p class="side-hint">Los documentos se ordenan del más reciente al más antiguo. Ábrelos para editar, imprimir o enviar.</p>
+              <p class="side-hint">Por defecto se muestran los documentos activos. Los marcados como Cerrados van al archivo y dejan de aparecer en el inicio.</p>
             </aside>
             <div class="page-main">
               <div class="results-bar">
