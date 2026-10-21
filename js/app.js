@@ -64,6 +64,7 @@
   let images = null;    // dataURLs pre-cargados para el PDF
   let listFilter = 'todos';   // 'todos' | 'recibo' | 'cotizacion'
   let listStatus = 'todos';   // 'todos' | 'pendiente' | 'parcial' | 'pagado'
+  let listEstado = 'activos'; // 'activos' | 'cerrados' | id de estado
   let listQuery = '';
   let cliFilter = 'todos';  // 'todos' | 'cliente' | 'prospecto'
   let cliQuery = '';
@@ -97,6 +98,24 @@
     var mi = String(now.getMinutes()).padStart(2, '0');
     return prefijo + yy + mm + dd + hh + mi;
   }
+  /* ---------------- Estados de workflow ---------------- */
+  const DOC_ESTADOS = [
+    { id: 'cotizado',     label: 'Cotizado',     tone: 'ghost' },
+    { id: 'aprobado',     label: 'Aprobado',     tone: 'accent' },
+    { id: 'produccion',   label: 'En producción', tone: 'warn' },
+    { id: 'enviado',      label: 'Enviado',      tone: 'accent' },
+    { id: 'entregado',    label: 'Entregado',    tone: 'ok' },
+    { id: 'pagado',       label: 'Pagado',       tone: 'ok' },
+    { id: 'devuelto',     label: 'Devuelto',     tone: 'danger' },
+    { id: 'cerrado',      label: 'Cerrado',      tone: 'muted' }
+  ];
+  const DOC_ESTADOS_MAP = DOC_ESTADOS.reduce(function (m, e) { m[e.id] = e; return m; }, {});
+
+  function docEstado(doc) {
+    const e = doc && doc.estado;
+    return DOC_ESTADOS_MAP[e] || DOC_ESTADOS_MAP.cotizado;
+  }
+
   function blankDoc(tipo) {
     return {
       id: window.uid(), tipo, numero: nextNumero(tipo),
@@ -107,9 +126,23 @@
       pagos: { cuenta: settings.pagos.cuenta, clabe: settings.pagos.clabe, beneficiario: settings.pagos.beneficiario, banco: settings.pagos.banco },
       abonos: [], condiciones: settings.condiciones, terminos: settings.terminos,
       entregaFecha: '', entregaForma: '',
+      estado: 'cotizado',
       createdAt: Date.now(), updatedAt: Date.now()
     };
   }
+
+  // Migración suave: documentos antiguos sin estado reciben uno por defecto.
+  (function migrateEstados() {
+    let changed = false;
+    docs.forEach(function (d) {
+      if (!d.estado || !DOC_ESTADOS_MAP[d.estado]) {
+        const t = d.items ? window.docTotals(d, settings) : { pagado: false, total: 0 };
+        d.estado = t.pagado && t.total > 0 ? 'pagado' : 'cotizado';
+        changed = true;
+      }
+    });
+    if (changed) storeSet('mc_docs', docs);
+  })();
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -209,6 +242,11 @@
     const filtered = docs.filter((d) => {
       const okTipo = listFilter === 'todos' || d.tipo === listFilter;
       if (!okTipo) return false;
+      // Filtro de archivo: por defecto se OCULTAN los cerrados.
+      const est = docEstado(d);
+      if (listEstado === 'activos' && est.id === 'cerrado') return false;
+      if (listEstado === 'cerrados' && est.id !== 'cerrado') return false;
+      if (listEstado !== 'activos' && listEstado !== 'cerrados' && est.id !== listEstado) return false;
       if (listStatus !== 'todos') {
         const t = computeTotals(d);
         if (listStatus === 'pagado' && !t.pagado) return false;
@@ -216,16 +254,22 @@
         if (listStatus === 'pendiente' && (t.pagado || t.abonado > 0)) return false;
       }
       const q = listQuery.trim().toLowerCase();
-      const okQ = !q || [d.numero, d.proyecto, d.representante, d.email].join(' ').toLowerCase().includes(q);
+      const okQ = !q || [d.numero, d.proyecto, d.representante, d.email, (est ? est.label : '')].join(' ').toLowerCase().includes(q);
       return okQ;
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
     paintChips('.chip[data-filter]', 'filter', listFilter);
     paintChips('.chip[data-status]', 'status', listStatus);
+    paintChips('.chip[data-estado]', 'estado', listEstado);
     const STATUS_NOTA = { pendiente: 'pendientes', parcial: 'con pago parcial', pagado: 'liquidados' };
+    const ESTADO_NOTA = { activos: '', cerrados: 'archivo' };
+    const extraEstado = ESTADO_NOTA.hasOwnProperty(listEstado)
+      ? ESTADO_NOTA[listEstado]
+      : (DOC_ESTADOS_MAP[listEstado] ? DOC_ESTADOS_MAP[listEstado].label.toLowerCase() : '');
     setCount('docs-count', filtered.length, 'documento', 'documentos',
       (listFilter === 'todos' ? '' : (listFilter === 'recibo' ? 'recibos' : 'cotizaciones'))
-      + (listStatus === 'todos' ? '' : (listFilter === 'todos' ? '' : ' · ') + STATUS_NOTA[listStatus]));
+      + (extraEstado ? ' · ' + extraEstado : '')
+      + (listStatus === 'todos' ? '' : ' · ' + STATUS_NOTA[listStatus]));
 
     if (!filtered.length) {
       wrap.innerHTML = `
@@ -244,6 +288,8 @@
     const rows = filtered.map((d) => {
       const t = computeTotals(d);
       const esCot = d.tipo === 'cotizacion';
+      const est = docEstado(d);
+      const esCerrado = est.id === 'cerrado';
       const nombre = d.numero || (esCot ? 'Cotización' : 'Recibo');
       const datos = [
         d.numero ? '<span>' + esc(d.numero) + '</span>' : '',
@@ -256,8 +302,16 @@
       const nota = t.abonado > 0.005
         ? window.fmtMoney(t.total) + ' · abonado ' + window.fmtMoney(t.abonado)
         : t.n + ' concepto' + (t.n !== 1 ? 's' : '');
+      const pagoPill = t.pagado
+        ? '<span class="pill mini ok">Pagado</span>'
+        : (t.abonado > 0.005 ? '<span class="pill mini warn">Pago parcial</span>' : '');
+      const cerrarBtn = esCerrado
+        ? actBtn('reabrir', d.id, 'Reabrir ' + nombre, ICO.open, 'Reabrir')
+        : actBtn('cerrar', d.id, 'Mover ' + nombre + ' a cerrados',
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 4v4"/><path d="M16 4v4"/></svg>',
+            'Cerrar', 'muted');
       return `
-      <li class="row row-doc">
+      <li class="row row-doc${esCerrado ? ' is-closed' : ''}">
         <div class="row-main">
           <p class="row-title">${esc(d.proyecto || 'Sin proyecto')}</p>
           <p class="row-meta">${meta}</p>
@@ -267,11 +321,16 @@
           <span class="row-figure-note">${esc(nota)}</span>
         </div>
         <div class="row-status">
-          <span class="pill mini ${t.pagado ? 'ok' : 'warn'}">${t.pagado ? 'Liquidado' : (t.porPagar < t.total ? 'Pago parcial' : 'Pendiente')}</span>
+          <span class="pill mini estado-pill ${est.tone}">${esc(est.label)}</span>
+          ${pagoPill}
           ${esCot && d.vigencia ? '<span class="row-figure-note">Vigente hasta ' + window.fmtDate(d.vigencia) + '</span>' : ''}
         </div>
         <div class="row-actions">
           ${actBtn('edit', d.id, 'Editar ' + nombre, ICO.edit, 'Editar')}
+          ${actBtn('cambiar-estado', d.id, 'Cambiar estado',
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+            '', 'outline')}
+          ${cerrarBtn}
           ${actBtn('duplicate', d.id, 'Duplicar ' + nombre, ICO.copy)}
           ${trashBtn('delete-list', d.id, 'Eliminar ' + nombre)}
         </div>
@@ -436,10 +495,11 @@
 
   /* Cobranza en una sola barra: de todo lo facturado que sigue abierto,
      cuánto se ha abonado y cuánto falta por cobrar. Un documento
-     liquidado sale de la barra y deja de contar en el 100%. */
+     liquidado o CERRADO sale de la barra y deja de contar en el 100%. */
   function cobranzaStats() {
     let total = 0, pagado = 0, abiertos = 0, saldados = 0;
     docs.forEach(function (d) {
+      if (docEstado(d).id === 'cerrado') { saldados++; return; }
       const t = computeTotals(d);
       if (t.total <= 0) return;
       const abonos = (d.abonos || []).reduce(function (s, a) { return s + (Number(a.monto) || 0); }, 0);
@@ -460,6 +520,7 @@
     const open = [];
     const paid = [];
     docs.forEach(function (d) {
+      if (docEstado(d).id === 'cerrado') return; // cerrados fuera del dashboard
       const t = computeTotals(d);
       if (t.total <= 0) return;
       const item = {
@@ -591,6 +652,11 @@
     if (!d.abonos) d.abonos = [];
     d.abonos.push({ fecha: window.todayISO(), monto: Math.min(m, t.porPagar) });
     d.updatedAt = Date.now();
+    // Si con este abono queda totalmente pagado y no está cerrado/devuelto, se marca como Pagado.
+    const t2 = computeTotals(d);
+    if (t2.pagado && d.estado !== 'cerrado' && d.estado !== 'devuelto') {
+      d.estado = 'pagado';
+    }
     storeSet('mc_docs', docs);
     if (editing && editing.id === d.id) editing.abonos = d.abonos.slice();
     return true;
@@ -662,6 +728,7 @@
     const quotesVencidas = [];
     const quotesHoy = [];
     docs.forEach(function (d) {
+      if (docEstado(d).id === 'cerrado') return;
       if (d.tipo !== 'cotizacion' || !d.vigencia) return;
       const t = computeTotals(d);
       if (t.pagado || t.total <= 0) return;
@@ -722,6 +789,7 @@
     }
     const viejos = [];
     docs.forEach(function (d) {
+      if (docEstado(d).id === 'cerrado') return;
       const t = computeTotals(d);
       if (t.total <= 0 || t.porPagar <= 0.005 || !d.fecha) return;
       const antig = daysBetween(hoy, d.fecha);
@@ -850,11 +918,13 @@
       return c.vencimiento === hoy && ((Number(c.monto) || 0) - ab) > 0.005;
     }).length;
     const vencHoyDocs = docs.filter(function (d) {
+      if (docEstado(d).id === 'cerrado') return false;
       if (!d.vigencia || d.vigencia !== hoy) return false;
       const t = computeTotals(d);
       return t.total > 0 && t.porPagar > 0.005;
     }).length;
     const vencidasDocs = docs.filter(function (d) {
+      if (docEstado(d).id === 'cerrado') return false;
       if (!d.vigencia || d.vigencia >= hoy) return false;
       const t = computeTotals(d);
       return t.total > 0 && t.porPagar > 0.005;
@@ -919,15 +989,21 @@
     }
 
     const chev = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>';
+    const cerradosCount = docs.filter(function (d) { return docEstado(d).id === 'cerrado'; }).length;
+    const activosCount = docs.length - cerradosCount;
     $('#hero-chips').innerHTML = [
       '<button type="button" class="hero-chip" data-action="go-docs">'
-        + '<b>' + docs.length + '</b> documento' + (docs.length !== 1 ? 's' : '') + ' ' + chev + '</button>',
+        + '<b>' + activosCount + '</b> documento' + (activosCount !== 1 ? 's' : '') + ' ' + chev + '</button>',
+      cerradosCount
+        ? '<button type="button" class="hero-chip is-muted" data-action="go-cerrados">'
+          + '<b>' + cerradosCount + '</b> en archivo' + chev + '</button>'
+        : '',
       (vencidos || vencHoy)
         ? '<button type="button" class="hero-chip is-alert" data-action="focus-tareas"><b>'
           + (vencidos || vencHoy) + '</b> '
           + (vencidos ? 'vencido' + (vencidos !== 1 ? 's' : '') : 'hoy') + '</button>'
         : '<span class="hero-chip is-ok">Al día</span>'
-    ].join('');
+    ].filter(Boolean).join('');
 
     /* ---------- Indicadores ---------- */
     function delta(actual, anterior) {
@@ -1021,6 +1097,7 @@
     // Agrupa saldos pendientes de los documentos por cliente
     var byClient = {};
     docs.forEach(function(d) {
+      if (docEstado(d).id === 'cerrado') return; // documentos cerrados no se cobran
       var t = computeTotals(d);
       if (t.total <= 0) return;
       var abonosTotal = (d.abonos || []).reduce(function(s, a) { return s + (Number(a.monto) || 0); }, 0);
@@ -2005,6 +2082,14 @@
             <input id="f-fecha" type="date" value="${esc(editing.fecha)}">
           </label>
         </div>
+        <label>Estado del documento
+          <select id="f-estado">
+            ${DOC_ESTADOS.map(function (e) {
+              return `<option value="${e.id}" ${(editing.estado || 'cotizado') === e.id ? 'selected' : ''}>${esc(e.label)}</option>`;
+            }).join('')}
+          </select>
+          <p class="hint">Cotizado → Aprobado → En producción → Enviado → Entregado → Pagado. Marcar como Cerrado lo envía al archivo y deja de aparecer en el inicio.</p>
+        </label>
         ${isCot ? `<label>Vigencia (válida hasta)
             <input id="f-vigencia" type="date" value="${esc(editing.vigencia || '')}">
           </label>` : ''}
@@ -2157,6 +2242,8 @@
     editing.numero = g('f-numero');
     editing.fecha = g('f-fecha');
     editing.vigencia = g('f-vigencia');
+    const estEl = $('#f-estado');
+    editing.estado = estEl ? (estEl.value || 'cotizado') : (editing.estado || 'cotizado');
     editing.proyecto = g('f-proyecto');
     editing.representante = g('f-representante');
     editing.telefono = g('f-telefono');
@@ -2481,19 +2568,6 @@
           </div>
           <p class="hint">Los recibos, cotizaciones, contactos, catálogo y tareas viajan con tu cuenta.</p>
         </section>
-
-        <section class="set-block">
-          <h3>Clientes guardados (${clientes.length})</h3>
-          <div class="client-list">
-            ${clientes.length
-              ? clientes.map((c) => `
-                  <div class="client-item">
-                    <span><b>${esc(c.nombre)}</b>${c.email ? `<br><span class="muted">${esc(c.email)}</span>` : ''}${c.telefono ? ` <span class="muted">· ${esc(c.telefono)}</span>` : ''}</span>
-                    <button class="btn small danger" data-action="del-client-settings" data-id="${c.id}" aria-label="Eliminar ${esc(c.nombre)}">Eliminar</button>
-                  </div>`).join('')
-              : '<p class="hint">Aún no hay clientes guardados. Guárdalos desde el editor de un documento (botón Guardar).</p>'}
-          </div>
-        </section>
       </div>
     `;
     $('#modal-settings').classList.add('open');
@@ -2573,6 +2647,50 @@
         break;
       }
       case 'delete-list': deleteDoc(btn.dataset.id); break;
+
+      /* ------ Estados de documento ------ */
+      case 'cerrar': {
+        const d = docs.find((x) => x.id === btn.dataset.id);
+        if (!d) break;
+        if (!confirm('¿Mover ' + (d.numero || 'este documento') + ' al archivo de Cerrados? Ya no aparecerá en el inicio.')) break;
+        d.estado = 'cerrado';
+        d.updatedAt = Date.now();
+        storeSet('mc_docs', docs);
+        switchMainView(mainView);
+        toast('Documento cerrado → archivo');
+        break;
+      }
+      case 'reabrir': {
+        const d = docs.find((x) => x.id === btn.dataset.id);
+        if (!d) break;
+        // Reabre con el último estado útil (Pagado si está pagado, sino Cotizado).
+        const t = computeTotals(d);
+        d.estado = (t.pagado && t.total > 0) ? 'pagado' : 'cotizado';
+        d.updatedAt = Date.now();
+        storeSet('mc_docs', docs);
+        switchMainView(mainView);
+        toast('Documento reabierto');
+        break;
+      }
+      case 'cambiar-estado': {
+        const d = docs.find((x) => x.id === btn.dataset.id);
+        if (!d) break;
+        const actual = docEstado(d).id;
+        const opts = DOC_ESTADOS.map(function (e, i) {
+          return (i + 1) + '. ' + e.label + (e.id === actual ? ' (actual)' : '');
+        }).join('\n');
+        const resp = prompt('Cambiar estado del documento ' + (d.numero || '') + ':\n\n' + opts + '\n\nEscribe el número del nuevo estado:', '');
+        if (resp == null) break;
+        const n = parseInt(resp, 10);
+        if (!n || n < 1 || n > DOC_ESTADOS.length) { toast('Opción inválida'); break; }
+        const nuevo = DOC_ESTADOS[n - 1];
+        d.estado = nuevo.id;
+        d.updatedAt = Date.now();
+        storeSet('mc_docs', docs);
+        switchMainView(mainView);
+        toast('Estado: ' + nuevo.label);
+        break;
+      }
       case 'set-tipo':
         if (editing) { editing.tipo = btn.dataset.tipo; renderEditor(); renderPreview(); }
         break;
@@ -2617,14 +2735,6 @@
         selectedClientId = null;
         renderEditor(); renderPreview();
         toast('Cliente eliminado');
-        break;
-      }
-      case 'del-client-settings': {
-        if (!confirm('¿Eliminar este cliente guardado? (No borra los documentos)')) break;
-        clientes = clientes.filter((c) => c.id !== btn.dataset.id);
-        storeSet('mc_clientes', clientes);
-        if (window.SYNC) window.SYNC.tombstone('clientes', btn.dataset.id);
-        openSettings();
         break;
       }
       /* ------ Directorio de clientes / prospectos ------ */
@@ -2694,7 +2804,8 @@
       case 'settings': closeNavPop(); openSettings(); break;
       case 'sheet-settings': openSettings(); break;
       case 'save-settings': saveSettings(); break;
-      case 'go-docs': closeNavPop(); switchMainView('docs'); break;
+      case 'go-docs': closeNavPop(); listEstado = 'activos'; switchMainView('docs'); break;
+      case 'go-cerrados': closeNavPop(); listEstado = 'cerrados'; switchMainView('docs'); break;
       case 'go-cxc': closeNavPop(); switchMainView('cxc'); break;
       case 'go-cxp': closeNavPop(); switchMainView('cxp'); break;
       case 'go-clientes': closeNavPop(); switchMainView('clientes'); break;
@@ -2949,6 +3060,7 @@
   $('#search').addEventListener('input', (e) => { listQuery = e.target.value; renderList(); });
   $$('.chip[data-filter]').forEach((c) => c.addEventListener('click', () => { listFilter = c.dataset.filter; renderList(); }));
   $$('.chip[data-status]').forEach((c) => c.addEventListener('click', () => { listStatus = c.dataset.status; renderList(); }));
+  $$('.chip[data-estado]').forEach((c) => c.addEventListener('click', () => { listEstado = c.dataset.estado; renderList(); }));
 
   // Búsqueda global: tecleo, clic y cierre al tocar fuera de la tarjeta
   const cmdkInput = $('#cmdk-input');

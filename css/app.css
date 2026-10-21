@@ -271,11 +271,26 @@ label {
 }
 .pill.solid { background: var(--brand-600); color: #fff; }
 .pill.ghost { background: var(--accent-soft); color: var(--accent-ink); }
+.pill.accent { background: var(--accent-soft); color: var(--accent-ink); }
 .pill.ok { background: var(--ok-soft); color: var(--ok); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.danger { background: var(--danger-soft); color: var(--danger); }
+.pill.muted { background: #EEF1F6; color: var(--ink-3); }
 .pill.mini { padding: 3px 8px 2px; font-size: 9px; }
+.pill.estado-pill { font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .pill svg { flex: 0 0 auto; }
+
+/* Documentos cerrados en el listado */
+.row-doc.is-closed .row-title { color: var(--ink-3); text-decoration: line-through; }
+.row-doc.is-closed .row-figure strong { color: var(--ink-3); }
+
+/* Botón Cerrar / Reabrir en filas */
+.btn.muted { background: transparent; color: var(--ink-3); border-color: transparent; }
+.btn.muted:hover { background: #EEF1F6; color: var(--ink); }
+
+/* Chip del dashboard para el archivo */
+.hero-chip.is-muted { background: #EEF1F6; color: var(--ink-3); border-color: transparent; }
+.hero-chip.is-muted b { color: var(--ink); }
 
 /* Iconos SVG compartidos por layout.js */
 .ic { flex: 0 0 auto; display: inline-block; vertical-align: middle; }
