@@ -222,7 +222,7 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar y filtrar documentos">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-1"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-1">
               <div class="side-block">
                 <label class="side-label" for="search">Buscar</label>
                 <input id="search" type="search" placeholder="Número, proyecto, cliente…">
@@ -258,7 +258,7 @@
                   <button class="chip" data-status="pagado" aria-pressed="false">Liquidados</button>
                 </div>
               </div>
-              <p class="side-hint">Por defecto se muestran los documentos activos. Los marcados como Cerrados van al archivo y dejan de aparecer en el inicio.</p>
+              <p class="side-hint">Por defecto se muestran los documentos activos. Los marcados como Cerrados van al archivo y dejan de aparecer en el inicio.</p></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">
@@ -299,12 +299,12 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar cuentas por cobrar">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-2"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-2">
               <div class="side-block">
                 <label class="side-label" for="search-cxc">Buscar</label>
                 <input id="search-cxc" type="search" placeholder="Cliente, proyecto, folio…">
               </div>
-              <p class="side-hint">Los saldos se calculan solos con los recibos y cotizaciones que aún tienen monto pendiente.</p>
+              <p class="side-hint">Los saldos se calculan solos con los recibos y cotizaciones que aún tienen monto pendiente.</p></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">
@@ -350,7 +350,7 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar y filtrar cuentas por pagar">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-3"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-3">
               <div class="side-block">
                 <label class="side-label" for="search-cxp">Buscar</label>
                 <input id="search-cxp" type="search" placeholder="Proveedor, concepto, folio…">
@@ -364,7 +364,7 @@
                   <button class="chip" data-cxp-filter="parcial" aria-pressed="false">Pago parcial</button>
                 </div>
               </div>
-              <p class="side-hint">Las cuentas vencidas aparecen primero, con su fecha de vencimiento.</p>
+              <p class="side-hint">Las cuentas vencidas aparecen primero, con su fecha de vencimiento.</p></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">
@@ -397,7 +397,7 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar y filtrar contactos">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-4"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-4">
               <div class="side-block">
                 <label class="side-label" for="search-cli">Buscar</label>
                 <input id="search-cli" type="search" placeholder="Nombre, empresa, email, teléfono…">
@@ -410,7 +410,7 @@
                   <button class="chip" data-cli-filter="prospecto" aria-pressed="false">Prospectos</button>
                 </div>
               </div>
-              <p class="side-hint">Al guardar un contacto lo reutilizas en el editor con el selector «Cliente guardado».</p>
+              <p class="side-hint">Al guardar un contacto lo reutilizas en el editor con el selector «Cliente guardado».</p></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">
@@ -443,7 +443,7 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar y filtrar el catálogo">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-5"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-5">
               <div class="side-block">
                 <label class="side-label" for="search-prod">Buscar</label>
                 <input id="search-prod" type="search" placeholder="Nombre, clave, unidad, característica…">
@@ -456,7 +456,7 @@
                   <button class="chip" data-prod-filter="servicio" aria-pressed="false">Servicios</button>
                 </div>
               </div>
-              <p class="side-hint">Al agregarlo a un documento se copian precio, unidad y características.</p>
+              <p class="side-hint">Al agregarlo a un documento se copian precio, unidad y características.</p></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">
@@ -489,7 +489,7 @@
           </header>
           <div class="page-grid">
             <aside class="page-side" aria-label="Buscar y filtrar tareas">
-              <p class="side-title">Buscar y filtrar</p>
+              <button type="button" class="side-title side-toggle" data-action="toggle-filters" aria-expanded="true" aria-controls="filtros-6"><span>Buscar y filtrar</span><svg class="side-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button><div class="side-body" id="filtros-6">
               <div class="side-block">
                 <label class="side-label" for="search-tareas">Buscar</label>
                 <input id="search-tareas" type="search" placeholder="Título, descripción, área…">
@@ -512,7 +512,7 @@
                   <button class="chip" data-tarea-area="ventas" aria-pressed="false">Ventas</button>
                   <button class="chip" data-tarea-area="cobranza" aria-pressed="false">Cobranza</button>
                 </div>
-              </div>
+              </div></div>
             </aside>
             <div class="page-main">
               <div class="results-bar">

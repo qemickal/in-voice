@@ -82,6 +82,9 @@
   let cxcQuery = '';
   let heroDebtorsOpen = false;
   let navReturnFocus = null;
+  /* El panel de filtros se pliega en pantalla angosta: con todas las
+     opciones abiertas empujaba la lista fuera de la primera pantalla. */
+  let filtersCollapsed = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
 
   /* ---------------- Utilidades ---------------- */
   // fuente única de verdad (layout.js): subtotal → IVA → descuento → por pagar
@@ -173,6 +176,17 @@
   }
   /* Separador de metadatos: no se lee, sólo ordena la línea. */
   const SEP = '<span class="row-sep" aria-hidden="true">·</span>';
+  /* El plegado del panel es visual: el estado vive aquí y se refleja en
+     los seis paneles a la vez (todos los botones dicen lo mismo). */
+  function applyFiltersState() {
+    $$('.page-side').forEach(function (side) {
+      side.classList.toggle('is-collapsed', filtersCollapsed);
+    });
+    $$('.side-toggle').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', filtersCollapsed ? 'false' : 'true');
+    });
+  }
+
   /* Grupos de filtros: son conmutadores, así que el estado activo tiene
      que oírse (aria-pressed), no sólo verse. */
   function paintChips(sel, attr, activo) {
@@ -310,15 +324,14 @@
         : actBtn('cerrar', d.id, 'Mover ' + nombre + ' a cerrados',
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 4v4"/><path d="M16 4v4"/></svg>',
             'Cerrar', 'muted');
+      /* La cifra va en el mismo renglón que el proyecto: la identidad a
+         la izquierda y el importe a la derecha. Antes era una columna
+         aparte que, en el celular, dejaba el título en 108 px. */
       return `
       <li class="row row-doc${esCerrado ? ' is-closed' : ''}">
         <div class="row-main">
-          <p class="row-title">${esc(d.proyecto || 'Sin proyecto')}</p>
-          <p class="row-meta">${meta}</p>
-        </div>
-        <div class="row-figure">
-          <strong>${window.fmtMoney(t.total)}</strong>
-          <span class="row-figure-note">${esc(nota)}</span>
+          <p class="row-title"><span class="row-title-text">${esc(d.proyecto || 'Sin proyecto')}</span><strong class="row-amount">${window.fmtMoney(t.total)}</strong></p>
+          <p class="row-meta">${meta}${nota ? SEP + '<span class="row-note">' + esc(nota) + '</span>' : ''}</p>
         </div>
         <div class="row-status">
           <span class="pill mini estado-pill ${est.tone}">${esc(est.label)}</span>
@@ -569,7 +582,9 @@
     const folio = kind + (it.numero ? ' · ' + it.numero : '');
     const actions = it.pagado
       ? ''
-      : '<button type="button" class="btn outline small cob-act" data-action="cob-pay" data-id="' + esc(it.id) + '">Cobrar</button>'
+      : '<button type="button" class="btn outline small cob-act" data-action="cob-pay" data-id="' + esc(it.id) + '" title="Registrar cobro" aria-label="Registrar cobro: ' + esc(it.cliente) + '">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>'
+        + '<span class="btn-label">Cobrar</span></button>'
         + '<button type="button" class="cob-check" data-action="cob-settle" data-id="' + esc(it.id) + '" title="Marcar pagado" aria-label="Marcar pagado: ' + esc(it.cliente) + '">'
         + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
         + '</button>';
@@ -1771,11 +1786,6 @@
     var m = { high: 'Alta', mid: 'Media', low: 'Baja' };
     return m[p] || 'Media';
   }
-  function tareaPrioClass(p) {
-    if (p === 'high') return 'danger';
-    if (p === 'low') return 'ok';
-    return 'warn';
-  }
   function tareaDueMeta(t, hoy) {
     if (t.done) return { text: 'Hecha', tone: 'ok' };
     if (!t.deadline) return { text: 'Sin fecha', tone: '' };
@@ -1862,31 +1872,34 @@
       return;
     }
 
+    /* La fila de una tarea no necesita cuatro píldoras: la prioridad es
+       un punto de color, el área y el vencimiento van en texto y el
+       documento asociado es un folio en línea. Así cabe en dos renglones
+       y sigue diciendo lo mismo. */
     var rows = filtered.map(function (t) {
       var due = tareaDueMeta(t, hoy);
       var titulo = t.titulo || 'esta tarea';
-      var prioPill = '<span class="pill mini ' + tareaPrioClass(t.prioridad) + '">Prioridad ' + esc(tareaPrioLabel(t.prioridad)) + '</span>';
-      var areaPill = '<span class="pill mini ghost">' + esc(tareaAreaLabel(t.area)) + '</span>';
-      var duePill = due.text ? '<span class="pill mini' + (due.tone ? ' ' + due.tone : '') + '">' + esc(due.text) + '</span>' : '';
       var docHtml = '';
       if (t.docId) {
         var d = docs.find(function (x) { return x.id === t.docId; });
         if (d) {
-          docHtml = '<div class="tarea-doc"><span class="pill mini ' + (d.tipo === 'cotizacion' ? 'ghost' : 'solid') + '">' + (d.tipo === 'cotizacion' ? 'COT' : 'REC') + ' ' + esc(d.numero || '') + '</span>'
-            + '<span class="muted">' + esc(d.representante || d.proyecto || '') + '</span>'
-            + '<button type="button" class="btn small quiet" data-action="view-tarea-doc" data-docid="' + esc(d.id) + '" aria-label="Ver el documento ' + esc(d.numero || '') + '">Ver documento</button></div>';
+          docHtml = '<button type="button" class="tarea-doc-link" data-action="view-tarea-doc" data-docid="' + esc(d.id) + '"'
+            + ' aria-label="Ver el documento ' + esc(d.numero || '') + '" title="' + esc((d.representante || d.proyecto || 'Ver documento')) + '">'
+            + (d.tipo === 'cotizacion' ? 'COT' : 'REC') + ' ' + esc(d.numero || '') + '</button>';
         }
       }
-      return '<li class="row row-tarea' + (t.done ? ' is-done' : '') + '">'
+      return '<li class="row row-tarea' + (t.done ? ' is-done' : '') + '"'
+        + (t.updatedAt ? ' title="Actualizada ' + esc(fmtCliFecha(t.updatedAt)) + '"' : '') + '>'
         + '<div class="row-main">'
-        + '<p class="row-title">' + esc(t.titulo || 'Sin título') + '</p>'
-        + '<p class="row-meta">' + prioPill + SEP + areaPill + (duePill ? SEP + duePill : '') + '</p>'
+        + '<p class="row-title"><span class="row-prio ' + esc(t.prioridad || 'mid') + '" title="Prioridad ' + esc(tareaPrioLabel(t.prioridad)) + '"></span>'
+        + '<span>' + esc(t.titulo || 'Sin título') + '</span></p>'
+        + '<p class="row-meta">'
+        + '<span>' + esc(tareaAreaLabel(t.area)) + '</span>'
+        + (!t.done && due.text ? SEP + '<span class="tarea-due' + (due.tone ? ' is-' + due.tone : '') + '">' + esc(due.text) + '</span>' : '')
+        + (docHtml ? SEP + docHtml : '')
+        + (t.done ? SEP + '<span class="tarea-done">Hecha</span>' : '')
+        + '</p>'
         + (t.descripcion ? '<p class="row-sub">' + esc(t.descripcion) + '</p>' : '')
-        + '</div>'
-        + docHtml
-        + '<div class="row-status">'
-        + (t.done ? '<span class="pill mini ok">Hecha</span>' : '<span class="pill mini warn">Pendiente</span>')
-        + (t.updatedAt ? '<span class="row-figure-note">Actualizada ' + fmtCliFecha(t.updatedAt) + '</span>' : '')
         + '</div>'
         + '<div class="row-actions">'
         + actBtn('edit-tarea', t.id, 'Editar ' + titulo, ICO.edit, 'Editar')
@@ -2810,6 +2823,11 @@
       case 'go-cxp': closeNavPop(); switchMainView('cxp'); break;
       case 'go-clientes': closeNavPop(); switchMainView('clientes'); break;
       case 'go-tareas': closeNavPop(); switchMainView('tareas'); break;
+      case 'toggle-filters':
+        filtersCollapsed = !filtersCollapsed;
+        applyFiltersState();
+        break;
+
       case 'toggle-debtors':
         heroDebtorsOpen = !heroDebtorsOpen;
         renderInicio();
@@ -3537,6 +3555,7 @@
   }
 
   function bootApp() {
+    applyFiltersState();
     // releer colecciones (el primer pull pudo traer datos remotos)
     settings = Object.assign({}, DEFAULT_SETTINGS, storeGet('mc_settings', {}));
     settings.pagos = Object.assign({}, DEFAULT_SETTINGS.pagos, settings.pagos || {});
