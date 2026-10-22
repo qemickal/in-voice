@@ -1,11 +1,15 @@
-# Diseño de la interfaz — v11
+# Diseño de la interfaz — v11.1
 
-Revisión del 21 de octubre de 2026. La v10 ya había dejado una sola hoja; esta
-iteración ataca un problema de lectura: **todo vivía sobre el mismo fondo
-claro y las secciones se sucedían sin frontera**. La v11 demarca con bloques
-—lienzo más profundo, paneles con cabecera propia y un único panel oscuro
-para la cobranza— y mueve el menú de escritorio del riel lateral a la barra
-superior.
+Revisión del 22 de octubre de 2026. La v11 había ganado frontera entre
+secciones, pero **cobró esa claridad en altura**: el saludo y la tarjeta de
+saldo ocupaban la primera pantalla completa, el panel de filtros apilaba sus
+píldoras una por una (534 px en el celular) y cada tarea llevaba cuatro
+píldoras y una caja aparte para su documento. La **v11.1 compacta sin perder
+jerarquía**: el mismo orden, con menos aire y la información secundaria
+plegada o en línea.
+
+Regla de esta iteración: **nada que se lea una vez debe ocupar el espacio de
+lo que se usa todo el día**. Lo decorativo cede, lo accionable se queda.
 
 La base sigue siendo la v10: la paleta azul pizarra, Archivo en local y la
 misma lógica. Cambian `index.html`, `css/app.css`, `js/app.js`, `sw.js`
@@ -22,10 +26,10 @@ externas, todos los recursos locales**. La lógica de datos, la sincronización
 (`js/sync.js`) y el documento impreso (`js/layout.js`, `js/render.js`,
 `js/pdf.js`) no cambian de motor.
 
-En la v11 cambian `index.html`, `css/app.css`, `js/app.js`, `sw.js`
-(caché `mc-pwa-v100`), `manifest.webmanifest` y este documento. El documento
-impreso (`js/layout.js`, `js/render.js`, `js/pdf.js`) y `js/sync.js` quedan
-intactos.
+En la v11.1 cambian `index.html`, `css/app.css`, `js/app.js`, `sw.js`
+(caché `mc-pwa-v101`) y este documento. El documento impreso
+(`js/layout.js`, `js/render.js`, `js/pdf.js`), `js/sync.js` y
+`manifest.webmanifest` quedan intactos.
 
 ## 1. Dirección visual
 
@@ -64,14 +68,27 @@ intactos.
   con dona y reparto abonado/por cobrar; cabecera de capítulo «Atajos» y
   cinco accesos cuadrados; panel verde «Tu siguiente paso»; cabecera
   «General» y las dos zonas de apoyo sobre el lienzo.
+- **Densidad antes que aire (v11.1).** El saludo baja de 58 a 38 px
+  (27 px en el celular) y la tarjeta oscura de 361 a 275 px en escritorio
+  —225 en el celular—: la dona pasa de 132 a 104 px, el reparto a dos
+  renglones por casilla y el pie pierde el tercio que le sobraba. El título
+  del panel de tareas y los accesos rápidos se ajustan en la misma medida.
+- **Filtros plegables.** La banda «Buscar y filtrar» es un botón: en
+  pantalla angosta el panel arranca plegado (queda en 44 px) y muestra la
+  lista en la primera pantalla; el estado se conserva mientras se navega y
+  se refleja con `aria-expanded` en los seis paneles. Los chips dejan de ser
+  una columna y pasan a fila envolvente, más bajos (29 px; 34 px en el
+  celular por el área de toque).
 - **El contacto es una hoja, no un modal pequeño.** En móvil ocupa toda la
   pantalla, con cabecera propia (volver, marca, sync y ajustes), campos con
   icono, segmento Cliente/Prospecto y botón de guardado al pie. En escritorio
   se centra como una hoja de 720 px.
-- **Listas legibles.** Cada registro es una tarjeta independiente, con su
-  borde, su radio y 10 px de separación: la fila dejó de ser una línea de una
-  tabla larga. La identidad va a la izquierda, la cifra a la derecha y
-  estado/acciones al pie.
+- **Listas legibles y cortas.** Cada registro es una tarjeta independiente,
+  con su borde, su radio y 8 px de separación. La identidad va a la
+  izquierda, la cifra a la derecha y estado/acciones al pie. En documentos,
+  el importe sube al mismo renglón que el proyecto y su detalle («abonado
+  …») pasa a la línea de metadatos: la fila queda en dos renglones y
+  desaparece la columna que dejaba el título en 108 px.
 - **Cabeceras que se ven.** La cabecera de cada pantalla es un panel con
   degradado suave; el panel de filtros lleva su propio rótulo («Buscar y
   filtrar») en una banda superior.
@@ -102,14 +119,14 @@ intactos.
 | `--t-fast` / `--t` | `110ms` / `140ms` | Micro-transiciones |
 | `--display` | `'Archivo Variable'` | Titulares, cifras y rótulos |
 | `--ancho-titular` / `--ancho-rotulo` | `76 %` / `88 %` | Cuánto se condensa cada voz |
-| `--topbar-h` | `72px` (+ safe area) | Barra superior con menú |
+| `--topbar-h` | `64px` (+ safe area) | Barra superior con menú |
 | `--content-w` | `1200px` | Ancho de lectura en escritorio |
 
 **Archivo** sigue siendo la única familia, en WOFF2 local. El texto corrido usa
 los estáticos (400/500/700); titulares, cifras y rótulos usan el archivo
-variable. Escala: 11/12/14/16 px; cifras 16–28 px; saludo 31–58 px; título de
-hoja 30–40 px. Los campos editables usan mínimo 16 px para evitar el zoom de
-iOS.
+variable. Escala: 11/12/14/16 px; cifras 16–23 px; saludo 27–38 px; título de
+sección 23–27 px; título de hoja 26–30 px. Los campos editables usan mínimo
+16 px para evitar el zoom de iOS.
 
 El variable (45 KB) sale del archivo latino de
 `@fontsource-variable/archivo` 5.3.0, limitado a peso 600–900 y anchura
@@ -127,8 +144,8 @@ Licencia OFL 1.1 en `assets/fonts/OFL-Archivo.txt`. Se precarga en
 
 | Pantalla | Composición |
 |---|---|
-| **Inicio** | `home-top` como panel tintado (saludo, fecha, píldoras y «Nuevo recibo»), `balance-card` oscura con dona y reparto, cabecera `board-head` de Atajos, `quick-grid` de cinco accesos, `next-card` verde con las tres primeras tareas, cabecera `board-head` de General y rejilla de apoyo: «Por cobrar» y «El mes en cifras». |
-| **Documentos, CxC, CxP, Clientes, Catálogo, Tareas** | `page-head` como panel con kicker, título, descripción y acciones; `page-grid` con panel lateral (`side-title` + búsqueda/filtros) y registros sueltos, uno por tarjeta. |
+| **Inicio** | `home-top` como panel tintado (saludo, fecha, píldoras y «Nuevo recibo»), `balance-card` oscura con dona y reparto, cabecera `board-head` de Atajos, `quick-grid` de cinco accesos, `next-card` verde con las tres primeras tareas, cabecera `board-head` de General y rejilla de apoyo: «Por cobrar» y «El mes en cifras». En v11.1 todo el tramo superior cabe en ~450 px de alto en el celular (antes ~750). |
+| **Documentos, CxC, CxP, Clientes, Catálogo, Tareas** | `page-head` como panel con kicker, título, descripción y acciones; `page-grid` con panel lateral plegable (`side-title` como botón + búsqueda/filtros) y registros sueltos, uno por tarjeta. |
 | **Hoja de cliente / prospecto** | Cabecera con volver, marca, sync y ajustes; kicker y título («Crear cliente» / «Crear prospecto»); segmento de tipo; campos con icono; pie fijo con guardar. |
 | **Editor** | Barra superior con volver, guardar, imprimir, enviar y eliminar; formulario en secciones numeradas; vista previa sticky. |
 | **Ajustes, CxP, producto, tarea** | Modales con cabecera, cuerpo desplazable y pie. En móvil se apoyan en el borde inferior. |
@@ -148,7 +165,12 @@ Licencia OFL 1.1 en `assets/fonts/OFL-Archivo.txt`. Se precarga en
   escribir nada, **el borrador se descarta** (§7).
 - Los cinco accesos son Cotizar, Recibo, Cliente, Gasto y Producto.
 - «Tu siguiente paso» reúne las tareas del día y de las áreas; muestra las tres
-  primeras y el enlace «Ver todas».
+  primeras y el enlace «Ver todas». Cada renglón son 8 px de relleno, casilla
+  de 26 px y un punto de prioridad: el bloque baja de 343 a 271 px en
+  escritorio.
+- La zona «Por cobrar» del inicio reparte el ancho entre nombre y cifra; las
+  acciones son dos botones de icono y el folio del documento va debajo. Los
+  nombres ya no se cortan ("Lucia Mé…").
 - «General» agrupa la cuenta por cobrar (por documento) y las cifras del mes
   (por pagar, facturado y cobrado).
 
@@ -184,7 +206,7 @@ clientes muestran RFC y método de pago.
 |---|---|
 | 1240 px o más | Menú completo en la barra superior (icono + rótulo); Inicio en dos columnas; listas con panel lateral; hoja de contacto centrada de 720 px |
 | 1023 px o menos | Sin menú superior ni iconos; navegación inferior flotante; Inicio a una columna con el saldo a lo ancho |
-| Hasta 900 px | El panel de filtros pasa arriba y la lista debajo, a todo el ancho; los chips se vuelven fila; el editor apila formulario y vista previa |
+| Hasta 900 px | El panel de filtros pasa arriba y la lista debajo, a todo el ancho; arranca **plegado** en una banda de 44 px y los chips, al abrirse, van en fila; el editor apila formulario y vista previa |
 | Hasta 760 px | Barra superior compacta sin subtítulo; pestañas Datos/Vista previa en el editor; modales como hoja inferior; hoja de contacto a pantalla completa |
 | Hasta 700 px | **Modo compacto**: barra del editor en rejilla, etiquetas de acción abreviadas, acciones de fila convertidas en iconos, parejas de campos a una columna |
 | Hasta 420 px | Se reduce la dona y el CTA; se ocultan textos secundarios |
@@ -239,6 +261,11 @@ textos con canvas). Ahora se agrupa en un fotograma con
   funciones sin uso) ahora cubre tres frentes nuevos: iconos de `ICONS` que
   nadie pide, variables CSS declaradas y nunca usadas, y claves de `LAYOUT`
   que ningún helper consulta.
+- Recorrido visual en Chromium (390 / 768 / 1440 px) sobre `npm run preview`:
+  sin errores de JavaScript y con estas alturas medidas —inicio del celular
+  125 px de saludo y 225 de saldo (antes 217 y 270); panel de filtros 34 px
+  plegado (antes 534 abierto y siempre visible); fila de tarea 82 px en
+  escritorio (antes 203) y 117 en el celular (antes 195).
 - Arnés de DOM con jsdom sobre `npm run preview`: el panel pinta saludo,
   saldo, dona, reparto, píldoras, accesos y tareas; las siete vistas navegan;
   la búsqueda global abre, busca con y sin acentos, navega con flechas y
@@ -247,6 +274,9 @@ textos con canvas). Ahora se agrupa en un fotograma con
   de JavaScript.
 - CSS parseado con `css-tree`: 783 reglas y 16 bloques `@media`, sin errores
   de sintaxis.
+- Capturas de referencia de esta iteración en `docs/capturas/`
+  (`inicio-movil.png`, `documentos-movil.png`, `tareas-movil.png`,
+  `inicio-escritorio.png`).
 - **Pendiente de revisión humana**: el recorrido visual en un navegador real
   (el entorno de trabajo no tiene binario de navegador). La vista previa queda
   en el puerto 3000 para revisar móvil, tableta y escritorio.
@@ -271,8 +301,13 @@ textos con canvas). Ahora se agrupa en un fotograma con
   opcionales; búsqueda global, atajos de teclado, filtros por estado y
   descartado de borradores vacíos. Se retiran `css/imprenta.css` y
   `?estilo=pizarra`.
-- **v11** *(actual)*: demarcación por bloques. Lienzo más profundo, paneles
-  con cabecera de capítulo, saldo en panel oscuro, panel verde para las
-  tareas y cada registro en su propia tarjeta. El menú de escritorio pasa
-  del riel lateral a la barra superior; se retira el riel y su bloque de
-  cuenta. Caché `mc-pwa-v100`.
+- **v11**: demarcación por bloques. Lienzo más profundo, paneles con cabecera
+  de capítulo, saldo en panel oscuro, panel verde para las tareas y cada
+  registro en su propia tarjeta. El menú de escritorio pasa del riel lateral
+  a la barra superior; se retira el riel y su bloque de cuenta. Caché
+  `mc-pwa-v100`.
+- **v11.1** *(actual)*: compactación. Saludo y saldo más bajos (el primer
+  pantallazo del celular gana ~270 px), filtros plegables y en fila, tareas
+  de dos renglones con la prioridad como punto y el documento como folio en
+  línea, documentos con el importe en el renglón del título, cabeceras y
+  barra superior más cortas. Caché `mc-pwa-v101`.
